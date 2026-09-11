@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Sequence
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,7 +16,8 @@ def _orthogonal_init(module: nn.Module) -> None:
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, obs_dim: int, act_dim: int, hidden=(256, 128), init_log_std: float = -1.0):
+    def __init__(self, obs_dim: int, act_dim: int, hidden=(256, 128),
+                 init_log_std: float | Sequence[float] = -1.0):
         super().__init__()
         layers: list[nn.Module] = []
         prev = obs_dim
@@ -24,7 +27,13 @@ class ActorCritic(nn.Module):
         self.body = nn.Sequential(*layers)
         self.mu = nn.Linear(prev, act_dim)
         self.value = nn.Linear(prev, 1)
-        self.log_std = nn.Parameter(torch.full((act_dim,), init_log_std))
+        if np.isscalar(init_log_std):
+            std_init = torch.full((act_dim,), float(init_log_std))
+        else:
+            std_init = torch.as_tensor(list(init_log_std), dtype=torch.float32)
+            if std_init.numel() != act_dim:
+                raise ValueError(f"init_log_std must have {act_dim} entries")
+        self.log_std = nn.Parameter(std_init)
         self.apply(_orthogonal_init)
         nn.init.orthogonal_(self.mu.weight, 0.01)
         nn.init.zeros_(self.mu.bias)
@@ -76,7 +85,7 @@ class PPO:
     def __init__(self, obs_dim: int, act_dim: int, lr: float = 3e-4, gamma: float = 0.99,
                  lam: float = 0.95, clip: float = 0.2, epochs: int = 10, minibatches: int = 8,
                  value_coef: float = 0.5, entropy_coef: float = 0.005, max_grad_norm: float = 0.5,
-                 device: str | None = None):
+                 device: str | None = None, init_log_std=-1.0):
         self.gamma = gamma
         self.lam = lam
         self.clip = clip
@@ -86,7 +95,7 @@ class PPO:
         self.entropy_coef = entropy_coef
         self.max_grad_norm = max_grad_norm
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
-        self.model = ActorCritic(obs_dim, act_dim).to(self.device)
+        self.model = ActorCritic(obs_dim, act_dim, init_log_std=init_log_std).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, eps=1e-5)
 
     @torch.no_grad()

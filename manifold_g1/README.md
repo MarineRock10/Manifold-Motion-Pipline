@@ -15,11 +15,15 @@ python3 -m manifold_g1.run --mode walk  --seconds 10 --video out.mp4   # planner
 
 python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15   # PPO on the goal task
 python3 -m manifold_g1.train --eval-only --resume reports/manifold_g1/ppo/policy.pt --eval-episodes 20
-python3 -m manifold_g1.train --viz --iterations 60 --rollout-steps 512             # live 3D dashboard
+python3 -m manifold_g1.sim2sim --resume reports/manifold_g1/ppo_l3/policy.pt      # visualize (native viewer)
 ```
 
 Or via make: `make g1-stand`, `make g1-walk`, `make g1-train`, `make g1-eval`,
-`make g1-train-viz`, `make g1-train-video`.
+`make g1-sim2sim`, `make g1-sim2sim-video`, `make g1-train-l3`, `make g1-eval-l3`.
+
+**Training is headless** (terminal + `train_log.csv` / `episodes.csv` only): rendering in the
+training loop costs more than the physics and inference it visualizes, so visualization lives
+in a separate path (below).
 
 Outputs (metrics JSON + per-tick npz + optional mp4 + PPO logs/checkpoints) go to
 `reports/manifold_g1/`, which is git-ignored.
@@ -37,8 +41,8 @@ Outputs (metrics JSON + per-tick npz + optional mp4 + PPO logs/checkpoints) go t
 | `manifold.py` | Procedural manifold geometry (currently an axis-aligned corridor with parameters L, W, H). |
 | `task_env.py` | `GoalReachEnv`: gym-like single-env task, velocity-command action, progress/collision/energy rewards, fall/success termination. |
 | `ppo.py` | Minimal PPO (clipped surrogate + GAE), actor-critic MLP with learned action std. |
-| `train.py` | Training/eval CLI, CSV logging, checkpointing, live 3D dashboard hooks. |
-| `live_viz.py` | Live dashboard: two 3D MuJoCo renders (manifold / robot) plus metric curves. |
+| `train.py` | Headless training/eval CLI (CSV logging, checkpointing, curriculum). |
+| `sim2sim.py` | Sim2sim visualization: native MuJoCo viewer, trajectory trail, in-viewer curves. |
 | `run.py` | Stand/walk demo CLI. |
 
 ## Assets
@@ -89,28 +93,21 @@ Outputs (metrics JSON + per-tick npz + optional mp4 + PPO logs/checkpoints) go t
 | Low-ceiling task (scripted, H_goal 0.95 m) | upright: ceiling contact; crouch ≈1.2: passes clean |
 | Speed | ~3x faster than real time on CPU (10.4 s of sim in 3.9 s wall, incl. video) |
 
-## Live 3D training dashboard
+## Sim2sim visualization
 
-Enable while training (`--viz` opens a window; `--viz-video <path>` records it headless):
+`make g1-sim2sim` (or `python3 -m manifold_g1.sim2sim --resume <checkpoint>`) opens the
+**native MuJoCo viewer** on the running policy:
 
-```bash
-make g1-train-viz                                        # live window
-python3 -m manifold_g1.train --viz-video reports/manifold_g1/viz/training.mp4 --iterations 60
-```
+- interactive 3D: drag to orbit, scroll to zoom, scene shadows/reflections enabled;
+- the ellipsoid manifold and the corridor, with a pelvis **trajectory trail**;
+- live curves drawn by MuJoCo itself (no matplotlib): episode return, and pelvis height vs
+  the corridor's ceiling height — the L3 evidence plot;
+- text overlay: episode, outcome, return, pelvis height, local ceiling, distance to goal;
+- keys: `R` reset, `[` / `]` lower/raise the goal-end ceiling, `P` pause, `T` toggle trail;
+- `--random-heights 0.95,1.25` samples the ceiling per episode, `--no-viewer --video out.mp4`
+  records headlessly at 720p, `--fast` disables real-time pacing.
 
-The dashboard shows, at ~2 Hz while training runs (raise `--viz-every` to reduce the
-rendering overhead, which slows training by roughly 2-4x):
-
-- **top-left (3D MuJoCo render)** — the manifold with the robot hidden: the corridor and the
-  translucent **ellipsoid chain** that represents the manifold primitives. As L3 sweeps the
-  height/width, this view shows the ellipses shrinking.
-- **top-right (3D MuJoCo render)** — the G1 training *inside* the manifold, camera tracking
-  the pelvis, so you watch the behavior evolve from random fumbling to goal-reaching.
-- **bottom row (live curves)** — episode return, rolling success rate, mean `|vx|` command,
-  the manifold compliance radius `r` (max normalized free-space-ellipse radius over the
-  tracked body points; `r > 1` means a body point left the manifold), and the L3 panel:
-  achieved pelvis height versus the manifold's goal-end ceiling height (green = success,
-  red = failed). The L3 signal is that green points must sit lower as the ceiling drops.
+Training stays headless, so the viewer never slows learning down.
 
 ## Curriculum gates
 

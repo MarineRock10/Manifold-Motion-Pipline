@@ -16,15 +16,15 @@ g1-eval :
 	python3 -m manifold_g1.train --eval-only --eval-episodes 20 \
 		--resume reports/manifold_g1/ppo/policy.pt --out reports/manifold_g1/ppo
 
-.PHONY : g1-train-viz
-g1-train-viz :
-	python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15 \
-		--out reports/manifold_g1/ppo --viz
+.PHONY : g1-sim2sim
+g1-sim2sim :
+	python3 -m manifold_g1.sim2sim --resume reports/manifold_g1/ppo_l3/policy.pt \
+		--height-start 1.5 --height-goal 1.0
 
-.PHONY : g1-train-video
-g1-train-video :
-	python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15 \
-		--out reports/manifold_g1/ppo --viz-video reports/manifold_g1/viz/training.mp4
+.PHONY : g1-sim2sim-video
+g1-sim2sim-video :
+	python3 -m manifold_g1.sim2sim --resume reports/manifold_g1/ppo_l3/policy.pt \
+		--no-viewer --episodes 5 --video reports/manifold_g1/viz/sim2sim.mp4
 
 .PHONY : g1-train-l3
 g1-train-l3 :

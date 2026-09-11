@@ -224,7 +224,12 @@ class GoalReachEnv:
         self._replan(st, force=True)
         return self._obs(st), {"distance": self._prev_dist}
 
-    def step(self, action: np.ndarray):
+    def step(self, action: np.ndarray, tick_callback=None):
+        """Advance one policy step (5 control ticks).
+
+        `tick_callback` is invoked after every control tick, which lets a viewer stay
+        smooth at 50 Hz without learning anything about the task internals.
+        """
         cfg = self.cfg
         action = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
         self._cmd = np.array([action[0] * cfg.max_lin_vel,
@@ -248,6 +253,8 @@ class GoalReachEnv:
             self.env.step()
             self.reference.advance()
             self._tick += 1
+            if tick_callback is not None:
+                tick_callback()
 
             command_delta = float(np.max(np.abs(self._cmd - self._last_replan_cmd)))
             due = (self._tick - self._last_replan_tick) >= cfg.replan_min_interval

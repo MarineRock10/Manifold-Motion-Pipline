@@ -6,7 +6,7 @@ success rate improves, which is the L3 experiment: manifold height -> body heigh
 
 Example:
   python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15 \
-      --curriculum --viz
+      --curriculum
 """
 
 from __future__ import annotations
@@ -85,10 +85,6 @@ def main() -> int:
     parser.add_argument("--eval-only", action="store_true")
     parser.add_argument("--eval-heights", default=None,
                         help="comma-separated goal-end heights for an evaluation sweep")
-    parser.add_argument("--viz", action="store_true", help="open the live 3D training dashboard")
-    parser.add_argument("--viz-video", type=Path, default=None, help="record the dashboard to mp4")
-    parser.add_argument("--viz-every", type=float, default=0.5, help="seconds between dashboard updates")
-    parser.add_argument("--viz-fps", type=float, default=2.0, help="dashboard video frame rate")
     args = parser.parse_args()
 
     rng = np.random.default_rng(args.seed)
@@ -101,7 +97,10 @@ def main() -> int:
     env = GoalReachEnv(spec, TaskConfig())
     obs, _ = env.reset(height_start=args.height_start, height_goal=args.height_goal)
     obs_dim = int(obs.shape[0])
-    ppo = PPO(obs_dim, env.action_dim, device=args.device)
+    # the crouch channel (last action dim) needs extra exploration: it starts far from
+    # the upright behaviour the policy discovers first
+    init_log_std = [-1.0] * (env.action_dim - 1) + [0.3]
+    ppo = PPO(obs_dim, env.action_dim, device=args.device, init_log_std=init_log_std)
     if args.resume is not None:
         ppo.load(args.resume)
         print(f"resumed from {args.resume}")
@@ -120,13 +119,6 @@ def main() -> int:
             print(json.dumps(result, indent=2))
         return 0
 
-    dashboard = None
-    if args.viz or args.viz_video is not None:
-        from .live_viz import LiveDashboard
-        dashboard = LiveDashboard(env, spec, show=args.viz, video_path=args.viz_video,
-                                  min_interval=args.viz_every, fps=args.viz_fps)
-        print(f"[viz] dashboard enabled ({'window' if args.viz else 'video'})")
-
     log_path = out_dir / "train_log.csv"
     log_file = open(log_path, "w", newline="")
     writer = csv.writer(log_file)
@@ -141,12 +133,11 @@ def main() -> int:
 
     # curriculum starts at the easy goal-end height and lowers it toward --height-goal-min
     goal_min = args.height_goal
-    sample_goal = (lambda: float(rng.uniform(goal_min, min(goal_min + 0.3, args.height_start)))
+    sample_goal = (lambda: float(rng.uniform(goal_min, min(goal_min + 0.15, args.height_start)))
                    if args.curriculum else args.height_goal)
 
     total_steps = 0
     wall_start = time.time()
-    command_scale = np.array([env.cfg.max_lin_vel, env.cfg.max_lat_vel, env.cfg.max_yaw_rate, 1.0])
     recent_success: list[float] = []
     height_goal = sample_goal()
     obs, _ = env.reset(height_start=args.height_start, height_goal=height_goal)
@@ -167,9 +158,6 @@ def main() -> int:
             episode_margin.append(info["ceiling_margin"])
             obs = next_obs
             total_steps += 1
-            if dashboard is not None:
-                dashboard.log_step(action * command_scale, env.compliance_radius())
-                dashboard.maybe_update()
             if done or truncated:
                 episode_returns.append(episode_return)
                 outcomes.append(info["outcome"])
@@ -178,9 +166,6 @@ def main() -> int:
                                          info["episode_step"], f"{episode_return:.3f}",
                                          f"{np.mean(episode_pelvis):.3f}", f"{np.min(episode_margin):.3f}"])
                 episode_file.flush()
-                if dashboard is not None:
-                    dashboard.log_episode(info["outcome"], episode_return, height_goal,
-                                          float(np.mean(episode_pelvis)))
                 episode_return = 0.0
                 episode_pelvis = []
                 episode_margin = []
@@ -220,9 +205,6 @@ def main() -> int:
 
     log_file.close()
     episode_file.close()
-    if dashboard is not None:
-        dashboard.maybe_update(force=True)
-        dashboard.close()
     summary = {
         "iterations": args.iterations,
         "env_steps": total_steps,
