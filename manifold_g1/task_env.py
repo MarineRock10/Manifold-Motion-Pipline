@@ -217,18 +217,22 @@ class GoalReachEnv:
     # -- gym-like API -------------------------------------------------------
     def reset(self, tunnel_semi_z: float | None = None, **manifold_overrides) -> tuple[np.ndarray, dict]:
         if tunnel_semi_z is not None or manifold_overrides:
-            first = self.manifold.primitives[0]
-            last = self.manifold.primitives[-1]
-            # rebuild with identical span/start so the chain does not drift forward
-            self.set_manifold(EllipsoidManifold.tunnel(
-                length=float(last.center[0] - first.center[0]),
-                semi_y=float(first.semi[1]),
-                entry_semi_z=float(first.semi[2]),
-                tunnel_semi_z=float(tunnel_semi_z if tunnel_semi_z is not None else last.semi[2]),
-                count=len(self.manifold.primitives),
-                start_x=float(first.center[0]),
-                **manifold_overrides,
-            ))
+            height = float(tunnel_semi_z if tunnel_semi_z is not None else self.manifold.primitives[-1].semi[2])
+            if len(self.manifold.primitives) == 1:
+                self.set_manifold(self.manifold.with_last_semi_z(height))
+            else:
+                first = self.manifold.primitives[0]
+                last = self.manifold.primitives[-1]
+                # rebuild with identical span/start so the chain does not drift forward
+                self.set_manifold(EllipsoidManifold.tunnel(
+                    length=float(last.center[0] - first.center[0]),
+                    semi_y=float(first.semi[1]),
+                    entry_semi_z=float(first.semi[2]),
+                    tunnel_semi_z=height,
+                    count=len(self.manifold.primitives),
+                    start_x=float(first.center[0]),
+                    **manifold_overrides,
+                ))
         # a low manifold cannot contain an upright robot, so spawn crouched
         offset_isaac = self.cfg.spawn_crouch * CROUCH_DIRECTION
         self.env.reset(x=float(self.manifold.start_x()), height=0.62,

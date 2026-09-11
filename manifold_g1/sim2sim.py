@@ -84,7 +84,11 @@ def _update_trail(viewer, pelvis_trail: deque, color=(1.0, 0.55, 0.1, 0.8)) -> N
 def main() -> int:
     parser = argparse.ArgumentParser(description="Visualize a trained policy in MuJoCo (sim2sim)")
     parser.add_argument("--resume", type=Path, default=Path("reports/manifold_g1/ppo_soft/policy.pt"))
+    parser.add_argument("--geo-policy", type=Path, default=None,
+                        help="pure-geometry policy (task-space obs); executed here by SONIC")
+    parser.add_argument("--manifold", choices=("single", "tunnel"), default="single")
     parser.add_argument("--episodes", type=int, default=0, help="0 = run until the window is closed")
+    parser.add_argument("--semi-x", type=float, default=2.6, help="half-length of a single ellipsoid")
     parser.add_argument("--length", type=float, default=4.5)
     parser.add_argument("--semi-y", type=float, default=1.1)
     parser.add_argument("--entry-height", type=float, default=1.3)
@@ -112,15 +116,21 @@ def main() -> int:
         return float(rng.uniform(*tunnel_range)) if tunnel_range else args.tunnel_height
 
     def manifold(h: float) -> EllipsoidManifold:
+        if args.manifold == "single":
+            return EllipsoidManifold.single(semi_x=args.semi_x, semi_y=args.semi_y,
+                                            semi_z=h, tilt_deg=args.tilt_deg)
         return EllipsoidManifold.tunnel(length=args.length, semi_y=args.semi_y,
                                         entry_semi_z=args.entry_height, tunnel_semi_z=h,
                                         count=args.primitives, tilt_deg=args.tilt_deg)
 
     env = GoalReachEnv(manifold(tunnel_height()), TaskConfig())
     obs, _ = env.reset(tunnel_semi_z=tunnel_height())
-    ppo = PPO(int(obs.shape[0]), env.action_dim)
-    ppo.load(args.resume)
-    print(f"loaded {args.resume}  obs_dim={obs.shape[0]}  action_dim={env.action_dim}")
+    policy_path = args.geo_policy or args.resume
+    probe = env.reduced_obs() if args.geo_policy is not None else obs
+    ppo = PPO(int(probe.shape[0]), env.action_dim)
+    ppo.load(policy_path)
+    print(f"loaded {policy_path}  obs_dim={probe.shape[0]}  action_dim={env.action_dim}"
+          f"{'  (pure-geometry policy executed by SONIC)' if args.geo_policy is not None else ''}")
 
     state = {"reset": False, "pause": False, "trail": args.trail, "tunnel_delta": 0.0}
 
@@ -212,7 +222,8 @@ def main() -> int:
                 obs, _ = env.reset(tunnel_semi_z=tunnel_height())
                 continue
 
-            action, _, _ = ppo.act(obs, deterministic=not args.stochastic)
+            policy_obs = env.reduced_obs() if args.geo_policy is not None else obs
+            action, _, _ = ppo.act(policy_obs, deterministic=not args.stochastic)
             obs, _, done, truncated, info = env.step(action, tick_callback=on_tick)
             if viewer is not None:
                 viewer.set_texts([(None, None,

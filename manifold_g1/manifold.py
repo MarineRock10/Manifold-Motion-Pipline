@@ -143,6 +143,14 @@ class EllipsoidManifold:
                                         semi=np.array([0.62 * spacing, semi_y, semi_z])))
         return cls(primitives)
 
+    def with_last_semi_z(self, semi_z: float) -> "EllipsoidManifold":
+        """Copy of the manifold with the far primitive flattened to `semi_z` (keeps x layout)."""
+        primitives = [Primitive(p.center.copy(), p.quat.copy(), p.semi.copy()) for p in self.primitives]
+        last = primitives[-1]
+        last.semi = np.array([last.semi[0], last.semi[1], float(semi_z)])
+        last.center = np.array([last.center[0], last.center[1], 0.5 * float(semi_z)])
+        return EllipsoidManifold(primitives)
+
     # -- geometry -----------------------------------------------------------
     def radii(self, points: np.ndarray) -> np.ndarray:
         """Normalized radius per point: min over primitives (< 1 inside the manifold)."""
