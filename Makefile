@@ -16,7 +16,12 @@ g1-eval :
 	python3 -m manifold_g1.train --eval-only --eval-episodes 20 \
 		--resume reports/manifold_g1/ppo/policy.pt --out reports/manifold_g1/ppo
 
-.PHONY : g1-viz
-g1-viz :
-	python3 -m manifold_g1.visualize --resume reports/manifold_g1/ppo/policy.pt \
-		--out reports/manifold_g1/viz/manifold_policy.png
+.PHONY : g1-train-viz
+g1-train-viz :
+	python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15 \
+		--out reports/manifold_g1/ppo --viz
+
+.PHONY : g1-train-video
+g1-train-video :
+	python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15 \
+		--out reports/manifold_g1/ppo --viz-video reports/manifold_g1/viz/training.mp4

@@ -64,6 +64,10 @@ def main() -> int:
     parser.add_argument("--device", default=None)
     parser.add_argument("--resume", type=Path, default=None)
     parser.add_argument("--eval-only", action="store_true")
+    parser.add_argument("--viz", action="store_true", help="open the live 3D training dashboard")
+    parser.add_argument("--viz-video", type=Path, default=None, help="record the dashboard to mp4")
+    parser.add_argument("--viz-every", type=float, default=0.5, help="seconds between dashboard updates")
+    parser.add_argument("--viz-fps", type=float, default=2.0, help="dashboard video frame rate")
     args = parser.parse_args()
 
     np.random.seed(args.seed)
@@ -82,6 +86,13 @@ def main() -> int:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    dashboard = None
+    if (args.viz or args.viz_video is not None) and not args.eval_only:
+        from .live_viz import LiveDashboard
+        dashboard = LiveDashboard(env, spec, show=args.viz, video_path=args.viz_video,
+                                  min_interval=args.viz_every, fps=args.viz_fps)
+        print(f"[viz] dashboard enabled ({'window' if args.viz else 'video'})")
+
     if args.eval_only:
         result = evaluate(ppo, env, args.eval_episodes)
         print(json.dumps(result, indent=2))
@@ -95,6 +106,7 @@ def main() -> int:
 
     total_steps = 0
     wall_start = time.time()
+    command_scale = np.array([env.cfg.max_lin_vel, env.cfg.max_lat_vel, env.cfg.max_yaw_rate])
     for iteration in range(1, args.iterations + 1):
         buffer = RolloutBuffer(args.rollout_steps, obs_dim, env.action_dim)
         episode_returns: list[float] = []
@@ -107,9 +119,14 @@ def main() -> int:
             episode_return += reward
             obs = next_obs
             total_steps += 1
+            if dashboard is not None:
+                dashboard.log_step(action * command_scale, env.compliance_radius())
+                dashboard.maybe_update()
             if done or truncated:
                 episode_returns.append(episode_return)
                 outcomes.append(info["outcome"])
+                if dashboard is not None:
+                    dashboard.log_episode(info["outcome"], episode_return)
                 episode_return = 0.0
                 obs, _ = env.reset()
         stats = ppo.update(buffer, ppo.value(obs))
@@ -135,6 +152,9 @@ def main() -> int:
             (out_dir / "eval_latest.json").write_text(json.dumps(result, indent=2))
 
     log_file.close()
+    if dashboard is not None:
+        dashboard.maybe_update(force=True)
+        dashboard.close()
     summary = {
         "iterations": args.iterations,
         "env_steps": total_steps,

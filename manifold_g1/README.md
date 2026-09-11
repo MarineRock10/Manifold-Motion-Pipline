@@ -15,10 +15,11 @@ python3 -m manifold_g1.run --mode walk  --seconds 10 --video out.mp4   # planner
 
 python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15   # PPO on the goal task
 python3 -m manifold_g1.train --eval-only --resume reports/manifold_g1/ppo/policy.pt --eval-episodes 20
-python3 -m manifold_g1.visualize --resume reports/manifold_g1/ppo/policy.pt    # diagnostic figure
+python3 -m manifold_g1.train --viz --iterations 60 --rollout-steps 512             # live 3D dashboard
 ```
 
-Or via make: `make g1-stand`, `make g1-walk`, `make g1-train`, `make g1-eval`, `make g1-viz`.
+Or via make: `make g1-stand`, `make g1-walk`, `make g1-train`, `make g1-eval`,
+`make g1-train-viz`, `make g1-train-video`.
 
 Outputs (metrics JSON + per-tick npz + optional mp4 + PPO logs/checkpoints) go to
 `reports/manifold_g1/`, which is git-ignored.
@@ -36,8 +37,8 @@ Outputs (metrics JSON + per-tick npz + optional mp4 + PPO logs/checkpoints) go t
 | `manifold.py` | Procedural manifold geometry (currently an axis-aligned corridor with parameters L, W, H). |
 | `task_env.py` | `GoalReachEnv`: gym-like single-env task, velocity-command action, progress/collision/energy rewards, fall/success termination. |
 | `ppo.py` | Minimal PPO (clipped surrogate + GAE), actor-critic MLP with learned action std. |
-| `train.py` | Training/eval CLI, CSV logging, checkpointing. |
-| `visualize.py` | Two-column diagnostic figure: manifold (left) vs learned action distribution (right). |
+| `train.py` | Training/eval CLI, CSV logging, checkpointing, live 3D dashboard hooks. |
+| `live_viz.py` | Live dashboard: two 3D MuJoCo renders (manifold / robot) plus metric curves. |
 | `run.py` | Stand/walk demo CLI. |
 
 ## Assets
@@ -75,24 +76,27 @@ Outputs (metrics JSON + per-tick npz + optional mp4 + PPO logs/checkpoints) go t
 | PPO (`make g1-train`, 60 iters) | greedy eval 20/20 success, 0 falls, 0 collisions, 2.8 s to goal (mean) |
 | Speed | ~3x faster than real time on CPU (10.4 s of sim in 3.9 s wall, incl. video) |
 
-## Visualization
+## Live 3D training dashboard
 
-`make g1-viz` (or `python3 -m manifold_g1.visualize ...`) renders
-`reports/manifold_g1/viz/manifold_policy.png`:
+Enable while training (`--viz` opens a window; `--viz-video <path>` records it headless):
 
-- **Left — the generated manifold.** Top: top-down corridor with the rollout trajectories,
-  start and goal. Bottom: cross-section with the free-space ellipse inscribed in (W, H) and
-  the robot's body points colored by the normalized ellipse radius
-  `r = sqrt((y/(W/2))² + ((z − H/2)/(H/2))²)`; `r < 1` means the point is inside the
-  free-space ellipse. `ellipse_radius_max` is the compliance margin that L3 must shrink
-  as the manifold height decreases.
-- **Right — the action distribution the policy learned.** Top: command mean ± 2σ versus
-  distance to goal, with the greedy rollout overlaid. Bottom: samples drawn from the policy
-  at start / mid / near-goal phases in `(vx, wz)`. With today's unimodal PPO policy this is a
-  Gaussian; at L6 the same panel is where the multimodal `p(a | M, s, c)` becomes visible.
+```bash
+make g1-train-viz                                        # live window
+python3 -m manifold_g1.train --viz-video reports/manifold_g1/viz/training.mp4 --iterations 60
+```
 
-Example output (trained L2 policy, corridor 6×2×2 m): 3/3 success,
-`ellipse_radius_max = 0.70` (30% margin to the manifold boundary), action σ ≈ 0.35.
+The dashboard shows, at ~2 Hz while training runs (raise `--viz-every` to reduce the
+rendering overhead, which slows training by roughly 2-4x):
+
+- **top-left (3D MuJoCo render)** — the manifold with the robot hidden: the corridor and the
+  translucent **ellipsoid chain** that represents the manifold primitives. As L3 sweeps the
+  height/width, this view shows the ellipses shrinking.
+- **top-right (3D MuJoCo render)** — the G1 training *inside* the manifold, camera tracking
+  the pelvis, so you watch the behavior evolve from random fumbling to goal-reaching.
+- **bottom row (live curves)** — episode return, rolling success rate, mean `|vx|` command,
+  and the manifold compliance radius `r` (max normalized free-space-ellipse radius over the
+  tracked body points; `r > 1` means a body point left the manifold). The curve that matters
+  for L3 is the compliance radius staying below 1 as the manifold shrinks.
 
 ## Curriculum gates
 

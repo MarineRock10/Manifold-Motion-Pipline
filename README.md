@@ -33,7 +33,13 @@ make g1-stand     # frozen SONIC stand test
 make g1-walk      # planner-driven walk
 make g1-train     # PPO on the fixed-manifold goal task
 make g1-eval      # greedy evaluation of the trained policy
+make g1-train-viz # same training with the live 3D dashboard (window)
 ```
+
+`make g1-train-viz` opens a live dashboard while training: the manifold (corridor + ellipsoid
+chain) rendered in 3D on the left, the G1 training inside it on the right, and metric curves
+(return / success / |vx| / manifold compliance) below. Use `--viz-video <path>` for headless
+recording.
 
 See [`manifold_g1/README.md`](manifold_g1/README.md) for interfaces, curriculum gates and
 verified results.

@@ -31,6 +31,11 @@ def roll_pitch(quat: np.ndarray) -> tuple[float, float]:
     return float(roll), float(pitch)
 
 
+# body points used for the manifold compliance metric and visualization
+COMPLIANCE_BODIES = ("pelvis", "torso_link", "left_knee_link", "right_knee_link",
+                     "left_wrist_yaw_link", "right_wrist_yaw_link")
+
+
 @dataclass
 class TaskConfig:
     max_episode_steps: int = 200        # policy steps (0.1 s each)
@@ -65,6 +70,10 @@ class GoalReachEnv:
         self.controller = SonicController()
         self.planner = SonicPlanner()
         self.obstacle_geoms = self._geom_ids(("wall_left", "wall_right", "ceiling", "wall_back"))
+        self.compliance_body_ids = [
+            mujoco.mj_name2id(self.env.model, mujoco.mjtObj.mjOBJ_BODY, name)
+            for name in COMPLIANCE_BODIES
+        ]
         self.goal = np.array([self.spec.goal_x, 0.0])
         self.action_dim = 3
         self._qpos_hist: deque[np.ndarray] = deque(maxlen=4)
@@ -105,6 +114,12 @@ class GoalReachEnv:
             if contact.geom1 in self.obstacle_geoms or contact.geom2 in self.obstacle_geoms:
                 penetration += max(0.0, -float(contact.dist))
         return penetration
+
+    def compliance_radius(self) -> float:
+        """Max normalized free-space-ellipse radius over the tracked body points (1 = boundary)."""
+        points = self.env.data.xpos[self.compliance_body_ids]
+        radii = self.spec.ellipse_radius(points[:, 1], points[:, 2])
+        return float(radii.max())
 
     def _obs(self, st: dict) -> np.ndarray:
         quat = st["base_quat"]

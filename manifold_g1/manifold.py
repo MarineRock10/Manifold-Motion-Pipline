@@ -1,14 +1,21 @@
 """Procedural manifold geometry.
 
-The first implementation is an axis-aligned corridor over flat ground:
-length L along +x, inner width W, ceiling height H. It is deliberately simple;
-ellipsoids, slopes and curvature are added in later curriculum levels.
+Current implementation: an axis-aligned corridor over flat ground (length L along +x,
+inner width W, ceiling height H) whose free space is visualised as a chain of
+translucent ellipsoids (the manifold primitives of the research plan). The box walls
+remain the collision hull; the ellipsoid chain is the conditioning geometry that the
+policy observes and that the compliance metric is measured against.
+
+All manifold geoms live in geom group 1 so a renderer can show the manifold alone
+(hide group 0, i.e. the robot) or the full scene.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+
+import numpy as np
 
 from . import constants as C
 
@@ -33,23 +40,29 @@ _SCENE_TEMPLATE = """<mujoco model="g1 manifold corridor">
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
     <material name="wall_mat" rgba="0.65 0.65 0.7 1"/>
     <material name="ceiling_mat" rgba="0.75 0.75 0.8 1"/>
+    <material name="manifold_mat" rgba="0.25 0.6 0.95 0.16"/>
   </asset>
 
   <worldbody>
     <light pos="0 0 3" dir="0 0 -1" directional="true"/>
-    <geom name="floor" type="plane" size="0 0 0.05" material="groundplane"/>
+    <geom name="floor" type="plane" size="0 0 0.05" material="groundplane" group="1"/>
 
     <geom name="wall_left" type="box" size="{half_l:.3f} {half_t:.3f} {half_h:.3f}"
-          pos="0 {left_y:.3f} {half_h:.3f}" material="wall_mat"/>
+          pos="0 {left_y:.3f} {half_h:.3f}" material="wall_mat" group="1"/>
     <geom name="wall_right" type="box" size="{half_l:.3f} {half_t:.3f} {half_h:.3f}"
-          pos="0 {right_y:.3f} {half_h:.3f}" material="wall_mat"/>
+          pos="0 {right_y:.3f} {half_h:.3f}" material="wall_mat" group="1"/>
     <geom name="ceiling" type="box" size="{half_l:.3f} {half_w_outer:.3f} {half_t:.3f}"
-          pos="0 0 {ceiling_z:.3f}" material="ceiling_mat"/>
+          pos="0 0 {ceiling_z:.3f}" material="ceiling_mat" group="1"/>
     <geom name="wall_back" type="box" size="{half_t:.3f} {half_w_outer:.3f} {half_h:.3f}"
-          pos="{back_x:.3f} 0 {half_h:.3f}" material="wall_mat"/>
+          pos="{back_x:.3f} 0 {half_h:.3f}" material="wall_mat" group="1"/>
+{ellipsoid_geoms}
   </worldbody>
 </mujoco>
 """
+
+_ELLIPSOID_GEOM = ('    <geom name="ellipsoid_{i}" type="ellipsoid" '
+                   'size="{sx:.3f} {sy:.3f} {sz:.3f}" pos="{x:.3f} 0 {z:.3f}" '
+                   'material="manifold_mat" group="1" contype="0" conaffinity="0"/>')
 
 
 @dataclass
@@ -62,14 +75,26 @@ class ManifoldSpec:
     start_x: float = -2.0
     goal_x: float = 2.0
     wall_thickness: float = 0.1
+    ellipsoid_spacing: float = 0.75
 
     @property
     def grid(self) -> tuple[float, float, float]:
         return (self.length, self.width, self.height)
 
+    def ellipsoids(self) -> list[tuple[float, float, float, float]]:
+        """Ellipsoid chain along the corridor as (x, semi_x, semi_y, semi_z)."""
+        count = max(3, int(round(self.length / max(self.ellipsoid_spacing, 1e-3))) + 1)
+        xs = np.linspace(-0.5 * self.length, 0.5 * self.length, count)
+        semi_x = self.length / (count - 1)
+        return [(float(x), semi_x, 0.5 * self.width, 0.5 * self.height) for x in xs]
+
     def xml(self) -> str:
         half_l = 0.5 * self.length
         half_t = 0.5 * self.wall_thickness
+        ellipsoid_geoms = "\n".join(
+            _ELLIPSOID_GEOM.format(i=i, sx=sx, sy=sy, sz=sz, x=x, z=0.5 * self.height)
+            for i, (x, sx, sy, sz) in enumerate(self.ellipsoids())
+        )
         return _SCENE_TEMPLATE.format(
             extent=self.length + 2.0,
             half_l=half_l,
@@ -80,7 +105,12 @@ class ManifoldSpec:
             right_y=0.5 * self.width + half_t,
             ceiling_z=self.height + half_t,
             back_x=self.start_x - 0.8,
+            ellipsoid_geoms=ellipsoid_geoms,
         )
+
+    def ellipse_radius(self, y, z):
+        """Normalized radius of a point against the cross-section free-space ellipse."""
+        return np.sqrt((y / (0.5 * self.width)) ** 2 + ((z - 0.5 * self.height) / (0.5 * self.height)) ** 2)
 
 
 def build_scene(spec: ManifoldSpec, path: Path = SCENE_PATH) -> Path:
