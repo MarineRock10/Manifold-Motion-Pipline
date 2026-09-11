@@ -50,6 +50,9 @@ class TaskConfig:
     penetration_clip: float = 0.01      # cap the per-tick penetration used in the penalty [m]
     hard_collision_penetration: float = 0.03
     hard_collision_penalty: float = 5.0
+    w_ceiling_contact: float = 8.0      # per second while touching the ceiling
+    ceiling_stuck_ticks: int = 15       # sustained ceiling contact (0.3 s) ends the episode
+    ceiling_stuck_penalty: float = 5.0
     w_energy: float = 0.1
     goal_bonus: float = 10.0
     fall_penalty: float = 10.0
@@ -95,6 +98,7 @@ class GoalReachEnv:
         self._last_replan_cmd = np.zeros(4)
         self._episode_return = 0.0
         self.crouch_amount = 0.0
+        self._ceiling_ticks = 0
         self.reference = CrouchReference.static_stand(np.array([1.0, 0.0, 0.0, 0.0]))
 
     # -- helpers ------------------------------------------------------------
@@ -128,6 +132,18 @@ class GoalReachEnv:
         geom = self.robot_geoms
         top = float(np.max(self.env.data.geom_xpos[geom, 2] + self.env.model.geom_rbound[geom]))
         return float(self.spec.height_at(self.env.data.qpos[0]) - top)
+
+    def _ceiling_contact(self) -> bool:
+        """True while any robot geom touches a ceiling slab."""
+        for i in range(self.env.data.ncon):
+            contact = self.env.data.contact[i]
+            if contact.dist > 1e-3:
+                continue
+            name1 = mujoco.mj_id2name(self.env.model, mujoco.mjtObj.mjOBJ_GEOM, contact.geom1) or ""
+            name2 = mujoco.mj_id2name(self.env.model, mujoco.mjtObj.mjOBJ_GEOM, contact.geom2) or ""
+            if name1.startswith("ceiling_") or name2.startswith("ceiling_"):
+                return True
+        return False
 
     def _obs(self, st: dict) -> np.ndarray:
         quat = st["base_quat"]
@@ -196,6 +212,7 @@ class GoalReachEnv:
             self._qpos_hist.append(self._qpos36(st))
         self.reference = CrouchReference.static_stand(st["base_quat"])
         self.crouch_amount = 0.0
+        self._ceiling_ticks = 0
         self._prev_action = np.zeros(4)
         self._cmd = np.zeros(4)
         self._tick = 0
@@ -252,6 +269,11 @@ class GoalReachEnv:
             if penetration > 1e-5:
                 collision = True
                 reward -= cfg.w_collision * min(penetration, cfg.penetration_clip)
+            if self._ceiling_contact():
+                reward -= cfg.w_ceiling_contact * C.CONTROL_DT
+                self._ceiling_ticks += 1
+            else:
+                self._ceiling_ticks = 0
             reward -= cfg.w_energy * float(np.mean(np.square(action))) * C.CONTROL_DT
 
             roll, pitch = roll_pitch(st["base_quat"])
@@ -267,6 +289,10 @@ class GoalReachEnv:
             if penetration > cfg.hard_collision_penetration:
                 reward -= cfg.hard_collision_penalty
                 terminated, outcome = True, "collision"
+                break
+            if self._ceiling_ticks > cfg.ceiling_stuck_ticks:
+                reward -= cfg.ceiling_stuck_penalty
+                terminated, outcome = True, "ceiling"
                 break
             if success:
                 reward += cfg.goal_bonus
