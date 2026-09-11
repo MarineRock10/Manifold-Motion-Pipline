@@ -236,8 +236,8 @@ def main() -> int:
                 height_fig.fig.linedata[1, 0:2 * n2:2] = np.arange(n2)
                 height_fig.fig.linedata[1, 1:2 * n2:2] = np.asarray(height_fig_second)
                 print(f"episode {episodes_done:3d}  {info['outcome']:>13s}  "
-                      f"return {info['episode_return']:+7.2f}  pelvis_z {info['base_z']:.3f}  "
-                      f"ceiling {info['local_ceiling']:.2f}", flush=True)
+                      f"steps {info['episode_step']:3d}  return {info['episode_return']:+7.2f}  "
+                      f"pelvis_z {info['base_z']:.3f}  ceiling {info['local_ceiling']:.2f}", flush=True)
                 if args.episodes and episodes_done >= args.episodes:
                     break
                 pelvis_trail.clear()

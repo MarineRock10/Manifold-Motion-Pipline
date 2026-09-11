@@ -49,14 +49,14 @@ _SCENE_HEADER = """<mujoco model="g1 manifold corridor">
     <geom name="floor" type="plane" size="0 0 0.05" material="groundplane" group="1"/>
 """
 
-_SLAB_GEOMS = """    <geom name="wall_left_{i}" type="box" size="{half_slab:.3f} {half_t:.3f} {half_h:.3f}"
-          pos="{cx:.3f} {left_y:.3f} {half_h:.3f}" material="wall_mat" group="1"/>
-    <geom name="wall_right_{i}" type="box" size="{half_slab:.3f} {half_t:.3f} {half_h:.3f}"
-          pos="{cx:.3f} {right_y:.3f} {half_h:.3f}" material="wall_mat" group="1"/>
-    <geom name="ceiling_{i}" type="box" size="{half_slab:.3f} {half_w_outer:.3f} {half_t:.3f}"
-          pos="{cx:.3f} 0 {ceiling_z:.3f}" material="ceiling_mat" group="1"/>
-    <geom name="ellipsoid_{i}" type="ellipsoid" size="{semi_x:.3f} {half_w:.3f} {half_h:.3f}"
-          pos="{cx:.3f} 0 {half_h:.3f}" material="manifold_mat" group="1" contype="0" conaffinity="0"/>"""
+_SLAB_GEOMS = """    <geom name="wall_left_{i}" type="box" size="{half_slab:.9g} {half_t:.9g} {half_h:.9g}"
+          pos="{cx:.9g} {left_y:.9g} {half_h:.9g}" material="wall_mat" group="1"/>
+    <geom name="wall_right_{i}" type="box" size="{half_slab:.9g} {half_t:.9g} {half_h:.9g}"
+          pos="{cx:.9g} {right_y:.9g} {half_h:.9g}" material="wall_mat" group="1"/>
+    <geom name="ceiling_{i}" type="box" size="{half_slab:.9g} {half_w_outer:.9g} {half_t:.9g}"
+          pos="{cx:.9g} 0 {ceiling_z:.9g}" material="ceiling_mat" group="1"/>
+    <geom name="ellipsoid_{i}" type="ellipsoid" size="{semi_x:.9g} {half_w:.9g} {half_h:.9g}"
+          pos="{cx:.9g} 0 {half_h:.9g}" material="manifold_mat" group="1" contype="0" conaffinity="0"/>"""
 
 
 @dataclass
@@ -173,6 +173,23 @@ def apply_profile(model: mujoco.MjModel, spec: ManifoldSpec, data: mujoco.MjData
     model.geom_size[back, 2] = 0.5 * spec.height_start
     model.geom_pos[back, 2] = 0.5 * spec.height_start
 
+    # geom_rbound is computed at compile time and mj_setConst does not refresh it, yet the
+    # broad phase and ray casts use it; stale bounds make the reshaped scene behave differently
+    # from an equivalent scene built directly from XML.
+    for index in range(len(heights)):
+        for name in (f"wall_left_{index}", f"wall_right_{index}",
+                     f"ceiling_{index}", f"ellipsoid_{index}"):
+            gid = geom_id(name)
+            if model.geom_type[gid] == mujoco.mjtGeom.mjGEOM_BOX:
+                model.geom_rbound[gid] = float(np.linalg.norm(model.geom_size[gid]))
+            elif model.geom_type[gid] == mujoco.mjtGeom.mjGEOM_ELLIPSOID:
+                model.geom_rbound[gid] = float(np.max(model.geom_size[gid]))
+    model.geom_rbound[back] = float(np.linalg.norm(model.geom_size[back]))
+
     if data is not None:
+        # mj_setConst derives solver constants (body_invweight0, dof_invweight0, ...) from the
+        # configuration currently held in `data`, so it must see the reference configuration --
+        # otherwise the dynamics silently depend on the pose the previous episode ended in.
+        mujoco.mj_resetData(model, data)
         mujoco.mj_setConst(model, data)
         mujoco.mj_forward(model, data)

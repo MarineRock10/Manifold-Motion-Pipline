@@ -119,7 +119,7 @@ the next one starts.
 | L0 | 1x MuJoCo, flat | none | fixed reference → frozen SONIC (stand/walk) | done |
 | L1 | 1x MuJoCo | fixed corridor (L, W, H) | PPO velocity policy → planner → SONIC, goal reaching | done |
 | L2 | 1x MuJoCo | fixed | PPO converged (eval success > 90%) | done (20/20 greedy) |
-| L3 | 1x MuJoCo | ceiling height swept | manifold height → body height (crouch channel) | in progress |
+| L3 | 1x MuJoCo | ceiling height swept | manifold height → body height (crouch channel) | done (10/10 per height) |
 | L4 | 1x MuJoCo | one new parameter per stage (W, θ, κ, obstacles) | walk/crouch generalization | |
 | L5 | batched 8→4096 | randomized p(M) | single-mode large-scale training | |
 | L6 | batched | randomized | multimodal π(M, s, c, z) | |
