@@ -57,7 +57,8 @@ class TaskConfig:
     goal_bonus: float = 10.0
     fall_penalty: float = 10.0
     out_penalty: float = 10.0
-    manifold_out_radius: float = 1.15    # terminate when a body point is this far outside
+    manifold_out_radius: float = 1.15    # sustained violation beyond this terminates
+    manifold_out_ticks: int = 10        # 0.2 s of sustained violation before terminating
     obs_goal_scale: float = 5.0
     crouch_max: float = 1.3             # 4th action dim in [0, 1] scales this crouch offset
     replan_min_interval: int = 25       # control ticks between command-triggered replans
@@ -235,6 +236,7 @@ class GoalReachEnv:
         outcome = "running"
         max_tilt = np.radians(cfg.tilt_limit_deg)
         max_radius = 0.0
+        outside_ticks = 0
 
         for _ in range(self.CONTROL_PER_POLICY):
             st = self.env.state()
@@ -274,7 +276,8 @@ class GoalReachEnv:
             roll, pitch = roll_pitch(st["base_quat"])
             fell = st["base_pos"][2] < cfg.fall_height or abs(roll) > max_tilt or abs(pitch) > max_tilt
             success = distance < -cfg.goal_margin and state["radius"] <= 1.0
-            outside_far = state["radius"] > cfg.manifold_out_radius
+            outside_ticks = outside_ticks + 1 if state["radius"] > cfg.manifold_out_radius else 0
+            outside_far = outside_ticks > cfg.manifold_out_ticks
             if fell:
                 reward -= cfg.fall_penalty
                 terminated, outcome = True, "fall"

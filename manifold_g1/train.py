@@ -75,7 +75,7 @@ def main() -> int:
     parser.add_argument("--eval-every", type=int, default=10)
     parser.add_argument("--eval-episodes", type=int, default=5)
     parser.add_argument("--length", type=float, default=4.5)
-    parser.add_argument("--semi-y", type=float, default=1.1)
+    parser.add_argument("--semi-y", type=float, default=1.6)
     parser.add_argument("--entry-height", type=float, default=1.3, help="half-height of the entry ellipsoid")
     parser.add_argument("--tunnel-height", type=float, default=1.3, help="half-height of the far ellipsoid")
     parser.add_argument("--tunnel-height-min", type=float, default=0.62)
