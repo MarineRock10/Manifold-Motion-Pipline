@@ -107,6 +107,13 @@ class PPO:
         return action.squeeze(0).cpu().numpy(), float(logprob.item()), float(value.item())
 
     @torch.no_grad()
+    def action_stats(self, obs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Mean and std of the Gaussian policy at an observation (the learned action distribution)."""
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
+        dist, _ = self.model.distribution(obs_t)
+        return dist.mean.squeeze(0).cpu().numpy(), dist.stddev.squeeze(0).cpu().numpy()
+
+    @torch.no_grad()
     def value(self, obs: np.ndarray) -> float:
         obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
         _, value = self.model(obs_t)

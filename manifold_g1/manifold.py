@@ -110,6 +110,19 @@ class EllipsoidManifold:
 
     # -- construction -------------------------------------------------------
     @classmethod
+    def single(cls, semi_x: float = 2.6, semi_y: float = 1.3, semi_z: float = 0.62,
+               center_x: float = 0.0, tilt_deg: float = 0.0) -> "EllipsoidManifold":
+        """One ellipsoid: the robot starts inside its near end and must reach the far end.
+
+        This is the minimal manifold for the first pipeline: a single primitive, one
+        fixed task, one policy - no chain, no randomization.
+        """
+        tilt = np.radians(tilt_deg)
+        center = np.array([center_x, 0.0, 0.5 * semi_z])
+        quat = np.array([np.cos(0.5 * tilt), 0.0, np.sin(0.5 * tilt), 0.0])
+        return cls([Primitive(center=center, quat=quat, semi=np.array([semi_x, semi_y, semi_z]))])
+
+    @classmethod
     def tunnel(cls, length: float = 4.5, semi_y: float = 1.1, entry_semi_z: float = 1.3,
                tunnel_semi_z: float = 1.0, tilt_deg: float = 0.0, count: int = 3,
                start_x: float = -1.5) -> "EllipsoidManifold":
@@ -145,11 +158,20 @@ class EllipsoidManifold:
         return self.primitives[index].axis()
 
     def goal(self) -> np.ndarray:
+        return np.array([self.goal_x(), 0.0, self.primitives[-1].center[2]])
+
+    def goal_x(self) -> float:
+        """x where the far end region begins (crossing it inside the manifold is success)."""
         last = self.primitives[-1]
-        return last.center + 0.35 * last.semi[0] * last.axis() * 0.0 + np.array([0.5 * last.semi[0], 0.0, 0.0])
+        return float(last.center[0] + (0.55 * last.semi[0] if len(self.primitives) == 1 else 0.0))
+
+    def start_x(self) -> float:
+        """Spawn x: inside the near end for a single ellipsoid, before the chain otherwise."""
+        first = self.primitives[0]
+        return float(first.center[0] - (0.55 * first.semi[0] if len(self.primitives) == 1 else 0.9))
 
     def start(self) -> np.ndarray:
-        return self.primitives[0].center.copy()
+        return np.array([self.start_x(), 0.0, self.primitives[0].center[2]])
 
     def params(self) -> np.ndarray:
         """Flat parameter vector [K x 9]: relative centre, axis, semi-axes per primitive."""

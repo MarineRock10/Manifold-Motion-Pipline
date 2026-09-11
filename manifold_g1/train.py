@@ -25,6 +25,10 @@ from .task_env import GoalReachEnv, TaskConfig
 
 
 def make_manifold(args, tunnel_height: float) -> EllipsoidManifold:
+    """One fixed manifold: a single ellipsoid by default, or a short chain."""
+    if args.manifold == "single":
+        return EllipsoidManifold.single(semi_x=args.semi_x, semi_y=args.semi_y,
+                                        semi_z=tunnel_height, tilt_deg=args.tilt_deg)
     return EllipsoidManifold.tunnel(
         length=args.length, semi_y=args.semi_y, entry_semi_z=args.entry_height,
         tunnel_semi_z=tunnel_height, count=args.primitives, tilt_deg=args.tilt_deg,
@@ -41,8 +45,13 @@ def evaluate(ppo: PPO, env: GoalReachEnv, episodes: int = 5, tunnel_height: floa
         pelvis_z: list[float] = []
         radii: list[float] = []
         spines: list[float] = []
+        action_means: list[np.ndarray] = []
+        action_stds: list[np.ndarray] = []
         info = {"outcome": "running"}
         while not (done or truncated):
+            mean, std = ppo.action_stats(obs)
+            action_means.append(mean)
+            action_stds.append(std)
             action, _, _ = ppo.act(obs, deterministic=True)
             obs, reward, done, truncated, info = env.step(action)
             episode_return += reward
@@ -51,6 +60,8 @@ def evaluate(ppo: PPO, env: GoalReachEnv, episodes: int = 5, tunnel_height: floa
             radii.append(info["manifold_radius_max"])
             spines.append(info["spine_alignment"])
         results.append({"outcome": info["outcome"], "steps": steps, "return": episode_return,
+                        "action_mean": np.mean(action_means, axis=0).tolist(),
+                        "action_std": np.mean(action_stds, axis=0).tolist(),
                         "pelvis_z": float(np.mean(pelvis_z)), "radius_max": float(np.max(radii)),
                         "spine": float(np.mean(spines))})
     return {
@@ -64,6 +75,8 @@ def evaluate(ppo: PPO, env: GoalReachEnv, episodes: int = 5, tunnel_height: floa
         "radius_max": float(np.mean([r["radius_max"] for r in results])),
         "spine": float(np.mean([r["spine"] for r in results])),
         "tunnel_height": tunnel_height,
+        "action_mean": np.mean([r["action_mean"] for r in results], axis=0).tolist(),
+        "action_std": np.mean([r["action_std"] for r in results], axis=0).tolist(),
         "episodes": episodes,
     }
 
@@ -74,6 +87,9 @@ def main() -> int:
     parser.add_argument("--rollout-steps", type=int, default=512)
     parser.add_argument("--eval-every", type=int, default=10)
     parser.add_argument("--eval-episodes", type=int, default=5)
+    parser.add_argument("--manifold", choices=("single", "tunnel"), default="single",
+                        help="single ellipsoid (first pipeline) or a short chain")
+    parser.add_argument("--semi-x", type=float, default=2.6, help="half-length of a single ellipsoid")
     parser.add_argument("--length", type=float, default=4.5)
     parser.add_argument("--semi-y", type=float, default=1.6)
     parser.add_argument("--entry-height", type=float, default=1.3, help="half-height of the entry ellipsoid")
@@ -99,7 +115,7 @@ def main() -> int:
     torch.manual_seed(args.seed)
 
     env = GoalReachEnv(make_manifold(args, args.tunnel_height), TaskConfig())
-    obs, _ = env.reset(tunnel_semi_z=args.tunnel_height)
+    obs, _ = env.reset()
     obs_dim = int(obs.shape[0])
     init_log_std = [-1.0] * (env.action_dim - 1) + [0.3]   # extra exploration on the crouch dim
     ppo = PPO(obs_dim, env.action_dim, device=args.device, init_log_std=init_log_std)
@@ -140,7 +156,7 @@ def main() -> int:
     wall_start = time.time()
     recent_success: list[float] = []
     tunnel = sample()
-    obs, _ = env.reset(tunnel_semi_z=tunnel)
+    obs, _ = env.reset(tunnel_semi_z=tunnel if args.curriculum else None)
 
     for iteration in range(1, args.iterations + 1):
         buffer = RolloutBuffer(args.rollout_steps, obs_dim, env.action_dim)
@@ -175,7 +191,7 @@ def main() -> int:
                 episode_radius = []
                 episode_spine = []
                 tunnel = sample()
-                obs, _ = env.reset(tunnel_semi_z=tunnel)
+                obs, _ = env.reset(tunnel_semi_z=tunnel if args.curriculum else None)
 
         stats = ppo.update(buffer, ppo.value(obs))
 

@@ -115,7 +115,7 @@ class GoalReachEnv:
 
     def _distance(self, st: dict) -> float:
         """Distance remaining along x to the end region of the manifold (can go negative)."""
-        return float(self.manifold.primitives[-1].center[0] - st["base_pos"][0])
+        return float(self.manifold.goal_x() - st["base_pos"][0])
 
     def manifold_state(self) -> dict:
         """Containment radius, torso/axis alignment and the nearest primitive."""
@@ -201,8 +201,7 @@ class GoalReachEnv:
                 start_x=float(first.center[0]),
                 **manifold_overrides,
             ))
-        start = self.manifold.start()
-        self.env.reset(x=float(start[0] - 0.9))
+        self.env.reset(x=float(self.manifold.start_x()))
         self.controller.reset()
         st = self.env.state()
         self._qpos_hist.clear()
