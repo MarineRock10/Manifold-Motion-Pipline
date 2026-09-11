@@ -190,8 +190,9 @@ class GoalReachEnv:
         if tunnel_semi_z is not None or manifold_overrides:
             first = self.manifold.primitives[0]
             last = self.manifold.primitives[-1]
+            # rebuild with identical span/start so the chain does not drift forward
             self.set_manifold(EllipsoidManifold.tunnel(
-                length=float(last.center[0] - first.center[0]) + 1.4,
+                length=float(last.center[0] - first.center[0]),
                 semi_y=float(first.semi[1]),
                 entry_semi_z=float(first.semi[2]),
                 tunnel_semi_z=float(tunnel_semi_z if tunnel_semi_z is not None else last.semi[2]),
