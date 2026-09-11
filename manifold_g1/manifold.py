@@ -111,14 +111,16 @@ class EllipsoidManifold:
     # -- construction -------------------------------------------------------
     @classmethod
     def single(cls, semi_x: float = 2.6, semi_y: float = 1.3, semi_z: float = 0.62,
-               center_x: float = 0.0, tilt_deg: float = 0.0) -> "EllipsoidManifold":
+               center_x: float = 0.0, tilt_deg: float = 0.0,
+               center_z: float | None = None) -> "EllipsoidManifold":
         """One ellipsoid: the robot starts inside its near end and must reach the far end.
 
         This is the minimal manifold for the first pipeline: a single primitive, one
         fixed task, one policy - no chain, no randomization.
         """
         tilt = np.radians(tilt_deg)
-        center = np.array([center_x, 0.0, 0.5 * semi_z])
+        z = 0.5 * semi_z if center_z is None else float(center_z)
+        center = np.array([center_x, 0.0, z])
         quat = np.array([np.cos(0.5 * tilt), 0.0, np.sin(0.5 * tilt), 0.0])
         return cls([Primitive(center=center, quat=quat, semi=np.array([semi_x, semi_y, semi_z]))])
 
