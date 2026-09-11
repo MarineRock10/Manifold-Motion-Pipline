@@ -1,11 +1,17 @@
-"""Goal-reaching RL environment: simple manifold, velocity-command policy, frozen SONIC execution.
+"""Goal-reaching RL environment on a *soft* ellipsoid manifold.
 
-Policy (10 Hz) outputs a body-frame velocity command; it is mapped to the kinematic
-planner (movement/facing/speed), whose 50 Hz output is the motion reference that the
-frozen SONIC controller tracks in MuJoCo.
+The MuJoCo scene is flat ground plus translucent (non-colliding) ellipsoids. The manifold
+exists only in the reward and observation:
 
-Observation (78-D): body-frame velocities, gravity, joint state relative to the default
-pose, goal vector, heading error, previous action, manifold parameters.
+  * containment: body points leaving the ellipsoid chain are penalized quadratically
+    (`w_manifold * (r-1)^2`), and leaving it far terminates the episode;
+  * spine: the torso is rewarded for aligning with the nearest primitive's local +z axis,
+    which is how a flattened or tilted manifold shapes the body orientation.
+
+Nothing collides with the manifold, so changing it is pure data - no model rebuilds.
+
+Policy (10 Hz) outputs a body-frame velocity command plus a crouch command; the velocity
+command drives the kinematic planner and frozen SONIC tracks the resulting reference.
 """
 
 from __future__ import annotations
@@ -18,10 +24,14 @@ import numpy as np
 
 from . import constants as C
 from .env import G1FlatEnv
-from .manifold import ManifoldSpec, apply_profile, build_scene
+from .manifold import EllipsoidManifold, build_scene, update_visuals
 from .planner import SonicPlanner
-from .reference import CrouchReference, PlannedReference
+from .reference import CrouchReference
 from .sonic import SonicController
+
+# body points used for manifold containment and visualization
+COMPLIANCE_BODIES = ("pelvis", "torso_link", "left_knee_link", "right_knee_link",
+                     "left_wrist_yaw_link", "right_wrist_yaw_link")
 
 
 def roll_pitch(quat: np.ndarray) -> tuple[float, float]:
@@ -31,62 +41,48 @@ def roll_pitch(quat: np.ndarray) -> tuple[float, float]:
     return float(roll), float(pitch)
 
 
-# body points used for the manifold compliance metric and visualization
-COMPLIANCE_BODIES = ("pelvis", "torso_link", "left_knee_link", "right_knee_link",
-                     "left_wrist_yaw_link", "right_wrist_yaw_link")
-
-
 @dataclass
 class TaskConfig:
     max_episode_steps: int = 200        # policy steps (0.1 s each)
-    success_radius: float = 0.40
-    fall_height: float = 0.45
+    fall_height: float = 0.42
     tilt_limit_deg: float = 60.0
+    goal_margin: float = 0.35           # success once the base passes the end region minus this
     max_lin_vel: float = 1.5
     max_lat_vel: float = 0.6
     max_yaw_rate: float = 1.0
     w_progress: float = 1.0
-    w_collision: float = 30.0
-    penetration_clip: float = 0.01      # cap the per-tick penetration used in the penalty [m]
-    hard_collision_penetration: float = 0.03
-    hard_collision_penalty: float = 5.0
-    w_ceiling_contact: float = 8.0      # per second while touching the ceiling
-    ceiling_stuck_ticks: int = 15       # sustained ceiling contact (0.3 s) ends the episode
-    ceiling_stuck_penalty: float = 5.0
+    w_manifold: float = 40.0             # per second, times (r - 1) outside the manifold
+    w_spine: float = 3.0                # per second, penalizes torso misalignment with the axis
     w_energy: float = 0.1
     goal_bonus: float = 10.0
     fall_penalty: float = 10.0
     out_penalty: float = 10.0
-    replan_min_interval: int = 25       # control ticks between command-triggered replans
-    replan_command_delta: float = 0.5   # command change needed to force a replan
+    manifold_out_radius: float = 1.15    # terminate when a body point is this far outside
     obs_goal_scale: float = 5.0
-    # body-height channel: the 4th action dim in [0, 1] scales a sagittal crouch offset
-    # applied to the walking reference (0 = upright, 1 = crouch_max). One-sided on purpose:
-    # a zero-mean initial policy then walks upright instead of half-crouched.
-    crouch_max: float = 1.3
+    crouch_max: float = 1.3             # 4th action dim in [0, 1] scales this crouch offset
+    replan_min_interval: int = 25       # control ticks between command-triggered replans
+    replan_command_delta: float = 0.5
 
 
 class GoalReachEnv:
     CONTROL_PER_POLICY = 5              # 50 Hz control / 10 Hz policy
 
-    def __init__(self, spec: ManifoldSpec | None = None, cfg: TaskConfig | None = None):
-        self.spec = spec or ManifoldSpec()
+    def __init__(self, manifold: EllipsoidManifold | None = None, cfg: TaskConfig | None = None):
+        self.manifold = manifold or EllipsoidManifold.tunnel()
         self.cfg = cfg or TaskConfig()
-        self.scene_path = build_scene(self.spec)
+        self.scene_path = build_scene(self.manifold)
         self.env = G1FlatEnv(self.scene_path)
         self.controller = SonicController()
         self.planner = SonicPlanner()
-        self.obstacle_geoms = {
-            i for i in range(self.env.model.ngeom)
-            if (mujoco.mj_id2name(self.env.model, mujoco.mjtObj.mjOBJ_GEOM, i) or "").startswith(("wall_", "ceiling_"))
-        }
-        self.compliance_body_ids = [
-            mujoco.mj_name2id(self.env.model, mujoco.mjtObj.mjOBJ_BODY, name)
-            for name in COMPLIANCE_BODIES
-        ]
-        # robot geoms live in group 0 (manifold geoms are group 1)
-        self.robot_geoms = [i for i in range(self.env.model.ngeom) if self.env.model.geom_group[i] == 0]
-        self.goal = np.array([self.spec.goal_x, 0.0])
+
+        model = self.env.model
+        self.torso_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "torso_link")
+        self.pelvis_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "pelvis")
+        self.compliance_body_ids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+                                    for name in COMPLIANCE_BODIES]
+        self.robot_geoms = [i for i in range(model.ngeom) if model.geom_group[i] == 0]
+
+        self.goal = self.manifold.goal()[:2]
         self.action_dim = 4
         self._qpos_hist: deque[np.ndarray] = deque(maxlen=4)
         self._prev_action = np.zeros(4)
@@ -98,8 +94,14 @@ class GoalReachEnv:
         self._last_replan_cmd = np.zeros(4)
         self._episode_return = 0.0
         self.crouch_amount = 0.0
-        self._ceiling_ticks = 0
         self.reference = CrouchReference.static_stand(np.array([1.0, 0.0, 0.0, 0.0]))
+
+    # -- manifold -----------------------------------------------------------
+    def set_manifold(self, manifold: EllipsoidManifold) -> None:
+        """Swap the manifold (pure data: no model rebuild, no collision rebuild)."""
+        self.manifold = manifold
+        self.goal = manifold.goal()[:2]
+        update_visuals(self.env.model, manifold)
 
     # -- helpers ------------------------------------------------------------
     @staticmethod
@@ -111,39 +113,24 @@ class GoalReachEnv:
         return qpos
 
     def _distance(self, st: dict) -> float:
-        return float(np.linalg.norm(st["base_pos"][:2] - self.goal))
+        """Distance remaining along x to the end region of the manifold (can go negative)."""
+        return float(self.manifold.primitives[-1].center[0] - st["base_pos"][0])
 
-    def _penetration(self) -> float:
-        penetration = 0.0
-        for i in range(self.env.data.ncon):
-            contact = self.env.data.contact[i]
-            if contact.geom1 in self.obstacle_geoms or contact.geom2 in self.obstacle_geoms:
-                penetration += max(0.0, -float(contact.dist))
-        return penetration
-
-    def compliance_radius(self) -> float:
-        """Max normalized free-space-ellipse radius over the tracked body points (1 = boundary)."""
+    def manifold_state(self) -> dict:
+        """Containment radius, torso/axis alignment and the nearest primitive."""
         points = self.env.data.xpos[self.compliance_body_ids]
-        radii = self.spec.ellipse_radius(points[:, 1], points[:, 2], points[:, 0])
-        return float(radii.max())
-
-    def ceiling_margin(self) -> float:
-        """Conservative clearance from the robot's top to the local ceiling [m]."""
-        geom = self.robot_geoms
-        top = float(np.max(self.env.data.geom_xpos[geom, 2] + self.env.model.geom_rbound[geom]))
-        return float(self.spec.height_at(self.env.data.qpos[0]) - top)
-
-    def _ceiling_contact(self) -> bool:
-        """True while any robot geom touches a ceiling slab."""
-        for i in range(self.env.data.ncon):
-            contact = self.env.data.contact[i]
-            if contact.dist > 1e-3:
-                continue
-            name1 = mujoco.mj_id2name(self.env.model, mujoco.mjtObj.mjOBJ_GEOM, contact.geom1) or ""
-            name2 = mujoco.mj_id2name(self.env.model, mujoco.mjtObj.mjOBJ_GEOM, contact.geom2) or ""
-            if name1.startswith("ceiling_") or name2.startswith("ceiling_"):
-                return True
-        return False
+        radii = self.manifold.radii(points)
+        worst = int(np.argmax(radii))
+        nearest = int(self.manifold.nearest(points[worst:worst + 1])[0])
+        primitive = self.manifold.primitives[nearest]
+        torso_up = np.asarray(self.env.data.xmat[self.torso_id]).reshape(3, 3)[:, 2]
+        return {
+            "radius": float(radii.max()),
+            "radius_mean": float(radii.mean()),
+            "spine": float(np.clip(torso_up @ primitive.axis(), -1.0, 1.0)),
+            "primitive": nearest,
+            "primitive_ref": primitive,
+        }
 
     def _obs(self, st: dict) -> np.ndarray:
         quat = st["base_quat"]
@@ -156,7 +143,11 @@ class GoalReachEnv:
         heading = np.arctan2(goal_world[1], goal_world[0])
         yaw = np.arctan2(rot[1, 0], rot[0, 0])
         heading_err = np.arctan2(np.sin(heading - yaw), np.cos(heading - yaw))
-        ceiling_margin = self.ceiling_margin() / max(float(self.spec.height_at(st["base_pos"][0])), 0.5)
+
+        state = self.manifold_state()
+        primitive = state["primitive_ref"]
+        rel_center = rot.T @ (primitive.center - st["base_pos"])
+        axis_body = rot.T @ primitive.axis()
         return np.concatenate([
             rot.T @ st["base_lin_vel"] / 2.0,
             st["base_ang_vel"] / 4.0,
@@ -166,8 +157,8 @@ class GoalReachEnv:
             goal_body / self.cfg.obs_goal_scale,
             [np.sin(heading_err), np.cos(heading_err)],
             self._prev_action,
-            [st["base_pos"][2], ceiling_margin],
-            np.array(self.spec.grid()) / 5.0,
+            [state["radius"], state["spine"]],
+            rel_center, axis_body, primitive.semi,
         ]).astype(np.float32)
 
     def _plan_kwargs(self, st: dict) -> dict:
@@ -175,8 +166,8 @@ class GoalReachEnv:
         rot = C.quat_to_matrix(st["base_quat"])
         yaw = np.arctan2(rot[1, 0], rot[0, 0])
         speed = float(np.hypot(vx, vy))
-        # aim the reference heading at the goal (world frame); tracking the robot's own yaw
-        # instead lets the planner's gait drift accumulate (~10 deg over 4 m).
+        # aim the reference heading at the goal; tracking the robot's own yaw lets the
+        # planner's gait drift accumulate
         goal_dir = np.array([self.goal[0] - st["base_pos"][0], self.goal[1] - st["base_pos"][1]])
         desired_yaw = np.arctan2(goal_dir[1], goal_dir[0]) + 0.5 * wz
         facing = (float(np.cos(desired_yaw)), float(np.sin(desired_yaw)), 0.0)
@@ -195,16 +186,21 @@ class GoalReachEnv:
                                     force=force, **self._plan_kwargs(st))
 
     # -- gym-like API -------------------------------------------------------
-    def reset(self, height_start: float | None = None, height_goal: float | None = None) -> tuple[np.ndarray, dict]:
-        changed = ((height_start is not None and abs(float(height_start) - self.spec.height_start) > 1e-9)
-                   or (height_goal is not None and abs(float(height_goal) - self.spec.height_goal) > 1e-9))
-        if changed:
-            if height_start is not None:
-                self.spec.height_start = float(height_start)
-            if height_goal is not None:
-                self.spec.height_goal = float(height_goal)
-            apply_profile(self.env.model, self.spec, self.env.data)
-        self.env.reset(x=self.spec.start_x)
+    def reset(self, tunnel_semi_z: float | None = None, **manifold_overrides) -> tuple[np.ndarray, dict]:
+        if tunnel_semi_z is not None or manifold_overrides:
+            first = self.manifold.primitives[0]
+            last = self.manifold.primitives[-1]
+            self.set_manifold(EllipsoidManifold.tunnel(
+                length=float(last.center[0] - first.center[0]) + 1.4,
+                semi_y=float(first.semi[1]),
+                entry_semi_z=float(first.semi[2]),
+                tunnel_semi_z=float(tunnel_semi_z if tunnel_semi_z is not None else last.semi[2]),
+                count=len(self.manifold.primitives),
+                start_x=float(first.center[0]),
+                **manifold_overrides,
+            ))
+        start = self.manifold.start()
+        self.env.reset(x=float(start[0] - 0.9))
         self.controller.reset()
         st = self.env.state()
         self._qpos_hist.clear()
@@ -212,7 +208,6 @@ class GoalReachEnv:
             self._qpos_hist.append(self._qpos36(st))
         self.reference = CrouchReference.static_stand(st["base_quat"])
         self.crouch_amount = 0.0
-        self._ceiling_ticks = 0
         self._prev_action = np.zeros(4)
         self._cmd = np.zeros(4)
         self._tick = 0
@@ -225,11 +220,7 @@ class GoalReachEnv:
         return self._obs(st), {"distance": self._prev_dist}
 
     def step(self, action: np.ndarray, tick_callback=None):
-        """Advance one policy step (5 control ticks).
-
-        `tick_callback` is invoked after every control tick, which lets a viewer stay
-        smooth at 50 Hz without learning anything about the task internals.
-        """
+        """Advance one policy step (5 control ticks)."""
         cfg = self.cfg
         action = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
         self._cmd = np.array([action[0] * cfg.max_lin_vel,
@@ -242,7 +233,7 @@ class GoalReachEnv:
         terminated = truncated = False
         outcome = "running"
         max_tilt = np.radians(cfg.tilt_limit_deg)
-        collision = False
+        max_radius = 0.0
 
         for _ in range(self.CONTROL_PER_POLICY):
             st = self.env.state()
@@ -272,61 +263,47 @@ class GoalReachEnv:
             reward += cfg.w_progress * (self._prev_dist - distance)
             self._prev_dist = distance
 
-            penetration = self._penetration()
-            if penetration > 1e-5:
-                collision = True
-                reward -= cfg.w_collision * min(penetration, cfg.penetration_clip)
-            if self._ceiling_contact():
-                reward -= cfg.w_ceiling_contact * C.CONTROL_DT
-                self._ceiling_ticks += 1
-            else:
-                self._ceiling_ticks = 0
+            state = self.manifold_state()
+            max_radius = max(max_radius, state["radius"])
+            outside = max(0.0, state["radius"] - 1.0)
+            reward -= cfg.w_manifold * outside * C.CONTROL_DT
+            reward -= cfg.w_spine * (1.0 - max(0.0, state["spine"])) * C.CONTROL_DT
             reward -= cfg.w_energy * float(np.mean(np.square(action))) * C.CONTROL_DT
 
             roll, pitch = roll_pitch(st["base_quat"])
             fell = st["base_pos"][2] < cfg.fall_height or abs(roll) > max_tilt or abs(pitch) > max_tilt
-            success = distance < cfg.success_radius
-            outside = (abs(st["base_pos"][1]) > self.spec.width / 2
-                       or st["base_pos"][0] < self.spec.start_x - 0.7
-                       or st["base_pos"][0] > self.spec.goal_x + 0.7)
+            success = distance < -cfg.goal_margin and state["radius"] <= 1.0
+            outside_far = state["radius"] > cfg.manifold_out_radius
             if fell:
                 reward -= cfg.fall_penalty
                 terminated, outcome = True, "fall"
                 break
-            if penetration > cfg.hard_collision_penetration:
-                reward -= cfg.hard_collision_penalty
-                terminated, outcome = True, "collision"
-                break
-            if self._ceiling_ticks > cfg.ceiling_stuck_ticks:
-                reward -= cfg.ceiling_stuck_penalty
-                terminated, outcome = True, "ceiling"
+            if outside_far:
+                reward -= cfg.out_penalty
+                terminated, outcome = True, "out_of_manifold"
                 break
             if success:
                 reward += cfg.goal_bonus
                 terminated, outcome = True, "success"
-                break
-            if outside:
-                reward -= cfg.out_penalty
-                terminated, outcome = True, "out_of_bounds"
                 break
 
         self._steps += 1
         if not terminated and self._steps >= cfg.max_episode_steps:
             truncated, outcome = True, "timeout"
         st = self.env.state()
+        state = self.manifold_state()
         self._prev_action = action.astype(np.float32)
         self._episode_return += reward
         info = {
             "outcome": outcome,
             "distance": self._distance(st),
-            "collision": collision,
             "episode_return": self._episode_return,
             "episode_step": self._steps,
             "base_z": float(st["base_pos"][2]),
+            "manifold_radius": float(state["radius"]),
+            "manifold_radius_max": float(max_radius),
+            "spine_alignment": float(state["spine"]),
             "crouch_amount": float(self.crouch_amount),
-            "manifold_height_start": float(self.spec.height_start),
-            "manifold_height_goal": float(self.spec.height_goal),
-            "local_ceiling": float(self.spec.height_at(st["base_pos"][0])),
-            "ceiling_margin": self.ceiling_margin(),
+            "tunnel_semi_z": float(self.manifold.primitives[-1].semi[2]),
         }
         return self._obs(st), float(reward), terminated, truncated, info
