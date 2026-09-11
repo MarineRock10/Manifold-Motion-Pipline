@@ -45,6 +45,8 @@ def main() -> int:
     viewer = renderer = None
     if args.render:
         import mujoco
+        import mujoco.viewer
+
         viewer = mujoco.viewer.launch_passive(env.model, env.data)
     if args.video is not None:
         import mujoco

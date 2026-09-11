@@ -20,6 +20,7 @@ from collections import deque
 from pathlib import Path
 
 import mujoco
+import mujoco.viewer  # submodule: not imported by `import mujoco`
 import numpy as np
 
 from . import constants as C
