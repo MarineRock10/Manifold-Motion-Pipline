@@ -68,7 +68,7 @@ class StaticConfig:
     w_inside: float = 1.0                 # per second inside the manifold
     w_outside: float = 5.0                # per second and unit of violation
     w_effort: float = 0.5                 # per second, discourages unnecessary crouching
-    success_hold: int = 10                # steps inside before the episode counts as success
+    success_hold: int = 50                # control ticks (1 s) inside before success
     success_margin: float = 0.98
 
 
@@ -228,7 +228,8 @@ def verify(args) -> int:
     body = BodyModel()
     ppo = PPO(9, 1)
     ppo.load(Path(args.policy))
-    env = GoalReachEnv(manifold_for_scale(body, 1.0), TaskConfig())
+    env = GoalReachEnv(manifold_for_scale(body, 1.0),
+                       TaskConfig(pelvis_relative=True), use_planner=False)
     pelvis_index = body.names.index("pelvis")
 
     print("SONIC verification of the static policy (pelvis-relative containment):")
@@ -287,7 +288,8 @@ def view(args) -> int:
     ppo = PPO(9, 1)
     ppo.load(Path(args.policy))
     scale = float(args.scale)
-    env = GoalReachEnv(manifold_for_scale(body, scale), TaskConfig())
+    env = GoalReachEnv(manifold_for_scale(body, scale),
+                       TaskConfig(pelvis_relative=True), use_planner=False)
     state = {"reset": False, "pause": False, "delta": 0.0}
 
     def key_callback(keycode: int) -> None:
@@ -362,7 +364,11 @@ def view(args) -> int:
             cmd = float(np.clip(action[0], 0.0, 1.0))
             _, _, done, truncated, info = env.step(np.array([0.0, 0.0, 0.0, cmd]))
             history.append((info["manifold_radius"], env.crouch_amount))
-            if done or truncated:
+            if done and info["outcome"] == "success":
+                # hold the pose: only a failure or R resets the episode
+                env.steps = 0
+                env.inside_ticks = 0
+            elif done or truncated:
                 state["reset"] = True
             n = min(len(history), 400)
             figure.linepnt[0] = figure.linepnt[1] = n

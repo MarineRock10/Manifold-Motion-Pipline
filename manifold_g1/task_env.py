@@ -65,6 +65,7 @@ class TaskConfig:
     obs_goal_scale: float = 5.0
     crouch_max: float = 1.3             # 4th action dim in [0, 1] scales this crouch offset
     spawn_crouch: float = 1.2           # the robot starts crouched by this amount (inside a low manifold)
+    pelvis_relative: bool = False       # static pose tasks: ignore where the pelvis is, judge shape only
     replan_min_interval: int = 25       # control ticks between command-triggered replans
     replan_command_delta: float = 0.5
 
@@ -72,7 +73,14 @@ class TaskConfig:
 class GoalReachEnv:
     CONTROL_PER_POLICY = 5              # 50 Hz control / 10 Hz policy
 
-    def __init__(self, manifold: EllipsoidManifold | None = None, cfg: TaskConfig | None = None):
+    def __init__(self, manifold: EllipsoidManifold | None = None, cfg: TaskConfig | None = None,
+                 use_planner: bool = True):
+        """use_planner=False: the reference is a single static keyframe (no kinematic planner).
+
+        The model's output (a crouch amount, i.e. a joint-space keyframe) is handed straight to
+        SONIC, which is what a static/pose task needs.
+        """
+        self.use_planner = use_planner
         self.manifold = manifold or EllipsoidManifold.tunnel()
         self.cfg = cfg or TaskConfig()
         self.scene_path = build_scene(self.manifold)
@@ -135,7 +143,9 @@ class GoalReachEnv:
         rot = np.array([[np.cos(yaw), -np.sin(yaw), 0.0],
                         [np.sin(yaw), np.cos(yaw), 0.0],
                         [0.0, 0.0, 1.0]])
-        points = st["base_pos"] + ENVELOPE_OFFSETS @ rot.T
+        anchor = (np.array([0.0, 0.0, st["base_pos"][2]]) if self.cfg.pelvis_relative
+                  else st["base_pos"])
+        points = anchor + ENVELOPE_OFFSETS @ rot.T
         radii = self.manifold.radii(points)
         worst = int(np.argmax(radii))
         nearest = int(self.manifold.nearest(points[worst:worst + 1])[0])
@@ -210,6 +220,8 @@ class GoalReachEnv:
         return dict(mode=0, movement=(0.0, 0.0, 0.0), facing=facing, target_vel=-1.0, height=-1.0)
 
     def _replan(self, st: dict, force: bool = False) -> None:
+        if not self.use_planner:
+            return
         context = np.stack(self._qpos_hist)
         self.reference.maybe_replan(self.planner, reserve=16, context=context,
                                     force=force, **self._plan_kwargs(st))
@@ -253,7 +265,11 @@ class GoalReachEnv:
         self._last_replan_tick = -10 ** 9
         self._last_replan_cmd = np.zeros(4)
         self._episode_return = 0.0
-        self._replan(st, force=True)
+        if self.use_planner:
+            self._replan(st, force=True)
+        else:
+            self.reference = CrouchReference.static_stand(st["base_quat"])
+            self.reference.set_amount(self.crouch_amount)
         return self._obs(st), {"distance": self._prev_dist}
 
     def step(self, action: np.ndarray, tick_callback=None):
