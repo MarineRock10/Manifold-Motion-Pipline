@@ -143,9 +143,9 @@ def main() -> int:
             state["pause"] = not state["pause"]
         elif key == "t":
             state["trail"] = not state["trail"]
-        elif key == "[":
+        elif key in "[-,;":
             state["tunnel_delta"] = -0.05
-        elif key == "]":
+        elif key in "]=.'":
             state["tunnel_delta"] = +0.05
 
     viewer = None

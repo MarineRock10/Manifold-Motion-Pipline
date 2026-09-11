@@ -296,9 +296,9 @@ def view(args) -> int:
             state["reset"] = True
         elif key == "p":
             state["pause"] = not state["pause"]
-        elif key == "[":
+        elif key in "[-,;":            # several easy alternatives to square brackets
             state["delta"] = -0.02
-        elif key == "]":
+        elif key in "]=.'":
             state["delta"] = +0.02
 
     viewer = mujoco.viewer.launch_passive(env.env.model, env.env.data, key_callback=key_callback,
@@ -332,7 +332,10 @@ def view(args) -> int:
             (primitive.center - model_pelvis) / 0.5, primitive.semi, [primitive.axis()[2]],
         ]).astype(np.float32)
 
-    print("static fit viewer: [ / ] change the ellipsoid height, R reset, P pause; Ctrl+C to stop")
+    print("static fit viewer keys:")
+    print("  lower the ellipsoid : [   -   ,   (also ;)")
+    print("  raise the ellipsoid : ]   =   .   (also ')")
+    print("  R reset, P pause, Ctrl+C quit")
     obs, _ = env.reset()
     env.crouch_amount = 0.0
     env.reference.set_amount(0.0)
