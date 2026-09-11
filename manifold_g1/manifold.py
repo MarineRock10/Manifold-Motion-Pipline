@@ -163,12 +163,12 @@ class EllipsoidManifold:
     def goal_x(self) -> float:
         """x where the far end region begins (crossing it inside the manifold is success)."""
         last = self.primitives[-1]
-        return float(last.center[0] + (0.55 * last.semi[0] if len(self.primitives) == 1 else 0.0))
+        return float(last.center[0] + (0.45 * last.semi[0] if len(self.primitives) == 1 else 0.0))
 
     def start_x(self) -> float:
         """Spawn x: inside the near end for a single ellipsoid, before the chain otherwise."""
         first = self.primitives[0]
-        return float(first.center[0] - (0.55 * first.semi[0] if len(self.primitives) == 1 else 0.9))
+        return float(first.center[0] - (0.45 * first.semi[0] if len(self.primitives) == 1 else 0.9))
 
     def start(self) -> np.ndarray:
         return np.array([self.start_x(), 0.0, self.primitives[0].center[2]])

@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from .geo_env import GeoConfig, GeometricManifoldEnv
 from .manifold import EllipsoidManifold
 from .ppo import PPO, RolloutBuffer
 from .task_env import GoalReachEnv, TaskConfig
@@ -87,6 +88,8 @@ def main() -> int:
     parser.add_argument("--rollout-steps", type=int, default=512)
     parser.add_argument("--eval-every", type=int, default=10)
     parser.add_argument("--eval-episodes", type=int, default=5)
+    parser.add_argument("--env", choices=("geo", "mujoco"), default="geo",
+                        help="geo = pure-geometry model (fast, default); mujoco = frozen SONIC in MuJoCo")
     parser.add_argument("--manifold", choices=("single", "tunnel"), default="single",
                         help="single ellipsoid (first pipeline) or a short chain")
     parser.add_argument("--semi-x", type=float, default=2.6, help="half-length of a single ellipsoid")
@@ -114,15 +117,23 @@ def main() -> int:
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    env = GoalReachEnv(make_manifold(args, args.tunnel_height), TaskConfig())
+    manifold = make_manifold(args, args.tunnel_height)
+    env = (GeometricManifoldEnv(manifold, GeoConfig())
+           if args.env == "geo" else GoalReachEnv(manifold, TaskConfig()))
     obs, _ = env.reset()
     obs_dim = int(obs.shape[0])
     init_log_std = [-1.0] * (env.action_dim - 1) + [0.3]   # extra exploration on the crouch dim
-    ppo = PPO(obs_dim, env.action_dim, device=args.device, init_log_std=init_log_std)
+    # start from holding the spawn crouch: a policy that stands up immediately dies inside a
+    # low manifold before it can discover the goal, a fatal local optimum
+    init_mu = np.zeros(env.action_dim, dtype=np.float32)
+    init_mu[-1] = env.cfg.spawn_crouch / env.cfg.crouch_max
+    ppo = PPO(obs_dim, env.action_dim, device=args.device, init_log_std=init_log_std,
+              init_mu_bias=init_mu)
     if args.resume is not None:
         ppo.load(args.resume)
         print(f"resumed from {args.resume}")
-    print(f"obs_dim={obs_dim} action_dim={env.action_dim} primitives={len(env.manifold.primitives)}")
+    print(f"env={args.env} obs_dim={obs_dim} action_dim={env.action_dim} "
+          f"primitives={len(env.manifold.primitives)}")
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)

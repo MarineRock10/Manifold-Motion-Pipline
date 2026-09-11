@@ -24,6 +24,7 @@ import numpy as np
 
 from . import constants as C
 from .env import G1FlatEnv
+from .geo_env import task_space_obs
 from .manifold import EllipsoidManifold, build_scene, update_visuals
 from .planner import SonicPlanner
 from .reference import CROUCH_DIRECTION, CrouchReference
@@ -121,8 +122,20 @@ class GoalReachEnv:
         return float(self.manifold.goal_x() - st["base_pos"][0])
 
     def manifold_state(self) -> dict:
-        """Containment radius, torso/axis alignment and the nearest primitive."""
-        points = self.env.data.xpos[self.compliance_body_ids]
+        """Containment radius, spine alignment and the nearest primitive.
+
+        Uses the same body envelope as the geometric model (pelvis, head, hands), so the
+        two worlds agree on what "inside the manifold" means.
+        """
+        from .geo_env import ENVELOPE_OFFSETS
+        st = self.env.state()
+        quat = st["base_quat"]
+        yaw = float(np.arctan2(2 * (quat[0] * quat[3] + quat[1] * quat[2]),
+                               1 - 2 * (quat[2] ** 2 + quat[3] ** 2)))
+        rot = np.array([[np.cos(yaw), -np.sin(yaw), 0.0],
+                        [np.sin(yaw), np.cos(yaw), 0.0],
+                        [0.0, 0.0, 1.0]])
+        points = st["base_pos"] + ENVELOPE_OFFSETS @ rot.T
         radii = self.manifold.radii(points)
         worst = int(np.argmax(radii))
         nearest = int(self.manifold.nearest(points[worst:worst + 1])[0])
@@ -164,6 +177,18 @@ class GoalReachEnv:
             [state["radius"], state["spine"]],
             rel_center, axis_body, primitive.semi,
         ]).astype(np.float32)
+
+    def reduced_obs(self, st: dict | None = None) -> np.ndarray:
+        """Task-space observation with the same layout as the geometric model."""
+        st = self.env.state() if st is None else st
+        quat = st["base_quat"]
+        rot = C.quat_to_matrix(quat)
+        yaw = float(np.arctan2(rot[1, 0], rot[0, 0]))
+        velocity = rot.T @ st["base_lin_vel"]  # body frame -> world for yaw-only motion
+        return task_space_obs(st["base_pos"][0], st["base_pos"][1], yaw,
+                              float(velocity[0]), float(velocity[1]), self.crouch_amount,
+                              self.cfg.crouch_max, self.manifold.goal_x(), self.manifold,
+                              float(st["base_pos"][2]), self.cfg.obs_goal_scale)
 
     def _plan_kwargs(self, st: dict) -> dict:
         vx, vy, wz, _ = self._cmd

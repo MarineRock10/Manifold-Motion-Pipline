@@ -17,7 +17,8 @@ def _orthogonal_init(module: nn.Module) -> None:
 
 class ActorCritic(nn.Module):
     def __init__(self, obs_dim: int, act_dim: int, hidden=(256, 128),
-                 init_log_std: float | Sequence[float] = -1.0):
+                 init_log_std: float | Sequence[float] = -1.0,
+                 init_mu_bias: Sequence[float] | None = None):
         super().__init__()
         layers: list[nn.Module] = []
         prev = obs_dim
@@ -37,6 +38,8 @@ class ActorCritic(nn.Module):
         self.apply(_orthogonal_init)
         nn.init.orthogonal_(self.mu.weight, 0.01)
         nn.init.zeros_(self.mu.bias)
+        if init_mu_bias is not None:
+            self.mu.bias.data = torch.as_tensor(list(init_mu_bias), dtype=torch.float32)
         nn.init.orthogonal_(self.value.weight, 1.0)
         nn.init.zeros_(self.value.bias)
 
@@ -85,7 +88,7 @@ class PPO:
     def __init__(self, obs_dim: int, act_dim: int, lr: float = 3e-4, gamma: float = 0.99,
                  lam: float = 0.95, clip: float = 0.2, epochs: int = 10, minibatches: int = 8,
                  value_coef: float = 0.5, entropy_coef: float = 0.005, max_grad_norm: float = 0.5,
-                 device: str | None = None, init_log_std=-1.0):
+                 device: str | None = None, init_log_std=-1.0, init_mu_bias=None):
         self.gamma = gamma
         self.lam = lam
         self.clip = clip
@@ -95,7 +98,8 @@ class PPO:
         self.entropy_coef = entropy_coef
         self.max_grad_norm = max_grad_norm
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
-        self.model = ActorCritic(obs_dim, act_dim, init_log_std=init_log_std).to(self.device)
+        self.model = ActorCritic(obs_dim, act_dim, init_log_std=init_log_std,
+                                 init_mu_bias=init_mu_bias).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, eps=1e-5)
 
     @torch.no_grad()
