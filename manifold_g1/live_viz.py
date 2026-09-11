@@ -50,14 +50,15 @@ class LiveDashboard:
         self.video_interval = 1.0 / max(fps, 0.1)
         self.video_scale = max(1, video_scale)
 
-        self.fig = plt.figure(figsize=(14.0, 8.6))
-        grid = self.fig.add_gridspec(2, 4, height_ratios=[2.3, 1.0], hspace=0.30, wspace=0.32)
-        self.ax_manifold = self.fig.add_subplot(grid[0, 0:2])
-        self.ax_scene = self.fig.add_subplot(grid[0, 2:4])
-        self.ax_return = self.fig.add_subplot(grid[1, 0])
-        self.ax_success = self.fig.add_subplot(grid[1, 1])
-        self.ax_cmd = self.fig.add_subplot(grid[1, 2])
-        self.ax_compliance = self.fig.add_subplot(grid[1, 3])
+        self.fig = plt.figure(figsize=(15.0, 8.6))
+        grid = self.fig.add_gridspec(2, 10, height_ratios=[2.3, 1.0], hspace=0.30, wspace=0.45)
+        self.ax_manifold = self.fig.add_subplot(grid[0, 0:5])
+        self.ax_scene = self.fig.add_subplot(grid[0, 5:10])
+        self.ax_return = self.fig.add_subplot(grid[1, 0:2])
+        self.ax_success = self.fig.add_subplot(grid[1, 2:4])
+        self.ax_cmd = self.fig.add_subplot(grid[1, 4:6])
+        self.ax_compliance = self.fig.add_subplot(grid[1, 6:8])
+        self.ax_height = self.fig.add_subplot(grid[1, 8:10])
         self.ax_manifold.set_title("Manifold: ellipsoid chain (robot hidden)")
         self.ax_scene.set_title("G1 training inside the manifold")
         for axis in (self.ax_manifold, self.ax_scene):
@@ -74,7 +75,7 @@ class LiveDashboard:
 
         self.cam_manifold = mujoco.MjvCamera()
         mujoco.mjv_defaultCamera(self.cam_manifold)
-        self.cam_manifold.lookat[:] = (0.0, 0.0, 0.5 * spec.height)
+        self.cam_manifold.lookat[:] = (0.0, 0.0, 0.5 * spec.height_start)
         self.cam_manifold.distance = max(4.0, 0.85 * spec.length)
         self.cam_manifold.azimuth = 160.0
         self.cam_manifold.elevation = -12.0
@@ -91,6 +92,9 @@ class LiveDashboard:
         self.success_flags: list[float] = []
         self.cmd_vx: list[float] = []
         self.compliance: list[float] = []
+        self.height_goal: list[float] = []
+        self.height_pelvis: list[float] = []
+        self.height_success: list[bool] = []
         self.step = 0
         self.episodes = 0
         self.last_update = 0.0
@@ -103,10 +107,15 @@ class LiveDashboard:
         self.compliance.append(float(compliance))
         self.step += 1
 
-    def log_episode(self, outcome: str, episode_return: float) -> None:
+    def log_episode(self, outcome: str, episode_return: float, height_goal: float | None = None,
+                    pelvis_z: float | None = None) -> None:
         self.success_flags.append(1.0 if outcome == "success" else 0.0)
         self.episode_returns.append(float(episode_return))
         self.episodes += 1
+        if height_goal is not None and pelvis_z is not None:
+            self.height_goal.append(float(height_goal))
+            self.height_pelvis.append(float(pelvis_z))
+            self.height_success.append(outcome == "success")
 
     # -- rendering ----------------------------------------------------------
     def maybe_update(self, force: bool = False) -> None:
@@ -137,12 +146,33 @@ class LiveDashboard:
         self._curve(self.ax_cmd, "|vx| command (rolling 100)", self.cmd_vx, window=100, ylabel="m/s")
         self._curve(self.ax_compliance, "Manifold ellipse radius (rolling 100)", self.compliance,
                     window=100, ylabel="r", baseline=1.0)
+        self._draw_height_panel()
         self.fig.suptitle(
             f"steps {self.step}   episodes {self.episodes}   "
             f"success(last 20) {np.mean(self.success_flags[-20:]):.2f}" if self.success_flags
             else f"steps {self.step}   episodes {self.episodes}",
             fontsize=11,
         )
+
+    def _draw_height_panel(self) -> None:
+        """L3 evidence: achieved pelvis height versus the manifold's goal-end ceiling height."""
+        axis = self.ax_height
+        axis.clear()
+        if self.height_goal:
+            goals = np.asarray(self.height_goal)
+            pelvis = np.asarray(self.height_pelvis)
+            success = np.asarray(self.height_success)
+            axis.scatter(goals[success], pelvis[success], s=14, color="#2ca02c", label="success")
+            axis.scatter(goals[~success], pelvis[~success], s=14, color="#d62728", label="failed")
+            if success.sum() >= 5:
+                order = np.argsort(goals[success])
+                axis.plot(goals[success][order], pelvis[success][order], color="#2ca02c", lw=1, alpha=0.5)
+        axis.set_title("Pelvis height vs manifold ceiling (goal end)", fontsize=9)
+        axis.set_xlabel("ceiling height [m]", fontsize=8)
+        axis.set_ylabel("pelvis z [m]", fontsize=8)
+        axis.grid(alpha=0.25)
+        axis.tick_params(labelsize=7)
+        axis.legend(fontsize=6)
 
     def _curve(self, axis, title: str, values: list[float], window: int, ylabel: str,
                baseline: float | None = None) -> None:
