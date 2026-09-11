@@ -147,6 +147,9 @@ def train(args) -> int:
     ppo = PPO(int(obs.shape[0]), env.action_dim, init_log_std=[-0.5])
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
+    log_path = out_dir / "train_log.csv"
+    log = open(log_path, "w")
+    log.write("iteration,episodes,success,crouch_mean,return_mean\n")
     print(f"static fit: height scale sampled in [{args.scale_min:.2f}, {args.scale_max:.2f}]")
     for scale in (args.scale_max, args.scale_min):
         env.manifold = manifold_for_scale(body, scale)
@@ -175,14 +178,18 @@ def train(args) -> int:
                 env.manifold = manifold_for_scale(body, scale)
                 obs, _ = env.reset()
         ppo.update(buffer, ppo.value(obs))
+        success = np.mean([o == "success" for o in outcomes]) if outcomes else float("nan")
+        crouch_mean = float(np.mean(crouches)) if crouches else float("nan")
+        return_mean = float(np.mean(returns)) if returns else float("nan")
+        log.write(f"{iteration},{len(outcomes)},{success:.3f},{crouch_mean:.3f},{return_mean:.3f}\n")
+        log.flush()
         if iteration % max(1, args.iterations // 8) == 0 or iteration == 1:
-            success = np.mean([o == "success" for o in outcomes]) if outcomes else float("nan")
             print(f"[iter {iteration:3d}] episodes={len(outcomes):2d} success={success:.2f} "
-                  f"crouch={np.mean(crouches) if crouches else float('nan'):.2f} "
-                  f"return={np.mean(returns) if returns else float('nan'):+.2f}", flush=True)
+                  f"crouch={crouch_mean:.2f} return={return_mean:+.2f}", flush=True)
         ppo.save(out_dir / "policy.pt")
 
     print("\nfinal greedy behaviour (the learned crouch policy):")
+    greedy = []
     for scale in (1.0, 0.9, 0.8, 0.75, 0.7, 0.65, 0.6):
         env.manifold = manifold_for_scale(body, scale)
         obs, _ = env.reset()
@@ -195,6 +202,12 @@ def train(args) -> int:
         print(f"  scale {scale:.2f} (semi_z {env.manifold.primitives[0].semi[2]:.3f}): "
               f"{info['outcome']:>8s} crouch={info['crouch_amount']:.3f} r={info['manifold_radius']:.2f} "
               f"| action mean={mean[0]:+.2f} std={std[0]:.2f}")
+        greedy.append({"height_scale": scale, "semi_z": float(env.manifold.primitives[0].semi[2]),
+                       "outcome": info["outcome"], "crouch": float(info["crouch_amount"]),
+                       "radius": float(info["manifold_radius"]),
+                       "action_mean": float(mean[0]), "action_std": float(std[0])})
+    (out_dir / "greedy_table.json").write_text(json.dumps(greedy, indent=2))
+    log.close()
     (out_dir / "summary.json").write_text(json.dumps(
         {"scale_range": [args.scale_min, args.scale_max],
          "standing_semi": body.standing_semi.tolist(),
@@ -261,9 +274,124 @@ def verify(args) -> int:
     return 0
 
 
+def view(args) -> int:
+    """Watch the static policy in the native viewer: [ / ] change the ellipsoid height."""
+    import time
+
+    import mujoco
+    import mujoco.viewer
+
+    from .task_env import GoalReachEnv, TaskConfig
+
+    body = BodyModel()
+    ppo = PPO(9, 1)
+    ppo.load(Path(args.policy))
+    scale = float(args.scale)
+    env = GoalReachEnv(manifold_for_scale(body, scale), TaskConfig())
+    state = {"reset": False, "pause": False, "delta": 0.0}
+
+    def key_callback(keycode: int) -> None:
+        key = chr(keycode).lower() if 0 <= keycode < 128 else ""
+        if key == "r":
+            state["reset"] = True
+        elif key == "p":
+            state["pause"] = not state["pause"]
+        elif key == "[":
+            state["delta"] = -0.02
+        elif key == "]":
+            state["delta"] = +0.02
+
+    viewer = mujoco.viewer.launch_passive(env.env.model, env.env.data, key_callback=key_callback,
+                                          show_left_ui=False, show_right_ui=False)
+    viewer.opt.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = 1
+    viewer.opt.flags[mujoco.mjtRndFlag.mjRND_REFLECTION] = 1
+    viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
+    viewer.cam.trackbodyid = env.pelvis_id
+    viewer.cam.distance, viewer.cam.azimuth, viewer.cam.elevation = 2.6, 130.0, -8.0
+
+    history = []
+    figure = mujoco.MjvFigure()
+    figure.title = "containment r (blue) and crouch (orange)"
+    figure.flg_legend = 0
+    figure.linergb[0] = (0.35, 0.6, 1.0)
+    figure.linergb[1] = (1.0, 0.6, 0.2)
+
+    def static_obs() -> np.ndarray:
+        st = env.env.state()
+        quat = st["base_quat"]
+        yaw = float(np.arctan2(2 * (quat[0] * quat[3] + quat[1] * quat[2]),
+                               1 - 2 * (quat[2] ** 2 + quat[3] ** 2)))
+        rot = np.array([[np.cos(yaw), -np.sin(yaw), 0.0], [np.sin(yaw), np.cos(yaw), 0.0], [0.0, 0.0, 1.0]])
+        from .geo_env import ENVELOPE_OFFSETS
+        points = st["base_pos"] + ENVELOPE_OFFSETS @ rot.T
+        radius = float(env.manifold.radii(points).max())
+        model_pelvis = body.at(env.crouch_amount)[body.names.index("pelvis")]
+        primitive = env.manifold.primitives[0]
+        return np.concatenate([
+            [env.crouch_amount / env.cfg.crouch_max, radius],
+            (primitive.center - model_pelvis) / 0.5, primitive.semi, [primitive.axis()[2]],
+        ]).astype(np.float32)
+
+    print("static fit viewer: [ / ] change the ellipsoid height, R reset, P pause; Ctrl+C to stop")
+    obs, _ = env.reset()
+    env.crouch_amount = 0.0
+    env.reference.set_amount(0.0)
+    clock = time.perf_counter()
+    try:
+        while viewer.is_running():
+            if state["pause"]:
+                viewer.sync()
+                time.sleep(0.02)
+                continue
+            if state["delta"]:
+                scale = float(np.clip(scale + state["delta"], 0.55, 1.05))
+                state["delta"] = 0.0
+                env.set_manifold(manifold_for_scale(body, scale))
+                state["reset"] = True
+            if state["reset"]:
+                state["reset"] = False
+                obs, _ = env.reset()
+                env.crouch_amount = 0.0
+                env.reference.set_amount(0.0)
+                history.clear()
+                continue
+            action, _, _ = ppo.act(static_obs(), deterministic=True)
+            cmd = float(np.clip(action[0], 0.0, 1.0))
+            _, _, done, truncated, info = env.step(np.array([0.0, 0.0, 0.0, cmd]))
+            history.append((info["manifold_radius"], env.crouch_amount))
+            if done or truncated:
+                state["reset"] = True
+            n = min(len(history), 400)
+            figure.linepnt[0] = figure.linepnt[1] = n
+            figure.range[0] = (0, max(n - 1, 1))
+            figure.range[1] = (0.0, 1.5)
+            for i in range(n):
+                figure.linedata[0, 2 * i] = i
+                figure.linedata[0, 2 * i + 1] = history[-n + i][0]
+                figure.linedata[1, 2 * i] = i
+                figure.linedata[1, 2 * i + 1] = history[-n + i][1]
+            viewer.set_figures((mujoco.MjrRect(10, 10, 320, 150), figure))
+            viewer.set_texts([(None, None,
+                               f"ellipsoid height scale {scale:.2f}  (semi_z {manifold_for_scale(body, scale).primitives[0].semi[2]:.3f} m)",
+                               f"crouch {env.crouch_amount:.2f}   r {info['manifold_radius']:.2f}   "
+                               f"pelvis z {info['base_z']:.2f}   ({info['outcome']})")])
+            viewer.sync()
+            clock += 5 * C.CONTROL_DT
+            delay = clock - time.perf_counter()
+            if delay > 0:
+                time.sleep(delay)
+            else:
+                clock = time.perf_counter()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        viewer.close()
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Static manifold fitting (crouch to fit)")
-    parser.add_argument("mode", choices=("train", "verify"))
+    parser.add_argument("mode", choices=("train", "verify", "view"))
     parser.add_argument("--scale", type=float, default=0.75)
     parser.add_argument("--scale-min", type=float, default=0.62)
     parser.add_argument("--scale-max", type=float, default=0.78)
@@ -273,7 +401,9 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=Path("reports/manifold_g1/static_fit"))
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
     args = parser.parse_args()
-    return train(args) if args.mode == "train" else verify(args)
+    if args.mode == "train":
+        return train(args)
+    return verify(args) if args.mode == "verify" else view(args)
 
 
 if __name__ == "__main__":
