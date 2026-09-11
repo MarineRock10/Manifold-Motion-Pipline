@@ -1,0 +1,12 @@
+# Core dependencies for manifold_g1 (MuJoCo + frozen SONIC + PPO).
+numpy
+mujoco
+onnxruntime
+torch
+pyyaml
+
+# Optional: mp4 recording for `python -m manifold_g1.run --video ...`
+opencv-python
+
+# Optional: diagnostic figures for `python -m manifold_g1.visualize`
+matplotlib

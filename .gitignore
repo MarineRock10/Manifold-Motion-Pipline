@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv*/
+
+# Model weights and downloaded assets (fetch with download_from_hf.py)
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.engine
+models/
+
+# Local assets, generated scenes and experiment outputs
+data/
+reports/
+artifacts/
+
+# Editor / OS / tooling
+.DS_Store
+.idea/
+.vscode/
+*.code-workspace
+.zcode/
