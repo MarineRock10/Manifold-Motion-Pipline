@@ -41,11 +41,13 @@ class G1FlatEnv:
         joint_ids = self.model.actuator_trnid[act_ids, 0]
         return self.model.jnt_qposadr[joint_ids].copy(), self.model.jnt_dofadr[joint_ids].copy()
 
-    def reset(self, height: float = C.DEFAULT_HEIGHT, x: float = 0.0) -> None:
+    def reset(self, height: float = C.DEFAULT_HEIGHT, x: float = 0.0,
+              joint_offset: np.ndarray | None = None) -> None:
         mujoco.mj_resetData(self.model, self.data)
         self.data.qpos[0:3] = (float(x), 0.0, height)
         self.data.qpos[3:7] = (1.0, 0.0, 0.0, 0.0)
-        self.data.qpos[self.body_qadr] = C.DEFAULT_ANGLES
+        self.data.qpos[self.body_qadr] = C.DEFAULT_ANGLES + (
+            0.0 if joint_offset is None else np.asarray(joint_offset, dtype=np.float64))
         self.data.qpos[self.hand_qadr] = 0.0
         self.data.qvel[:] = 0.0
         self.q_des = C.DEFAULT_ANGLES.copy()

@@ -26,7 +26,7 @@ from . import constants as C
 from .env import G1FlatEnv
 from .manifold import EllipsoidManifold, build_scene, update_visuals
 from .planner import SonicPlanner
-from .reference import CrouchReference
+from .reference import CROUCH_DIRECTION, CrouchReference
 from .sonic import SonicController
 
 # body points used for manifold containment and visualization
@@ -51,8 +51,10 @@ class TaskConfig:
     max_lat_vel: float = 0.6
     max_yaw_rate: float = 1.0
     w_progress: float = 1.0
-    w_manifold: float = 40.0             # per second, times (r - 1) outside the manifold
+    w_manifold: float = 30.0             # per second, times min(r - 1, excess_cap) outside
+    excess_cap: float = 0.4             # cap on the containment excess used in the penalty
     w_spine: float = 3.0                # per second, penalizes torso misalignment with the axis
+    reward_scale: float = 0.2            # scales the whole per-step reward (keeps returns ~O(10))
     w_energy: float = 0.1
     goal_bonus: float = 10.0
     fall_penalty: float = 10.0
@@ -61,6 +63,7 @@ class TaskConfig:
     manifold_out_ticks: int = 10        # 0.2 s of sustained violation before terminating
     obs_goal_scale: float = 5.0
     crouch_max: float = 1.3             # 4th action dim in [0, 1] scales this crouch offset
+    spawn_crouch: float = 1.2           # the robot starts crouched by this amount (inside a low manifold)
     replan_min_interval: int = 25       # control ticks between command-triggered replans
     replan_command_delta: float = 0.5
 
@@ -201,14 +204,18 @@ class GoalReachEnv:
                 start_x=float(first.center[0]),
                 **manifold_overrides,
             ))
-        self.env.reset(x=float(self.manifold.start_x()))
+        # a low manifold cannot contain an upright robot, so spawn crouched
+        offset_isaac = self.cfg.spawn_crouch * CROUCH_DIRECTION
+        self.env.reset(x=float(self.manifold.start_x()), height=0.62,
+                       joint_offset=offset_isaac[C.ISAACLAB_TO_MUJOCO])
         self.controller.reset()
         st = self.env.state()
         self._qpos_hist.clear()
         for _ in range(4):
             self._qpos_hist.append(self._qpos36(st))
         self.reference = CrouchReference.static_stand(st["base_quat"])
-        self.crouch_amount = 0.0
+        self.crouch_amount = self.cfg.spawn_crouch
+        self.reference.set_amount(self.crouch_amount)
         self._prev_action = np.zeros(4)
         self._cmd = np.zeros(4)
         self._tick = 0
@@ -267,7 +274,7 @@ class GoalReachEnv:
 
             state = self.manifold_state()
             max_radius = max(max_radius, state["radius"])
-            outside = max(0.0, state["radius"] - 1.0)
+            outside = min(max(0.0, state["radius"] - 1.0), cfg.excess_cap)
             reward -= cfg.w_manifold * outside * C.CONTROL_DT
             reward -= cfg.w_spine * (1.0 - max(0.0, state["spine"])) * C.CONTROL_DT
             reward -= cfg.w_energy * float(np.mean(np.square(action))) * C.CONTROL_DT
@@ -296,6 +303,7 @@ class GoalReachEnv:
         st = self.env.state()
         state = self.manifold_state()
         self._prev_action = action.astype(np.float32)
+        reward *= cfg.reward_scale
         self._episode_return += reward
         info = {
             "outcome": outcome,
