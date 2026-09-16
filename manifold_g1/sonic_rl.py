@@ -48,8 +48,9 @@ from .manifold import EllipsoidManifold, Primitive
 from .pose_policy import OBS_DIM, POSE_DIM, POSE_LIMIT, action_to_pose, observation
 from .ppo import PPO, RolloutBuffer
 from .demos import load_demos
+from .paths import BC_POLICY, RL_DIR, RL_POLICY
 
-OUT = C.REPO / "reports" / "manifold_g1" / "sonic_rl"
+OUT = RL_DIR
 
 
 @dataclass
@@ -368,7 +369,7 @@ def main() -> int:
                         help="episodes per demonstration: the same pose against several "
                              "reshapes of its manifold, which is what teaches adaptation")
     parser.add_argument("--resume", type=Path,
-                        default=C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt")
+                        default=BC_POLICY)
     parser.add_argument("--policy", type=Path, default=None)
     parser.add_argument("--init-log-std", type=float, default=-1.5)
     parser.add_argument("--entropy-start", type=float, default=0.004)

@@ -27,8 +27,9 @@ import numpy as np
 from . import constants as C
 from .family import report_specs
 from .manifold import quat_to_matrix
+from .paths import RL_POLICY, VERIFY_REPORT
 
-OUT = C.REPO / "reports" / "manifold_g1" / "bc" / "verify_sonic.json"
+OUT = VERIFY_REPORT
 
 
 def policy_pose(ppo, kin, obs_dim: int, manifold, max_steps: int = 8):
@@ -65,7 +66,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="Validate primitive poses on frozen SONIC")
     parser.add_argument("--policy", type=Path,
-                        default=C.REPO / "reports" / "manifold_g1" / "bc" / "policy.pt")
+                        default=RL_POLICY)
     parser.add_argument("--settle", type=float, default=1.5, help="seconds to hold before reading")
     parser.add_argument("--steps", type=int, default=8, help="policy steps per manifold")
     parser.add_argument("--device", default="cuda")

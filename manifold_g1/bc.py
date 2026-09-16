@@ -26,10 +26,11 @@ import numpy as np
 
 from . import constants as C
 from .demos import load_demos
+from .paths import BC_POLICY
 from .pose_policy import POSE_DIM
 from .torch_env import Config, TorchPrimitiveEnv
 
-OUT = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
+OUT = BC_POLICY
 
 
 def build_dataset(kin, demo_poses: np.ndarray, cfg: Config):
@@ -69,6 +70,7 @@ def train(args) -> int:
     ppo = PPO(obs_dim, POSE_DIM, init_log_std=[-0.3] * POSE_DIM, device=args.device)
 
     from .demos import load_demos as _load
+
     _, all_demos = _load()
     keys = list(all_demos)
     semi_all = np.stack([np.array([float(v) for v in k.split(",")][:3]) for k in keys])
@@ -163,6 +165,7 @@ def evaluate(args) -> int:
     ppo = PPO(env.obs().shape[1], POSE_DIM, device=args.device)
     ppo.load(args.policy)
     from .demos import load_demos as _load
+
     _, all_demos = _load()
     keys = list(all_demos)
     semi = np.stack([np.array([float(v) for v in k.split(",")][:3]) for k in keys])

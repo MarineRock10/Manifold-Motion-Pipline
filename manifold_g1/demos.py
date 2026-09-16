@@ -30,11 +30,11 @@ from .family import MARGIN
 from .pose_policy import POSE_DIM
 from .reference import ARM_DIRECTION, CROUCH_DIRECTION, LEAN_DIRECTION, TWIST_DIRECTION
 
-DATASET = Path("reports/manifold_g1/dataset")
-CLIPS = Path("reports/manifold_g1/clips")
 DEFAULT_ISAAC = C.DEFAULT_ANGLES[C.MUJOCO_TO_ISAACLAB]
 DEFAULT_STRIDE = 10                             # 0.2 s at 50 Hz
-DEMOS = C.REPO / "reports" / "manifold_g1" / "dataset" / "pose_demos.npz"
+from .paths import CLIPS, DATASET, POSE_DEMOS
+
+DEMOS = POSE_DEMOS
 MAX_POSE_DELTA = 1.4                            # rad; joints further than this are doing motion,
                                                 # not holding a pose (a knee at 66 deg swings past)
 

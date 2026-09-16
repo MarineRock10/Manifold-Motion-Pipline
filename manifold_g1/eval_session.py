@@ -34,10 +34,11 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
+from .paths import BC_POLICY, CLIPS, RULER_REPORT
 
-CLIP_DIR = C.REPO / "reports" / "manifold_g1" / "clips"
-DEFAULT_POLICY = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
-OUT = C.REPO / "reports" / "manifold_g1" / "eval_session.json"
+CLIP_DIR = CLIPS
+DEFAULT_POLICY = BC_POLICY
+OUT = RULER_REPORT
 SETTLE_STEPS = 6
 
 

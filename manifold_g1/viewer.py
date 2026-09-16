@@ -19,6 +19,11 @@ import numpy as np
 
 from .pose_policy import POSE_DIM, POSE_LIMIT
 
+# Relaxation steps a policy takes to settle on a pose. Six is enough for the pose to stop moving
+# (each step closes half the remaining gap, so 6 steps leave 1.6% of it). The environment uses
+# `torch_env.Config.inner` per control tick; a viewer only needs the settled result.
+SETTLE_STEPS = 6
+
 
 def pose_points(body, pose: np.ndarray, pelvis: np.ndarray, max_vertices: int = 16) -> np.ndarray:
     """Body-surface points of `pose`, translated to the robot's current position.
@@ -45,7 +50,7 @@ def mark_pose(scene, body, pose: np.ndarray, pelvis: np.ndarray, rgb, stride: in
         scene.ngeom += 1
 
 
-def settle(ppo, manifold, radius_of, steps: int = 6) -> np.ndarray:
+def settle(ppo, manifold, radius_of, steps: int = SETTLE_STEPS) -> np.ndarray:
     """The pose a policy proposes for a manifold: the environment's own relaxation loop.
 
     The environment integrates `pose += (tanh(action) * POSE_LIMIT - pose) * 0.5` for a few steps

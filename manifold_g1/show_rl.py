@@ -33,13 +33,12 @@ from .pose_policy import POSE_DIM
 from .ppo import PPO
 from .demos import load_demos
 from .body_model import BodyModel
-from .viewer import mark_pose, settle
+from .viewer import SETTLE_STEPS, mark_pose, settle
 
 RL_POLICY = C.REPO / "reports" / "manifold_g1" / "sonic_rl" / "policy_sonicrl.pt"
 BC_POLICY = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
 LOG = C.REPO / "reports" / "manifold_g1" / "sonic_rl" / "train_log.csv"
 SCENE = C.REPO / "data" / "g1_flat" / "scene_manifold.xml"
-SETTLE_STEPS = 6
 
 
 class Episode:
