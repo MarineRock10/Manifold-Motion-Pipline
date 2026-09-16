@@ -161,10 +161,10 @@ def main() -> int:
                         help="used when --policy does not exist")
     parser.add_argument("--perturb", type=float, default=0.08,
                         help="semi-axis jitter, matching the fine-tune's default")
-    parser.add_argument("--tilt-deg", type=float, default=6.0,
+    parser.add_argument("--tilt-deg", type=float, default=0.0,
                         help="sagittal tilt std of the sampled manifold, matching the "
                              "fine-tune's default (this is the axis the evaluation family uses)")
-    parser.add_argument("--roll-deg", type=float, default=3.0,
+    parser.add_argument("--roll-deg", type=float, default=0.0,
                         help="lateral roll std of the sampled manifold, matching the default")
     parser.add_argument("--obs-dim", type=int, default=15)
     parser.add_argument("--device", default="cuda")

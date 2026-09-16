@@ -64,8 +64,13 @@ class SonicConfig:
     # orientation perturbation (std of the sampled tilt/roll, degrees). The recorded envelopes
     # are axis-aligned, so without these the policy never sees a tilted manifold and the
     # `report_specs` tilt rows are extrapolation - see `_reshape`.
-    tilt_deg: float = 6.0          # sagittal tilt, the axis the evaluation family uses
-    roll_deg: float = 3.0          # lateral roll, half as much: it is harder to hold
+    tilt_deg: float = 0.0          # sagittal tilt. Left OFF by default: measured, 6 deg changed
+                                   # nothing on the tilt rows (r 1.12->1.12, 1.17->1.23) and
+                                   # 14 deg made every row worse (median 0.975 -> 1.200) because
+                                   # the policy answered the tilt with waist pitch, the channel
+                                   # the frozen controller ignores. Tilting needs a pose channel
+                                   # the tracker can execute, not more of the same pressure.
+    roll_deg: float = 0.0          # lateral roll, same reasoning
     # rewards
     w_containment: float = 4.0     # per unit of margin, only when the gate passes
     w_outside: float = 8.0
@@ -357,11 +362,11 @@ def main() -> int:
     parser.add_argument("--manifolds", type=int, default=16)
     parser.add_argument("--steps", type=int, default=8)
     parser.add_argument("--perturb", type=float, default=0.05)
-    parser.add_argument("--tilt-deg", type=float, default=6.0,
+    parser.add_argument("--tilt-deg", type=float, default=0.0,
                         help="std of the sampled sagittal tilt, degrees; 0 disables it (which is "
                              "what the recorded envelopes have, so the evaluation family's tilt "
                              "rows become extrapolation)")
-    parser.add_argument("--roll-deg", type=float, default=3.0,
+    parser.add_argument("--roll-deg", type=float, default=0.0,
                         help="std of the sampled lateral roll, degrees; 0 disables it")
     parser.add_argument("--no-mean-probe", action="store_true",
                         help="ablation: score only sampled actions")
