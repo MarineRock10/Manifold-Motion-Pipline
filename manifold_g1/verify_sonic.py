@@ -116,7 +116,18 @@ def main() -> int:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(rows, indent=2))
     holds = sum(1 for r in rows if r["outcome"] == "holds")
+    r_s = np.array([r["r_sonic"] for r in rows])
+    r_m = np.array([r["r_model"] for r in rows])
     print(f"\nSONIC held {holds}/{len(rows)} of the proposed poses inside their manifold")
+    # The binary count is dominated by poses that sit *on* the boundary: containment moves by
+    # ~0.05 with a 0.03 rad tracking error, so a pose at r = 1.01 and one at r = 0.99 are the
+    # same result. Report the distribution as well, or a near-miss reads as a failure.
+    print(f"  r(sonic)   mean {r_s.mean():.3f}  median {np.median(r_s):.3f}  "
+          f"p10 {np.percentile(r_s, 10):.3f}  p90 {np.percentile(r_s, 90):.3f}  "
+          f"max {r_s.max():.3f}")
+    print(f"  r(model)   mean {r_m.mean():.3f}  median {np.median(r_m):.3f}")
+    print(f"  within 1.05 of the boundary: {int((r_s <= 1.05).sum())}/{len(rows)}   "
+          f"inside 1.10: {int((r_s <= 1.10).sum())}/{len(rows)}")
     print(f"  mean joint tracking error {np.mean([r['joint_err'] for r in rows]):.3f} rad")
     print(f"saved {OUT.relative_to(C.REPO)}")
     return 0

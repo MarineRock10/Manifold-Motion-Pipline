@@ -66,6 +66,8 @@ class SonicConfig:
     w_track: float = 2.0           # distance between requested and achieved pose
     w_imitation: float = 1.5       # distance from the demonstrated pose
     success_bonus: float = 4.0
+    mean_probe: bool = True        # also score the deterministic pose, which is what deploys
+    w_mean_probe: float = 1.0
 
 
 class SonicPoseEnv:
@@ -83,17 +85,35 @@ class SonicPoseEnv:
         self.achieved = np.zeros(POSE_DIM)
 
     # -- manifolds ---------------------------------------------------------
-    def sample_episode(self, perturb: float = 0.05) -> np.ndarray:
-        """Pick a recorded envelope, jitter it, and return the observation."""
+    def sample_episode(self, perturb: float = 0.05, repeats: int = 1) -> np.ndarray:
+        """Start an episode: one demonstration, and a *reshaped* version of its own manifold.
+
+        The perturbation is applied to the demonstration's own envelope and the demonstration
+        stays fixed for the whole episode. That is what makes the fine-tune mean "this recorded
+        movement, adapted to this manifold's new shape" rather than "a new manifold, from
+        scratch": the policy is pushed to adjust the pose it cloned while staying near it
+        (`w_imitation`), which is where generalisation in the manifold comes from.
+
+        `repeats > 1` keeps the same demonstration and reshapes again - the same pose against
+        several manifold deformations in a row.
+        """
+        if repeats > 1 and self.manifold is not None and self.demo is not None:
+            values = self._base_values
+            out = self._reshape(values, perturb, keep_demo=True)
+            return out
         key, poses = self._entries[int(self.rng.integers(len(self._entries)))]
-        values = np.array([float(v) for v in key.split(",")])
+        self._base_values = np.array([float(v) for v in key.split(",")])
+        self.demo = poses[np.argmin(np.abs(poses).mean(axis=1))]
+        return self._reshape(self._base_values, perturb, keep_demo=True)
+
+    def _reshape(self, values: np.ndarray, perturb: float, keep_demo: bool) -> np.ndarray:
+        """Build the manifold for this episode from a recorded envelope, jittered."""
         semi = values[:3].copy()
         center = values[3:].copy()
         if perturb > 0:
             semi = semi * np.clip(1.0 + self.rng.normal(0, perturb, 3), 0.85, 1.15)
             center = center + np.array([self.rng.normal(0, 0.02), self.rng.normal(0, 0.02), 0.0])
         self.manifold = EllipsoidManifold([Primitive(center=center, semi=semi)])
-        self.demo = poses[np.argmin(np.abs(poses).mean(axis=1))]
         self.env.reset()
         self.achieved = np.zeros(POSE_DIM)
         self.elapsed = 0.0
@@ -172,7 +192,7 @@ class SonicPoseEnv:
 def run(args) -> int:
     import torch
 
-    cfg = SonicConfig(steps=args.steps)
+    cfg = SonicConfig(steps=args.steps, mean_probe=not args.no_mean_probe)
     env = SonicPoseEnv(cfg, seed=args.seed)
     ppo = PPO(OBS_DIM, POSE_DIM, init_log_std=[-1.0] * POSE_DIM, device=args.device)
     # An iteration holds only manifolds x steps transitions (60 at the defaults), while the PPO
@@ -205,15 +225,30 @@ def run(args) -> int:
         buffer = RolloutBuffer(args.manifolds * args.steps, OBS_DIM, POSE_DIM)
         returns, successes, radii, gated = [], [], [], 0
         for episode in range(args.manifolds):
-            obs = env.sample_episode(args.perturb)
+            # every few episodes, reshape the *same* demonstration's manifold again: the policy
+            # sees one recorded pose against several manifold deformations in a row
+            obs = env.sample_episode(args.perturb,
+                                     repeats=args.perturb_repeats if episode % args.perturb_repeats == 0 else args.perturb_repeats)
             episode_return = 0.0
             for _ in range(args.steps):
                 # the policy proposes a pose; the manifest is executed by the controller
-                action, logprob, value = ppo.act(obs)
                 import torch as _t
+                action, logprob, value = ppo.act(obs)
                 pose = np.asarray(action_to_pose(action, _t))
                 next_obs, reward, done, info = env.step(pose)
                 buffer.add(obs, action, logprob, reward, value, float(done))
+                # Also score the mean action. Deployment uses the mean, but PPO explores with
+                # samples, so a run can look like it improves (`r` of sampled poses falls) while
+                # the mean - the pose that would actually be executed - does not. Every collapse
+                # this project has seen had that shape.
+                if cfg.mean_probe:
+                    with _t.no_grad():
+                        mean_action = ppo.model(_t.as_tensor(obs, dtype=_t.float32,
+                                                             device=args.device))[0]
+                    mean_pose = np.asarray(action_to_pose(mean_action, _t))
+                    _, mean_reward, _, mean_info = env.step(mean_pose)
+                    reward = reward + cfg.w_mean_probe * mean_reward
+                    info = mean_info          # report the mean's outcome: that is what deploys
                 obs = next_obs
                 episode_return += reward
             returns.append(episode_return)
@@ -242,7 +277,7 @@ def evaluate(args) -> int:
 
     from .kinematics import TorchKinematics
 
-    cfg = SonicConfig(steps=args.steps)
+    cfg = SonicConfig(steps=args.steps, mean_probe=not args.no_mean_probe)
     env = SonicPoseEnv(cfg, seed=args.seed)
     kin = TorchKinematics(device="cpu")
     policies = {"BC": C.REPO / "reports/manifold_g1/primitive_torch/bc_policy.pt"}
@@ -290,6 +325,11 @@ def main() -> int:
     parser.add_argument("--manifolds", type=int, default=16)
     parser.add_argument("--steps", type=int, default=8)
     parser.add_argument("--perturb", type=float, default=0.05)
+    parser.add_argument("--no-mean-probe", action="store_true",
+                        help="ablation: score only sampled actions")
+    parser.add_argument("--perturb-repeats", type=int, default=3,
+                        help="episodes per demonstration: the same pose against several "
+                             "reshapes of its manifold, which is what teaches adaptation")
     parser.add_argument("--resume", type=Path,
                         default=C.REPO / "reports" / "manifold_g1" / "primitive_torch" / "bc_policy.pt")
     parser.add_argument("--policy", type=Path, default=None)
