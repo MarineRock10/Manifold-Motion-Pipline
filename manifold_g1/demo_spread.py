@@ -18,7 +18,7 @@ import argparse
 import numpy as np
 
 from . import constants as C
-from .primitive import load_demos
+from .demos import load_demos
 
 # Near-spread criterion: a recorded pose counts as "the same posture" when its mean absolute
 # joint difference from the manifold's least-extreme pose is under this. 0.10 rad is about the

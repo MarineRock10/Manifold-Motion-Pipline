@@ -391,7 +391,7 @@ def check(args) -> int:
     import mujoco
 
     from .env import G1FlatEnv
-    from .primitive import load_demos
+    from .demos import load_demos
 
     kin = TorchKinematics(device=args.device)
     env = G1FlatEnv()
@@ -438,7 +438,7 @@ def table(args) -> int:
 
     import torch
 
-    from .primitive import load_demos
+    from .demos import load_demos
 
     kin = TorchKinematics(device=args.device)
     _, all_demos = load_demos()

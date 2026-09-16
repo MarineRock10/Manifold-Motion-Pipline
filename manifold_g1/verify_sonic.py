@@ -13,7 +13,7 @@ This runs the loop for real: for each manifold, ask the primitive model for a po
   * the containment the model computed for the request against the containment of what happened,
   * which of the two is worse and by how much - the executability gap.
 
-    python3 -m manifold_g1.verify_sonic --policy reports/manifold_g1/primitive_torch/policy.pt
+    python3 -m manifold_g1.verify_sonic --policy reports/manifold_g1/bc/policy.pt
 """
 
 from __future__ import annotations
@@ -28,15 +28,15 @@ from . import constants as C
 from .family import report_specs
 from .manifold import quat_to_matrix
 
-OUT = C.REPO / "reports" / "manifold_g1" / "primitive_torch" / "verify_sonic.json"
+OUT = C.REPO / "reports" / "manifold_g1" / "bc" / "verify_sonic.json"
 
 
 def policy_pose(ppo, kin, obs_dim: int, manifold, max_steps: int = 8):
     """Roll the policy on one manifold and return the pose it settles on (device-free numpy)."""
     import torch
 
-    from .primitive_torch import Config, TorchPrimitiveEnv
-    from .primitive import load_demos
+    from .torch_env import Config, TorchPrimitiveEnv
+    from .demos import load_demos
 
     mean, allv = load_demos()
     env = TorchPrimitiveEnv(kin, np.concatenate(list(allv.values())), Config(), n=1, pool=1, seed=0)
@@ -65,7 +65,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="Validate primitive poses on frozen SONIC")
     parser.add_argument("--policy", type=Path,
-                        default=C.REPO / "reports" / "manifold_g1" / "primitive_torch" / "policy.pt")
+                        default=C.REPO / "reports" / "manifold_g1" / "bc" / "policy.pt")
     parser.add_argument("--settle", type=float, default=1.5, help="seconds to hold before reading")
     parser.add_argument("--steps", type=int, default=8, help="policy steps per manifold")
     parser.add_argument("--device", default="cuda")
@@ -83,8 +83,8 @@ def main() -> int:
     for spec in report_specs():
         manifold = spec.build()
         if ppo is None:
-            from .primitive_torch import Config, TorchPrimitiveEnv
-            from .primitive import load_demos
+            from .torch_env import Config, TorchPrimitiveEnv
+            from .demos import load_demos
             mean, allv = load_demos()
             probe = TorchPrimitiveEnv(kin, np.concatenate(list(allv.values())), Config(),
                                       n=1, pool=1, seed=0)

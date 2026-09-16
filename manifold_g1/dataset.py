@@ -91,6 +91,23 @@ def load_episode(index: dict, episode: dict) -> dict:
     return _arrays(Path(index["clips_dir"]) / episode["file"])
 
 
+def present_episodes(index: dict) -> list[dict]:
+    """The indexed episodes whose clip file is still on disk.
+
+    The index is a snapshot of a collection, so rebuilding or pruning the clips directory leaves
+    entries pointing at files that are gone (5 of 105 here). Skipping them keeps every reader -
+    `dataset show`, `view_data plots` - working on the episodes that exist, instead of dying on
+    the first stale row.
+    """
+    clips = Path(index["clips_dir"])
+    present = [e for e in index["episodes"] if (clips / e["file"]).exists()]
+    if len(present) != len(index["episodes"]):
+        missing = [e["file"] for e in index["episodes"] if not (clips / e["file"]).exists()]
+        print(f"note: {len(missing)} of {len(index['episodes'])} indexed clips are missing from "
+              f"{clips} (e.g. {missing[0]}); using the {len(present)} that exist")
+    return present
+
+
 def sample(index: dict, episode: dict, data: dict, t: int) -> dict:
     """One training sample: (M, z_p, s, H, c) and the future R."""
     h, stride, margin = index["horizon"], index["stride"], index["margin"]
@@ -120,7 +137,7 @@ def show(out: Path) -> int:
           f"margin {index['margin']})")
 
     speeds, semi, top, angles, ticks = [], [], [], [], 0
-    for episode in index["episodes"]:
+    for episode in present_episodes(index):
         data = load_episode(index, episode)
         starts = np.array(episode["starts"])
         ticks += episode["ticks"]

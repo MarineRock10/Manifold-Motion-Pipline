@@ -31,11 +31,11 @@ from . import constants as C
 from .manifold import build_scene, update_visuals
 from .pose_policy import POSE_DIM, action_to_pose, observation
 from .ppo import PPO
-from .primitive import load_demos
+from .demos import load_demos
 from .static_fit import BodyModel
 
 RL_POLICY = C.REPO / "reports" / "manifold_g1" / "sonic_rl" / "policy_sonicrl.pt"
-BC_POLICY = C.REPO / "reports" / "manifold_g1" / "primitive_torch" / "bc_policy.pt"
+BC_POLICY = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
 LOG = C.REPO / "reports" / "manifold_g1" / "sonic_rl" / "train_log.csv"
 SCENE = C.REPO / "data" / "g1_flat" / "scene_manifold.xml"
 SETTLE_STEPS = 6

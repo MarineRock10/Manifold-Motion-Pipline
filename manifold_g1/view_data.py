@@ -21,6 +21,7 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
+from .dataset import present_episodes
 
 CLIP_DIR = Path("reports/manifold_g1/clips")
 MARGIN = 1.05          # body envelope -> manifold, same as the dataset builder
@@ -162,23 +163,13 @@ def plots(args) -> int:
     clips = Path(index["clips_dir"])
     fig, axes = plt.subplots(2, 2, figsize=(13, 9))
     speed_hist, semi_all, top_all, angles = [], [], [], []
-    missing = []
-    for episode in index["episodes"]:
-        path = clips / episode["file"]
-        if not path.exists():
-            # the index is a snapshot: rebuilding the collection can leave entries pointing at
-            # files that are no longer there, and one stale row should not lose the whole plot
-            missing.append(episode["file"])
-            continue
-        data, _ = _load(path)
+    for episode in present_episodes(index):
+        data, _ = _load(clips / episode["file"])
         axes[0, 0].plot(data["base_pos"][:, 0], data["base_pos"][:, 1], lw=0.7, alpha=0.6)
         speed_hist.append(np.linalg.norm(data["base_lin_vel"][:, :2], axis=1))
         semi_all.append(data["envelope_semi"])
         top_all.append(data["envelope_top"])
         angles.append(np.degrees(np.arctan2(data["cmd"][:, 4], data["cmd"][:, 3])) % 360)
-    if missing:
-        print(f"note: {len(missing)} of {len(index['episodes'])} indexed clips are gone from "
-              f"{clips} (e.g. {missing[0]}); plotting the remaining {len(speed_hist)}")
     if not speed_hist:
         print(f"no indexed clip could be loaded from {clips}; rebuild the dataset index")
         return 1

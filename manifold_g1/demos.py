@@ -33,10 +33,38 @@ CLIPS = Path("reports/manifold_g1/clips")
 POSE_DIM = 29                                   # the full pose, in policy joint order
 DEFAULT_ISAAC = C.DEFAULT_ANGLES[C.MUJOCO_TO_ISAACLAB]
 DEFAULT_STRIDE = 10                             # 0.2 s at 50 Hz
+DEMOS = C.REPO / "reports" / "manifold_g1" / "dataset" / "pose_demos.npz"
 MARGIN = 1.05                   # envelope -> manifold margin: the recorded pose fits inside
                                 # the stored ellipsoid with this much room to spare
 MAX_POSE_DELTA = 1.4                            # rad; joints further than this are doing motion,
                                                 # not holding a pose (a knee at 66 deg swings past)
+
+
+def demo_key(semi: np.ndarray, center: np.ndarray) -> str:
+    """The manifold identity used as a key: semi then centre, rounded to 2 decimals.
+
+    The rounding is deliberate - it is what lets a queried envelope match a recorded one - but
+    it is also why a manifold can be very tight: the tolerance is coarse enough that nearby
+    envelopes collapse to one key.
+    """
+    values = list(np.asarray(semi).ravel()) + list(np.asarray(center).ravel())
+    return ",".join(f"{v:.2f}" for v in values)
+
+
+def load_demos(path: Path = DEMOS) -> tuple[dict, dict]:
+    """Demo poses grouped by the manifold they were recorded under.
+
+    Returns (mean pose per manifold, all poses per manifold). Every consumer - the clone's
+    training set, both viewers, the in-loop fine-tune - reads the demonstrations through this
+    one function, so they cannot disagree about what the data is.
+    """
+    with np.load(path) as handle:
+        semi, center, pose = handle["semi"], handle["center"], handle["pose"]
+    table: dict[str, list] = {}
+    for i in range(len(pose)):
+        table.setdefault(demo_key(semi[i], center[i]), []).append(pose[i])
+    return ({k: np.mean(v, axis=0) for k, v in table.items()},
+            {k: np.array(v) for k, v in table.items()})
 
 
 def pose_from_joints(q_isaac: np.ndarray) -> np.ndarray:

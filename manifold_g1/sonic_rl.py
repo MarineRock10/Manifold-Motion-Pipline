@@ -1,30 +1,31 @@
 """RL fine-tuning with the frozen controller in the loop, not a model of it.
 
-The batched geometric environment (`primitive_torch.py`) is fast because it predicts what SONIC
-would do with a pose using the execution-residual model. That prediction is 51% better than
-ignoring the residual, which is not the same as being right: the fine-tune then optimises
-"what I think the controller does". With a small number of manifolds in the fine-tune, the real
-controller can simply be run instead.
+An earlier route trained against a learned model of the controller (a batched geometric
+environment plus an execution-residual predictor). Its prediction was 51% better than ignoring
+the residual, which is not the same as being right: the fine-tune then optimises "what I think
+the controller does". A fine-tune needs only a few thousand episodes, and the real controller
+costs ~0.3 s of physics per pose, so it can simply be run instead. That model is gone; this
+module is the whole training path.
 
-This module is deliberately separate from the batched environment and much simpler:
+It is deliberately simple:
 
   * **serial, no batching**: one pose at a time through `KeyframeEnv`, so there is no aliasing
     between environment state and autograd, no in-place version conflicts, no GPU tensors to
-    keep in sync. A fine-tune is a few thousand episodes, not millions;
+    keep in sync;
   * **kinematics gates, containment rewards**: a pose that would fall over (centre of mass off
     the feet, a foot lifted) or that needs joints past their limits earns nothing, whatever it
     does to the containment radius. Fitting inside the manifold is the objective only for poses
     the robot can actually hold;
-  * **the reward uses the pose the controller reached**, measured, not predicted;
-  * **manifold perturbation**: each episode reshapes the recorded envelope, so the policy has to
-    produce a different posture for a differently shaped manifold rather than replaying the
-    posture it memorised for one envelope.
+  * **the reward uses the pose the controller reached**, measured, not predicted - including the
+    deterministic probe of the distribution mean, because the mean is what deploys;
+  * **manifold perturbation**: each episode reshapes a recorded envelope while keeping its
+    demonstration fixed, so the policy has to adapt a pose it cloned to the manifold's new
+    shape rather than replaying what it memorised.
 
-Cost: one pose costs ~0.3 s of physics. An iteration of 16 manifolds x 8 control ticks is about
-40 s, so a short fine-tune is 10-20 minutes - acceptable for a stage whose whole purpose is to
-respect the execution layer.
+Cost: one pose costs ~0.3 s of physics. An iteration of 16 manifolds x 6 control ticks is about
+30 s, so the 30-iteration fine-tune behind the current policy took 879 s.
 
-    python3 -m manifold_g1.sonic_rl run --iterations 12 --manifolds 16 --steps 8
+    python3 -m manifold_g1.sonic_rl run --iterations 30 --manifolds 16 --steps 6
     python3 -m manifold_g1.sonic_rl eval --policy .../policy_sonicrl.pt    # compare on SONIC
 """
 
@@ -46,7 +47,7 @@ from .keyframe_env import KeyframeEnv
 from .manifold import EllipsoidManifold, Primitive
 from .pose_policy import OBS_DIM, POSE_DIM, POSE_LIMIT, action_to_pose, observation
 from .ppo import PPO, RolloutBuffer
-from .primitive import load_demos
+from .demos import load_demos
 
 OUT = C.REPO / "reports" / "manifold_g1" / "sonic_rl"
 
@@ -280,7 +281,7 @@ def evaluate(args) -> int:
     cfg = SonicConfig(steps=args.steps, mean_probe=not args.no_mean_probe)
     env = SonicPoseEnv(cfg, seed=args.seed)
     kin = TorchKinematics(device="cpu")
-    policies = {"BC": C.REPO / "reports/manifold_g1/primitive_torch/bc_policy.pt"}
+    policies = {"BC": C.REPO / "reports/manifold_g1/bc/bc_policy.pt"}
     if args.policy:
         policies[Path(args.policy).stem] = Path(args.policy)
     models = {}
@@ -331,7 +332,7 @@ def main() -> int:
                         help="episodes per demonstration: the same pose against several "
                              "reshapes of its manifold, which is what teaches adaptation")
     parser.add_argument("--resume", type=Path,
-                        default=C.REPO / "reports" / "manifold_g1" / "primitive_torch" / "bc_policy.pt")
+                        default=C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt")
     parser.add_argument("--policy", type=Path, default=None)
     parser.add_argument("--init-log-std", type=float, default=-1.5)
     parser.add_argument("--entropy-start", type=float, default=0.004)

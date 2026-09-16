@@ -21,7 +21,7 @@ data describes: maximising `w_inside` moves the body toward an inscribed ellipso
 inside". Fixing it means defining the envelope as an ellipsoid at measurement time (inflate the
 box semis by the factor that contains the body, 1.35 for the standing pose), not in the viewer.
 
-    python3 -m manifold_g1.eval_session --policy reports/manifold_g1/primitive_torch/bc_policy.pt
+    python3 -m manifold_g1.eval_session --policy reports/manifold_g1/bc/bc_policy.pt
     python3 -m manifold_g1.eval_session --clips 8 --device cpu --show 20
 """
 
@@ -36,7 +36,7 @@ import numpy as np
 from . import constants as C
 
 CLIP_DIR = C.REPO / "reports" / "manifold_g1" / "clips"
-DEFAULT_POLICY = C.REPO / "reports" / "manifold_g1" / "primitive_torch" / "bc_policy.pt"
+DEFAULT_POLICY = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
 OUT = C.REPO / "reports" / "manifold_g1" / "eval_session.json"
 SETTLE_STEPS = 6
 
@@ -57,7 +57,7 @@ def evaluate(args) -> int:
     from .manifold import EllipsoidManifold, Primitive
     from .pose_policy import POSE_DIM, action_to_pose, observation
     from .ppo import PPO
-    from .primitive import load_demos
+    from .demos import load_demos
 
     kin = TorchKinematics(device=args.device)
     _, all_demos = load_demos()

@@ -1,26 +1,45 @@
-# Everything runs from the repo root. The first target is only needed after changing the
-# pose directions in manifold_g1/reference.py - it re-measures the robot body model.
+# Everything runs from the repo root. These are the three live stages plus the viewers; the
+# retired 4-channel geometric route (static_fit train/report/verify/view) has no targets left.
 
-.PHONY : g1-envelope
-g1-envelope :
-	python3 -m manifold_g1.body_envelope --crouch 0,0.4,0.8,1.2,1.6,2.0 \
-		--lean 0,0.5,1.0 --twist="-1.2,0,1.2" --arms 0,0.5,1.0 --protocol slew
+.PHONY : g1-data
+g1-data :
+	python3 -m manifold_g1.dataset show
+	python3 -m manifold_g1.demo_spread
 
-.PHONY : g1-static-train
-g1-static-train :
-	python3 -m manifold_g1.static_fit train --iterations 600 --rollout-steps 64 \
-		--envs 32 --w-effort 0.4 --w-outside 25 --entropy-end 0.001 \
-		--out reports/manifold_g1/static_fit
+.PHONY : g1-bc-train
+g1-bc-train :
+	python3 -m manifold_g1.bc train --epochs 200
 
-.PHONY : g1-static-report
-g1-static-report :
-	python3 -m manifold_g1.static_fit report --policy reports/manifold_g1/static_fit/policy.pt
+.PHONY : g1-bc-eval
+g1-bc-eval :
+	python3 -m manifold_g1.bc eval --policy reports/manifold_g1/bc/bc_policy.pt --device cpu
 
-.PHONY : g1-static-verify
-g1-static-verify :
-	python3 -m manifold_g1.static_fit verify --policy reports/manifold_g1/static_fit/policy.pt \
-		--ticks 160
+.PHONY : g1-sonic-rl
+g1-sonic-rl :
+	python3 -m manifold_g1.sonic_rl run --iterations 30 --manifolds 16 --steps 6
 
-.PHONY : g1-static-view
-g1-static-view :
-	python3 -m manifold_g1.static_fit view --policy reports/manifold_g1/static_fit/policy.pt
+.PHONY : g1-sonic-eval
+g1-sonic-eval :
+	python3 -m manifold_g1.sonic_rl eval --manifolds 10 --steps 4 \
+		--policy reports/manifold_g1/sonic_rl/policy_sonicrl.pt
+
+.PHONY : g1-verify
+g1-verify :
+	python3 -m manifold_g1.verify_sonic --policy reports/manifold_g1/sonic_rl/policy_sonicrl.pt
+
+# The box-vs-ellipsoid containment check: prints both rulers side by side.
+.PHONY : g1-ruler
+g1-ruler :
+	python3 -m manifold_g1.eval_session --clips 3 --per-clip 4 --device cpu
+
+.PHONY : g1-view-data
+g1-view-data :
+	python3 -m manifold_g1.view_data replay
+
+.PHONY : g1-view-bc
+g1-view-bc :
+	python3 -m manifold_g1.show_bc
+
+.PHONY : g1-view-rl
+g1-view-rl :
+	python3 -m manifold_g1.show_rl

@@ -25,10 +25,10 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
-from .primitive import POSE_DIM, load_demos
-from .primitive_torch import Config, TorchPrimitiveEnv
+from .demos import POSE_DIM, load_demos
+from .torch_env import Config, TorchPrimitiveEnv
 
-OUT = C.REPO / "reports" / "manifold_g1" / "primitive_torch" / "bc_policy.pt"
+OUT = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
 
 
 def build_dataset(kin, demo_poses: np.ndarray, cfg: Config):
@@ -40,7 +40,7 @@ def build_dataset(kin, demo_poses: np.ndarray, cfg: Config):
     import torch
 
     from .manifold import EllipsoidManifold, Primitive
-    from .primitive import load_demos as _load
+    from .demos import load_demos as _load
 
     _, all_demos = _load()
     keys = list(all_demos)
@@ -67,7 +67,7 @@ def train(args) -> int:
     obs_dim = probe.obs().shape[1]
     ppo = PPO(obs_dim, POSE_DIM, init_log_std=[-0.3] * POSE_DIM, device=args.device)
 
-    from .primitive import load_demos as _load
+    from .demos import load_demos as _load
     _, all_demos = _load()
     keys = list(all_demos)
     semi_all = np.stack([np.array([float(v) for v in k.split(",")][:3]) for k in keys])
@@ -99,7 +99,7 @@ def train(args) -> int:
             # fits a different scale: the environment then receives mu ~ 2.2, clamps it to 1, and
             # the pose is nothing like the one that was cloned - which is what made the RL
             # fine-tune collapse right after a good warm start.
-            from .primitive_torch import action_to_pose
+            from .torch_env import action_to_pose
             pred = ppo.model(obs)[0]
             loss = torch.nn.functional.mse_loss(action_to_pose(pred, torch), target)
             optimizer.zero_grad(); loss.backward()
@@ -137,7 +137,7 @@ def _evaluate(ppo, env, demo_semi: np.ndarray, demo_center: np.ndarray,
     assert len(semi) == len(poses), f"manifold {len(semi)} vs pose {len(poses)} rows"
     env.set_manifolds_from_arrays(semi, center, None)
     with torch.no_grad():
-        from .primitive_torch import action_to_pose
+        from .torch_env import action_to_pose
         pred = action_to_pose(ppo.model(env.obs())[0], torch).cpu().numpy()
         r_pred = env.radius_np(torch.as_tensor(pred, dtype=kin.dtype, device=kin.device))
         r_demo = env.radius_np(torch.as_tensor(poses, dtype=kin.dtype, device=kin.device))
@@ -161,7 +161,7 @@ def evaluate(args) -> int:
     env = TorchPrimitiveEnv(kin, demo_poses, Config(), n=1, pool=1, seed=0)
     ppo = PPO(env.obs().shape[1], POSE_DIM, device=args.device)
     ppo.load(args.policy)
-    from .primitive import load_demos as _load
+    from .demos import load_demos as _load
     _, all_demos = _load()
     keys = list(all_demos)
     semi = np.stack([np.array([float(v) for v in k.split(",")][:3]) for k in keys])
@@ -189,3 +189,7 @@ def main() -> int:
     parser.add_argument("--policy", type=Path, default=OUT)
     args = parser.parse_args()
     return train(args) if args.mode == "train" else evaluate(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

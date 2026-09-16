@@ -185,7 +185,7 @@ requesting the policy pose   holding 2.4s
 | ③ RL 在环 | **实际到达姿态**在扰动包络内的比例 | `show_rl` 的 `r achieved`、`sonic_rl/train_log.csv` |
 
 - 拿 ③ 的流形去测 ②，测到的是**泛化**，不是 ② 的质量。之前由此得出"BC 只有 3/10"的结论是错的。
-- 拿 `primitive_torch/policy.pt`（几何 RL，用残差模型预测 SONIC）的数字去比 ③ 也不对：那个阶段的奖励是**预测的**落点，不是实测的。现在有效的主线是 ①数据 → ②BC → ③SONIC 在环微调。
+- 几何 RL（`primitive_torch/policy.pt`，奖励来自残差模型**预测**的 SONIC 落点）已连同残差模型一起删除：它从没进过主线，`sonic_rl.py` 一行都没引用过它，而它留下的"训练池 98% / 门禁 7/10"和 ③ 的实测口径混在一起会误读。现在只有一条主线：①数据 → ②BC → ③SONIC 在环微调。
 
 ### 数值报告（不开窗口）
 
@@ -194,7 +194,7 @@ requesting the policy pose   holding 2.4s
 python3 -m manifold_g1.verify_sonic --policy reports/manifold_g1/sonic_rl/policy_sonicrl.pt
 
 # ② 的评估：与示范的偏差（分布内）
-python3 -m manifold_g1.bc eval --policy reports/manifold_g1/primitive_torch/bc_policy.pt
+python3 -m manifold_g1.bc eval --policy reports/manifold_g1/bc/bc_policy.pt
 
 # 包络形状核查：盒子 vs 椭球两种半径并排（见上一节）
 python3 -m manifold_g1.eval_session --clips 3 --per-clip 4 --device cpu

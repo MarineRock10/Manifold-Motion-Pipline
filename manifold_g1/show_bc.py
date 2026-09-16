@@ -13,7 +13,7 @@ Press `S` to step through which pose the robot is asked to hold, `N`/`M` to chan
 headline number is `r achieved` measured on the robot: that is the stage's own metric, pose
 fitting under the recorded envelope, judged through the controller rather than through a model.
 
-    python3 -m manifold_g1.show_bc --policy reports/manifold_g1/primitive_torch/bc_policy.pt
+    python3 -m manifold_g1.show_bc --policy reports/manifold_g1/bc/bc_policy.pt
     python3 -m manifold_g1.show_bc --device cpu --count 200 --max-spread 0.02
 """
 
@@ -29,10 +29,10 @@ from .demo_spread import spread
 from .manifold import build_scene, update_visuals
 from .pose_policy import POSE_DIM, action_to_pose, observation
 from .ppo import PPO
-from .primitive import load_demos
+from .demos import load_demos
 from .static_fit import BodyModel
 
-DEFAULT = C.REPO / "reports" / "manifold_g1" / "primitive_torch" / "bc_policy.pt"
+DEFAULT = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
 SCENE = C.REPO / "data" / "g1_flat" / "scene_manifold.xml"
 SETTLE_STEPS = 6
 
