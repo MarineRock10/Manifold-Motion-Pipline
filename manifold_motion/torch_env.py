@@ -15,7 +15,7 @@ prediction of what SONIC would do), and that trainer is gone - the in-the-loop f
 (`sonic_rl.py`) measures the real controller instead. Only `dt`, `inner` and `tau` still affect
 anything reachable from here.
 
-    python3 -m manifold_g1.torch_env    # self-check: radii agree with the MuJoCo path
+    python3 -m manifold_motion.torch_env    # self-check: radii agree with the MuJoCo path
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from .demos import demo_values, load_demos
 from .pose_policy import POSE_DIM
 from .pose_policy import POSE_LIMIT
 
-OUT_DIR = C.REPO / "reports" / "manifold_g1" / "bc"
+OUT_DIR = C.REPO / "reports" / "manifold_motion" / "bc"
 
 
 # `action_to_pose` has exactly one definition, in `pose_policy`; re-exported here because this is

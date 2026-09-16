@@ -5,9 +5,9 @@ emits a gait, which the frozen SONIC controller then executes. What the robot ac
 a property of the controller, not of the command, so the command space has to be measured
 before anything can sample it.
 
-    python3 -m manifold_g1.calibrate sweep     # record the grid (one clip per command)
-    python3 -m manifold_g1.calibrate table     # aggregate what is on disk
-    python3 -m manifold_g1.calibrate plot      # optional: speed vs command
+    python3 -m manifold_motion.calibrate sweep     # record the grid (one clip per command)
+    python3 -m manifold_motion.calibrate table     # aggregate what is on disk
+    python3 -m manifold_motion.calibrate plot      # optional: speed vs command
 
 The table is the first slice of the robot's motion-capability manifold `M^R`: it says which
 commands produce motion at all, how fast, and how far the body envelope moves.
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import numpy as np
 
-CLIP_DIR = Path("reports/manifold_g1/clips")
+CLIP_DIR = Path("reports/manifold_motion/clips")
 
 MODES = list(range(1, 28))          # planner_sonic.onnx exposes 27 motion modes
 
@@ -44,7 +44,7 @@ SWEEP = [
 
 def sweep(seconds: float, out: Path) -> int:
     for tag, extra in SWEEP:
-        cmd = [sys.executable, "-m", "manifold_g1.clip", "--tag", tag,
+        cmd = [sys.executable, "-m", "manifold_motion.clip", "--tag", tag,
                "--seconds", str(seconds), "--out", str(out)] + extra
         print(f"--- {tag}: {' '.join(extra)}", flush=True)
         subprocess.run(cmd, check=True)
@@ -63,7 +63,7 @@ def mode_sweep(seconds: float, out: Path, modes: list[int], target_vel: float) -
     rows = []
     for mode in modes:
         tag = f"mode{mode:02d}"
-        cmd = [sys.executable, "-m", "manifold_g1.clip", "--tag", tag, "--seconds", str(seconds),
+        cmd = [sys.executable, "-m", "manifold_motion.clip", "--tag", tag, "--seconds", str(seconds),
                "--mode", str(mode), "--target-vel", str(target_vel), "--out", str(out)]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:

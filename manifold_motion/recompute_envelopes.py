@@ -11,8 +11,8 @@ clips already store the measured joint angles per tick, and the envelope is a pu
 the pose. So the envelopes are recomputed here from `q_act`, with the same code the training
 path uses, and written back into the npz alongside the old ones for comparison.
 
-    python3 -m manifold_g1.recompute_envelopes --clips reports/manifold_g1/clips
-    python3 -m manifold_g1.recompute_envelopes --analyze      # compare old vs new
+    python3 -m manifold_motion.recompute_envelopes --clips reports/manifold_motion/clips
+    python3 -m manifold_motion.recompute_envelopes --analyze      # compare old vs new
 """
 
 from __future__ import annotations
@@ -134,9 +134,9 @@ def recompute(clips: Path, stride: int, out: Path | None, overwrite: bool) -> in
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Recompute stored envelopes on the surface ruler")
-    parser.add_argument("--clips", type=Path, default=Path("reports/manifold_g1/clips"))
+    parser.add_argument("--clips", type=Path, default=Path("reports/manifold_motion/clips"))
     parser.add_argument("--stride", type=int, default=5, help="control ticks between envelopes")
-    parser.add_argument("--out", type=Path, default=Path("reports/manifold_g1/clips/envelope_diff.json"))
+    parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/clips/envelope_diff.json"))
     parser.add_argument("--overwrite", action="store_true",
                         help="write the recomputed envelopes back into each npz")
     args = parser.parse_args()

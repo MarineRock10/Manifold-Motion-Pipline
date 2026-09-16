@@ -7,7 +7,7 @@
 > 配套：[`ARCHITECTURE.md`](ARCHITECTURE.md)（**整个系统**：四层链路、两个 Stage、
 > 九个 Phase、冻结接口、四条约束）。**本文只覆盖其中已实现的一段，不是全系统。**
 >
-> 历史文档（`STATIC_MANIFOLD_PIPELINE.md`、`VISUALIZATION.md`、`manifold_g1/README.md`）已并入本文，见 git。
+> 历史文档（`STATIC_MANIFOLD_PIPELINE.md`、`VISUALIZATION.md`、`manifold_motion/README.md`）已并入本文，见 git。
 >
 > 日期：2026-09-16。
 
@@ -43,8 +43,8 @@ ARCHITECTURE 描述的是 `环境 → 流形 → 原语 → 动态生成 → SON
 | 阶段 | 命令 | 产物 | **它自己的指标** | 数字 |
 |---|---|---|---|---|
 | ① 数据 | `collect` → `capability build` → `demos build` → `dataset build` | `dataset/pose_demos.npz` | SONIC 跟踪误差 | **0.054 rad**；137 clips / 18705 窗口 / 10336 姿态对 |
-| ② BC | `python3 -m manifold_g1.bc train` | `bc/bc_policy.pt` | 克隆姿态在**记录包络**内的比例 | **9336/9840 = 94.9%**；val 姿态误差 0.087 rad |
-| ③ 在环 | `python3 -m manifold_g1.sonic_rl run` | `sonic_rl/policy_sonicrl.pt` | **实测到达**姿态在**扰动包络**内的比例 | success **1.00**，r **0.82**，30 轮 gate 6 |
+| ② BC | `python3 -m manifold_motion.bc train` | `bc/bc_policy.pt` | 克隆姿态在**记录包络**内的比例 | **9336/9840 = 94.9%**；val 姿态误差 0.087 rad |
+| ③ 在环 | `python3 -m manifold_motion.sonic_rl run` | `sonic_rl/policy_sonicrl.pt` | **实测到达**姿态在**扰动包络**内的比例 | success **1.00**，r **0.82**，30 轮 gate 6 |
 | 门禁 | `verify_sonic` | `bc/verify_sonic.json` | 姿态交给真 SONIC 后实测的 r 分布 | **6/10 inside**，r(sonic) 中位 **0.976** |
 
 **三个指标不可互换**（这是踩过最多次的坑）：拿 ③ 的流形测 ② 得到的是泛化不是 ② 的质量；早期由此得出"BC 只有 3/10"的结论是错的（那 3/10 是 `report_specs` 泛化集，不是同分布）。
@@ -214,9 +214,9 @@ tilt14 那次**每一行都坏了**，不只倾斜行：waist 跟踪误差从 0.
 
 | | 命令 | 显示什么 |
 |---|---|---|
-| ① 数据 | `python3 -m manifold_g1.view_data replay` | 记录回放，椭球是当时的包络，叠加"命令 vs 实际" |
-| ② BC | `python3 -m manifold_g1.show_bc` | 克隆在**它被训练的流形**上：记录姿态（青）vs 克隆姿态（绿）vs SONIC 实测落点（机器人） |
-| ③ 在环 | `python3 -m manifold_g1.show_rl` | 微调策略在**扰动分布**上；按键实时改流形（`u/i` 高、`j/k` 宽、`,/.` 深、`z/x` 偏移、`t/y` 倾斜），每次按键重解姿态并重跑 SONIC |
+| ① 数据 | `python3 -m manifold_motion.view_data replay` | 记录回放，椭球是当时的包络，叠加"命令 vs 实际" |
+| ② BC | `python3 -m manifold_motion.show_bc` | 克隆在**它被训练的流形**上：记录姿态（青）vs 克隆姿态（绿）vs SONIC 实测落点（机器人） |
+| ③ 在环 | `python3 -m manifold_motion.show_rl` | 微调策略在**扰动分布**上；按键实时改流形（`u/i` 高、`j/k` 宽、`,/.` 深、`z/x` 偏移、`t/y` 倾斜），每次按键重解姿态并重跑 SONIC |
 
 共同前提：**机器人实体永远是 SONIC 执行后的结果**，不是运动学摆位——骨盆高度存在自由关节里，纯摆位会让"蹲下"看起来腿在折叠而身体不降，那是假象。
 
@@ -232,20 +232,20 @@ tilt14 那次**每一行都坏了**，不只倾斜行：waist 跟踪误差从 0.
 ## 8. 数值报告（不开窗口）
 
 ```bash
-python3 -m manifold_g1.dataset show                    # ① 数据体检
-python3 -m manifold_g1.demo_spread                     # ① 示范集内部分歧
-python3 -m manifold_g1.bc eval --policy reports/manifold_g1/bc/bc_policy.pt --device cpu
-python3 -m manifold_g1.sonic_rl eval --manifolds 10 --steps 4 --device cpu \
-    --policy reports/manifold_g1/sonic_rl/policy_sonicrl.pt
-python3 -m manifold_g1.verify_sonic --policy reports/manifold_g1/sonic_rl/policy_sonicrl.pt
-python3 -m manifold_g1.eval_session --clips 3 --per-clip 4 --device cpu   # 包络口径核查
+python3 -m manifold_motion.dataset show                    # ① 数据体检
+python3 -m manifold_motion.demo_spread                     # ① 示范集内部分歧
+python3 -m manifold_motion.bc eval --policy reports/manifold_motion/bc/bc_policy.pt --device cpu
+python3 -m manifold_motion.sonic_rl eval --manifolds 10 --steps 4 --device cpu \
+    --policy reports/manifold_motion/sonic_rl/policy_sonicrl.pt
+python3 -m manifold_motion.verify_sonic --policy reports/manifold_motion/sonic_rl/policy_sonicrl.pt
+python3 -m manifold_motion.eval_session --clips 3 --per-clip 4 --device cpu   # 包络口径核查
 ```
 
 `eval_session` 打印两种半径（椭球 / 盒子）作重建核对：椭球列应读 1.000（记录姿态正好在包络表面），盒子列 ~0.71（盒子角点效应，只作形状对照）。
 
 ---
 
-## 9. 代码地图（`manifold_g1/`）
+## 9. 代码地图（`manifold_motion/`）
 
 | 模块 | 职责 |
 |---|---|

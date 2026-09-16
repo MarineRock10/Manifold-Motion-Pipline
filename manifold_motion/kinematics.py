@@ -10,8 +10,8 @@ re-evaluating it in torch removes MuJoCo from the training loop entirely while s
 (no interpolation, no lookup, no approximation), and moves the work to the GPU where it
 batches over thousands of poses at once.
 
-    python3 -m manifold_g1.kinematics check      # accuracy + speed against MuJoCo
-    python3 -m manifold_g1.kinematics table      # per-pose throughput at several batch sizes
+    python3 -m manifold_motion.kinematics check      # accuracy + speed against MuJoCo
+    python3 -m manifold_motion.kinematics table      # per-pose throughput at several batch sizes
 """
 
 from __future__ import annotations

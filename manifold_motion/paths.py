@@ -15,7 +15,7 @@ from pathlib import Path
 
 from . import constants as C
 
-REPORTS = C.REPO / "reports" / "manifold_g1"
+REPORTS = C.REPO / "reports" / "manifold_motion"
 
 # --- dataset -----------------------------------------------------------------
 CLIPS = REPORTS / "clips"

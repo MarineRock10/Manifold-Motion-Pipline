@@ -15,8 +15,8 @@ The manifold keys are the feature: `h`/`w`/`d` scale the drawn envelope, `n`/`m`
 tilt it. Every key re-draws the perturbation and re-runs the policy, so the response to a changed
 manifold is visible directly rather than inferred from a log.
 
-    python3 -m manifold_g1.show_rl
-    python3 -m manifold_g1.show_rl --policy reports/manifold_g1/sonic_rl/policy_sonicrl.pt
+    python3 -m manifold_motion.show_rl
+    python3 -m manifold_motion.show_rl --policy reports/manifold_motion/sonic_rl/policy_sonicrl.pt
 """
 
 from __future__ import annotations
@@ -35,9 +35,9 @@ from .demos import demo_values, load_demos
 from .body_model import BodyModel
 from .viewer import SETTLE_STEPS, mark_pose, settle
 
-RL_POLICY = C.REPO / "reports" / "manifold_g1" / "sonic_rl" / "policy_sonicrl.pt"
-BC_POLICY = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
-LOG = C.REPO / "reports" / "manifold_g1" / "sonic_rl" / "train_log.csv"
+RL_POLICY = C.REPO / "reports" / "manifold_motion" / "sonic_rl" / "policy_sonicrl.pt"
+BC_POLICY = C.REPO / "reports" / "manifold_motion" / "bc" / "bc_policy.pt"
+LOG = C.REPO / "reports" / "manifold_motion" / "sonic_rl" / "train_log.csv"
 SCENE = C.REPO / "data" / "g1_flat" / "scene_manifold.xml"
 
 

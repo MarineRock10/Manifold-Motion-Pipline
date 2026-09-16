@@ -21,8 +21,8 @@ envelope was measured from, and the standing body sat at r = 1.145 against the f
 scale-1.0 manifold. Both writers now fit an ellipsoid and the family base is derived from the
 same fit, so scale 1.0 means "the standing body fits exactly". Recorded poses now read r = 1.000.
 
-    python3 -m manifold_g1.eval_session --policy reports/manifold_g1/bc/bc_policy.pt
-    python3 -m manifold_g1.eval_session --clips 8 --device cpu --show 20
+    python3 -m manifold_motion.eval_session --policy reports/manifold_motion/bc/bc_policy.pt
+    python3 -m manifold_motion.eval_session --clips 8 --device cpu --show 20
 """
 
 from __future__ import annotations

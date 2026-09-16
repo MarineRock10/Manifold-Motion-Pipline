@@ -25,8 +25,8 @@ It is deliberately simple:
 Cost: one pose costs ~0.3 s of physics. An iteration of 16 manifolds x 6 control ticks is about
 30 s, so the 30-iteration fine-tune behind the current policy took 879 s.
 
-    python3 -m manifold_g1.sonic_rl run --iterations 30 --manifolds 16 --steps 6
-    python3 -m manifold_g1.sonic_rl eval --policy .../policy_sonicrl.pt    # compare on SONIC
+    python3 -m manifold_motion.sonic_rl run --iterations 30 --manifolds 16 --steps 6
+    python3 -m manifold_motion.sonic_rl eval --policy .../policy_sonicrl.pt    # compare on SONIC
 """
 
 from __future__ import annotations
@@ -317,7 +317,7 @@ def evaluate(args) -> int:
                       tilt_deg=args.tilt_deg, roll_deg=args.roll_deg)
     env = SonicPoseEnv(cfg, seed=args.seed)
     kin = TorchKinematics(device="cpu")
-    policies = {"BC": C.REPO / "reports/manifold_g1/bc/bc_policy.pt"}
+    policies = {"BC": C.REPO / "reports/manifold_motion/bc/bc_policy.pt"}
     if args.policy:
         policies[Path(args.policy).stem] = Path(args.policy)
     models = {}

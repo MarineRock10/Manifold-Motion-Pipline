@@ -4,8 +4,8 @@ Samples a random walk schedule (speed, travel direction, body heading, per 2-5 s
 drives the planner, has frozen SONIC execute it in MuJoCo, and records every tick. Episodes
 run in parallel processes: each owns its own MuJoCo model and ONNX sessions.
 
-    python3 -m manifold_g1.collect --episodes 8 --jobs 4 --seconds 20
-    python3 -m manifold_g1.collect --episodes 100 --jobs 6 --seconds 30 --out reports/manifold_g1/clips
+    python3 -m manifold_motion.collect --episodes 8 --jobs 4 --seconds 20
+    python3 -m manifold_motion.collect --episodes 100 --jobs 6 --seconds 30 --out reports/manifold_motion/clips
 
 The recorded `q_act` is the ground truth (the frozen controller is path dependent and does not
 adopt every keyframe), and the per-tick command is kept so a sample can be labelled with what
@@ -80,7 +80,7 @@ def main() -> int:
     parser.add_argument("--replan-every", type=int, default=5,
                         help="control ticks between planner calls (5 = 10 Hz, 10 = 5 Hz)")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--out", type=Path, default=Path("reports/manifold_g1/clips"))
+    parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/clips"))
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 

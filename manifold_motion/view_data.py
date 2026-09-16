@@ -1,8 +1,8 @@
 """Look at the collected data: MuJoCo replay and a static overview figure.
 
-    python3 -m manifold_g1.view_data replay --clip reports/manifold_g1/clips/ep0000_seed1000.npz
-    python3 -m manifold_g1.view_data plots  --out reports/manifold_g1/dataset/overview.png
-    python3 -m manifold_g1.view_data episode --clip ... --out reports/manifold_g1/dataset/ep0000.png
+    python3 -m manifold_motion.view_data replay --clip reports/manifold_motion/clips/ep0000_seed1000.npz
+    python3 -m manifold_motion.view_data plots  --out reports/manifold_motion/dataset/overview.png
+    python3 -m manifold_motion.view_data episode --clip ... --out reports/manifold_motion/dataset/ep0000.png
 
 `replay` drives the native MuJoCo viewer from the recording: the robot is posed from the
 recorded `q_act`, the translucent ellipsoid is the body envelope of that instant (the reverse
@@ -24,7 +24,7 @@ from . import constants as C
 from .family import MARGIN
 from .dataset import present_episodes
 
-CLIP_DIR = Path("reports/manifold_g1/clips")
+CLIP_DIR = Path("reports/manifold_motion/clips")
 
 
 def _load(path: Path) -> tuple[dict, dict]:
@@ -250,8 +250,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Visualize collected clips")
     parser.add_argument("mode", choices=("replay", "plots", "episode"))
     parser.add_argument("--clip", type=Path, default=None)
-    parser.add_argument("--dataset", type=Path, default=Path("reports/manifold_g1/dataset"))
-    parser.add_argument("--out", type=Path, default=Path("reports/manifold_g1/dataset/overview.png"))
+    parser.add_argument("--dataset", type=Path, default=Path("reports/manifold_motion/dataset"))
+    parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/dataset/overview.png"))
     parser.add_argument("--seconds", type=float, default=0.0,
                         help="replay: quit after this many seconds (0 = until the window closes)")
     args = parser.parse_args()
@@ -262,7 +262,7 @@ def main() -> int:
     if args.mode == "plots":
         return plots(args)
     args.clip = args.clip or sorted(CLIP_DIR.glob("ep*.npz"))[0]
-    if args.out == Path("reports/manifold_g1/dataset/overview.png"):
+    if args.out == Path("reports/manifold_motion/dataset/overview.png"):
         args.out = args.out.with_name(args.clip.stem + ".png")
     return episode(args)
 

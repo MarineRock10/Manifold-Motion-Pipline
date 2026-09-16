@@ -8,7 +8,7 @@ the stage's number would then be measuring the data, not the policy.
 That is measured here, once, so `show_bc` and `show_rl` report it the same way and a low score
 can be attributed: either the policy, or a manifold the data leaves ambiguous.
 
-    python3 -m manifold_g1.demo_spread            # summary over every recorded manifold
+    python3 -m manifold_motion.demo_spread            # summary over every recorded manifold
 """
 
 from __future__ import annotations

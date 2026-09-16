@@ -1,11 +1,16 @@
-# Sonic-Nav
+# Manifold-Motion
 
-Single-environment research harness for **manifold-conditioned motion learning** on top of a
-frozen whole-body controller: a Unitree G1 in MuJoCo driven by NVIDIA GEAR-SONIC ONNX models.
+Research harness for **manifold-conditioned motion generation** on a Unitree G1, executed by a
+frozen whole-body controller (NVIDIA GEAR-SONIC ONNX) in MuJoCo.
 
-The repository is trimmed to the research-essential subset — `manifold_g1/` plus the SONIC
-ONNX assets it loads. Navigation, deployment source, training stacks and docs from the
-original Sonic-Nav / GR00T-WholeBodyControl trees were removed.
+The idea: an environment constraint is expressed as an **ellipsoid manifold** the body must stay
+inside, and the policy learns what to do about it. Today that is `M → pose` (a single held
+posture, no time dimension); the target is `M → motion`.
+
+Renamed from `Sonic-Nav`, which described the parent project rather than this one. The repository
+is trimmed to the research-essential subset — `manifold_motion/` plus the SONIC ONNX assets it
+loads; navigation, deployment source and training stacks from the original Sonic-Nav /
+GR00T-WholeBodyControl trees were removed.
 
 ## Where to start
 
@@ -21,7 +26,7 @@ is the honest account of how far it has actually got.
 
 | Path | Contents |
 |---|---|
-| `manifold_g1/` | MuJoCo environment, frozen SONIC controller, manifold family, behaviour cloning, in-the-loop fine-tune, viewers |
+| `manifold_motion/` | MuJoCo environment, frozen SONIC controller, manifold family, behaviour cloning, in-the-loop fine-tune, viewers |
 | `gear_sonic_deploy/policy/release/` | SONIC encoder/decoder ONNX + observation config (downloaded, git-ignored) |
 | `data/` | G1 MuJoCo model, meshes, generated manifold scenes (git-ignored) |
 | `reports/` | Clips, demonstrations, checkpoints, verification JSON (git-ignored — **back these up separately**) |
@@ -41,11 +46,11 @@ Three stages, each judged by its own metric:
 
 ```bash
 # ① data
-python3 -m manifold_g1.dataset show                # health: speed, envelope, coverage
-python3 -m manifold_g1.demo_spread                 # how much recorded poses vary per manifold
+python3 -m manifold_motion.dataset show                # health: speed, envelope, coverage
+python3 -m manifold_motion.demo_spread                 # how much recorded poses vary per manifold
 
 # ② the clone
-make g1-bc-train                                   # or: python3 -m manifold_g1.bc train
+make g1-bc-train                                   # or: python3 -m manifold_motion.bc train
 make g1-bc-eval                                    # 94.9% of training manifolds fit
 
 # ③ the in-the-loop fine-tune
@@ -57,9 +62,9 @@ make g1-verify                                     # 6/10 inside, r(sonic) media
 make g1-ruler                                      # the ellipsoid-vs-box check
 
 # see it
-python3 -m manifold_g1.view_data replay            # ① the recording
-python3 -m manifold_g1.show_bc                     # ② the clone on its training manifolds
-python3 -m manifold_g1.show_rl                     # ③ the fine-tune; keys reshape the manifold
+python3 -m manifold_motion.view_data replay            # ① the recording
+python3 -m manifold_motion.show_bc                     # ② the clone on its training manifolds
+python3 -m manifold_motion.show_rl                     # ③ the fine-tune; keys reshape the manifold
 ```
 
 Viewer keys and what each number on screen means: [`PIPELINE.md`](PIPELINE.md) §7.

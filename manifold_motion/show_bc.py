@@ -13,8 +13,8 @@ Press `S` to step through which pose the robot is asked to hold, `N`/`M` to chan
 headline number is `r achieved` measured on the robot: that is the stage's own metric, pose
 fitting under the recorded envelope, judged through the controller rather than through a model.
 
-    python3 -m manifold_g1.show_bc --policy reports/manifold_g1/bc/bc_policy.pt
-    python3 -m manifold_g1.show_bc --device cpu --count 200 --max-spread 0.02
+    python3 -m manifold_motion.show_bc --policy reports/manifold_motion/bc/bc_policy.pt
+    python3 -m manifold_motion.show_bc --device cpu --count 200 --max-spread 0.02
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from .demos import demo_values, load_demos
 from .body_model import BodyModel
 from .viewer import SETTLE_STEPS, mark_pose, settle
 
-DEFAULT = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
+DEFAULT = C.REPO / "reports" / "manifold_motion" / "bc" / "bc_policy.pt"
 SCENE = C.REPO / "data" / "g1_flat" / "scene_manifold.xml"
 
 

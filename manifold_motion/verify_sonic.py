@@ -13,7 +13,7 @@ This runs the loop for real: for each manifold, ask the primitive model for a po
   * the containment the model computed for the request against the containment of what happened,
   * which of the two is worse and by how much - the executability gap.
 
-    python3 -m manifold_g1.verify_sonic --policy reports/manifold_g1/bc/policy.pt
+    python3 -m manifold_motion.verify_sonic --policy reports/manifold_motion/bc/policy.pt
 """
 
 from __future__ import annotations

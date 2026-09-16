@@ -13,8 +13,8 @@ these files, so the recorded `q_act` is the ground truth: the frozen controller 
 dependent and silently ignores parts of a reference, and the achieved motion is what is
 actually executable.
 
-    python3 -m manifold_g1.clip --mode 2 --target-vel 1.0 --seconds 4
-    python3 -m manifold_g1.clip --height 0.90 --out reports/manifold_g1/clips
+    python3 -m manifold_motion.clip --mode 2 --target-vel 1.0 --seconds 4
+    python3 -m manifold_motion.clip --height 0.90 --out reports/manifold_motion/clips
 """
 
 from __future__ import annotations
@@ -275,7 +275,7 @@ def main() -> int:
                         help="joint-space crouch offset added to the planned gait")
     parser.add_argument("--movement", type=float, nargs=3, default=[1.0, 0.0, 0.0])
     parser.add_argument("--facing", type=float, nargs=3, default=[1.0, 0.0, 0.0])
-    parser.add_argument("--out", type=Path, default=Path("reports/manifold_g1/clips"))
+    parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/clips"))
     parser.add_argument("--tag", default=None)
     args = parser.parse_args()
 

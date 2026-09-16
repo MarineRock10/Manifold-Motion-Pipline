@@ -13,9 +13,9 @@ same episode, so the sample never crosses an episode boundary.
 Windows are indexed, not materialized: the per-episode arrays are already on disk, and a window
 is (episode, start index). That keeps storage at the episode level and lets the loader slice.
 
-    python3 -m manifold_g1.dataset build --clips reports/manifold_g1/clips \
-        --out reports/manifold_g1/dataset
-    python3 -m manifold_g1.dataset show
+    python3 -m manifold_motion.dataset build --clips reports/manifold_motion/clips \
+        --out reports/manifold_motion/dataset
+    python3 -m manifold_motion.dataset show
 """
 
 from __future__ import annotations
@@ -189,8 +189,8 @@ def show(out: Path) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sliding-window dataset (Phase 1.4/1.5)")
     parser.add_argument("mode", choices=("build", "show"))
-    parser.add_argument("--clips", type=Path, default=Path("reports/manifold_g1/clips"))
-    parser.add_argument("--out", type=Path, default=Path("reports/manifold_g1/dataset"))
+    parser.add_argument("--clips", type=Path, default=Path("reports/manifold_motion/clips"))
+    parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/dataset"))
     parser.add_argument("--stride", type=int, default=STRIDE)
     parser.add_argument("--horizon", type=int, default=HORIZON)
     parser.add_argument("--history", type=int, default=HISTORY)

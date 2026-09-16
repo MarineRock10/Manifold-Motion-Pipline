@@ -11,8 +11,8 @@ is exactly (M, s) -> q supervision. Training on it first puts the policy in the 
 pose space - it can already produce plausible, manifold-appropriate poses - and RL then only has
 to refine within it, instead of searching from noise.
 
-    python3 -m manifold_g1.bc train --epochs 200      # -> bc_policy.pt
-    python3 -m manifold_g1.bc eval                    # agreement with held-out demos
+    python3 -m manifold_motion.bc train --epochs 200      # -> bc_policy.pt
+    python3 -m manifold_motion.bc eval                    # agreement with held-out demos
 """
 
 from __future__ import annotations

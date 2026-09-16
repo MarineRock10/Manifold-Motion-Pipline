@@ -13,7 +13,7 @@ local-frame point of its farthest mesh vertex from the pelvis (the fingertip for
 top of the head for the torso). A landmark therefore tracks the real surface through any pose,
 which is what makes a laterally narrow manifold meaningful.
 
-    python3 -m manifold_g1.body_envelope --crouch 0,0.4,0.8,1.2,1.6,2.0 --lean 0,0.5,1.0 \
+    python3 -m manifold_motion.body_envelope --crouch 0,0.4,0.8,1.2,1.6,2.0 --lean 0,0.5,1.0 \
         --twist="-1.2,-0.6,0,0.6,1.2" --arms 0,0.5,1
 """
 
@@ -219,7 +219,7 @@ def main() -> int:
     parser.add_argument("--protocol", choices=("jump", "slew"), default="slew",
                         help="jump: set the keyframe from a fresh reset; slew: approach it the "
                              "way the viewer and verify do (the frozen controller is path dependent)")
-    parser.add_argument("--out", type=Path, default=Path("reports/manifold_g1/body_envelope.json"))
+    parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/body_envelope.json"))
     args = parser.parse_args()
 
     env = KeyframeEnv()

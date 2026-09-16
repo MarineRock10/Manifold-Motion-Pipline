@@ -11,8 +11,8 @@ travel: the envelope's extent perpendicular to the direction of travel must fit 
 half-width, and the top of the body must stay under the clearance. Both come straight from the
 recorded landmarks/envelope, so this is a re-reading of Phase 1 data, not a new experiment.
 
-    python3 -m manifold_g1.capability build      # -> reports/manifold_g1/dataset/capability.json
-    python3 -m manifold_g1.capability show
+    python3 -m manifold_motion.capability build      # -> reports/manifold_motion/dataset/capability.json
+    python3 -m manifold_motion.capability show
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import numpy as np
 
 from . import constants as C
 
-DATASET = Path("reports/manifold_g1/dataset")
+DATASET = Path("reports/manifold_motion/dataset")
 DEFAULT_CLEARANCE = (1.20, 1.45)      # tunnel height above the floor [m]
 DEFAULT_HALF_WIDTH = (0.35, 0.80)     # corridor half-width [m]
 GRID = (9, 9)                         # cells per axis

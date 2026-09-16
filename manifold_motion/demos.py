@@ -13,8 +13,8 @@ directions: a walking frame holds most of its configuration in joints (shoulder 
 wrists, hip pitch) that no small basis covers, and the style differences between motion modes
 live exactly there. Keeping all 29 joints is what leaves room for style.
 
-    python3 -m manifold_g1.demos build      # -> reports/manifold_g1/dataset/pose_demos.npz
-    python3 -m manifold_g1.demos show
+    python3 -m manifold_motion.demos build      # -> reports/manifold_motion/dataset/pose_demos.npz
+    python3 -m manifold_motion.demos show
 """
 
 from __future__ import annotations

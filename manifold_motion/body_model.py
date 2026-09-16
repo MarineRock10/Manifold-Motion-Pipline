@@ -25,7 +25,7 @@ import numpy as np
 
 from . import constants as C
 
-ENVELOPE_JSON = C.REPO / "reports" / "manifold_g1" / "body_envelope.json"
+ENVELOPE_JSON = C.REPO / "reports" / "manifold_motion" / "body_envelope.json"
 
 
 class BodyModel:
