@@ -11,10 +11,11 @@ original Sonic-Nav / GR00T-WholeBodyControl trees were removed.
 
 | document | what it covers |
 |---|---|
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | **what the system is**: the stages, the frozen interfaces, the constraints that repeatedly bite |
-| [`PIPELINE.md`](PIPELINE.md) | **what is built**: the three stages, their measured numbers, the bugs that were fixed, what is still unsolved |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | **the whole system**: environment → manifold → primitive → dynamic motion → SONIC, both stages, the capability manifold, the reverse-data loops, the frozen interfaces, and the nine phases with their acceptance criteria |
+| [`PIPELINE.md`](PIPELINE.md) | **what is built**: only Phase 1–3 (`M → pose`, no time dimension) — the three stages, their measured numbers, the bugs that were fixed, what is still unsolved |
 
-Those two are the whole documentation.
+Start with ARCHITECTURE to see where the project is going and what the interfaces are; PIPELINE
+is the honest account of how far it has actually got.
 
 ## Layout
 
