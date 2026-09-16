@@ -69,27 +69,39 @@ See `VISUALIZATION.md` for viewer keys and what each number on screen means.
 | `dataset.py`, `capability.py`, `calibrate.py`, `clip.py`, `collect.py` | The data stage: scene/motion collection, the capability map, and the sliding-window dataset. |
 | `recompute_envelopes.py` | Rewrites stored clip envelopes onto the body-surface ruler. **The place to fix the box-vs-ellipsoid mismatch** (see below). |
 
-## Two things that constrain how every `r` should be read
+## The containment ruler, and one measurement bug that is now fixed
 
-### The envelope is a box; the manifold is an ellipsoid
+Containment is `r = ||(p - c) / semi||` against an ellipsoid. Until 2026-09-16 the stored
+envelopes were the per-axis extents `max|rel|` - a **box** - while the test is an **ellipsoid**,
+and a box corner sits at r = 1.73 under an ellipsoid norm. The result: the recorded pose scored
+**1.18-1.57 (median 1.40) against its own envelope**, and the standing body sat at **r = 1.145**
+against the family's scale-1.0 manifold, so "fit inside the manifold" was unsatisfiable by the
+poses the envelopes were measured from.
 
-`envelope_semi` is `max|rel|` per axis — an axis-aligned box, and the recorded pose sits inside
-it at exactly 1.000. But `EllipsoidManifold`'s `r = 1` surface is the ellipsoid *inscribed* in
-that box. Measured: the standing body reaches **r = 1.35** against its own envelope, a box
-corner sits at 1.73, and about 39% of the standing surface is outside `r = 1`.
+Both writers now store a fitted ellipsoid (per-axis extents inflated by the single scalar
+`max_i ||rel_i / semi||`, the smallest uniform inflation containing the body), and
+`family.BASE_SEMI`/`BASE_CENTER` are derived from the same fit the demonstrations use. Verified:
+the recorded pose is at r = 1.0000 and the standing pose at r = 1.0002 in scale 1.0.
 
-So `r ≈ 0.8` does not mean "nearly at the boundary", and the containment reward is optimising a
-shape the recorded data does not describe. The fix belongs in `recompute_envelopes.py` (fit an
-ellipsoid at measurement time; the standing pose needs the box semis inflated by ~1.35). Until
-then, `eval_session` prints both radii side by side so the gap stays visible.
+Two things worth knowing about the fix:
 
-### The demonstration set is almost one pose per manifold
+* it is a **uniform** scale, so the shape is unchanged. A per-axis optimum is only 11% smaller,
+  and no global constant would do - the factor varies per tick (1.18-1.57, median 1.40).
+* the demonstration set was **never affected**: `demos.py` builds each manifold from the pose via
+  `fit_ellipsoid` rather than reading the stored envelope, so the clone's training data was
+  always correct (95% before the fix, 94.9% after - the same number).
 
-9480 of 9859 manifolds hold a **single** recorded pose (379 have ≥ 2, 10 have ≥ 4), so the clone
-learns `M → one q`, not a distribution over `q`. `demo_spread` reports a spread of 0.000 for most
-manifolds because there is nothing to disagree. Multi-style-per-manifold work has nowhere to
-stand until the data covers more than one pose per manifold — that is a data-side limit, not a
-model-side one.
+`verify_sonic` still reads ~3% above 1, and that is arithmetic rather than a policy failure: the
+demonstration manifolds carry `MARGIN = 1.05` while `report_specs` scale 1.0 carries none, so a
+pose fitted at 0.98 reads 0.98 x 1.05 = 1.029. Measured, it reads 1.030.
+
+## The demonstration set is almost one pose per manifold
+
+9480 of 9840 manifolds hold a **single** recorded pose (374 have >= 2, 10 have >= 4), so the clone
+learns `M -> one q`. That is the stage's definition - it is supposed to learn the demonstrated
+*intent*, not a distribution - and multi-style exploration is the fine-tune's job, not the data's.
+What the data does provide is variation *between* manifolds: per-joint std 8.6 deg, correlated
++0.42 with the manifold parameters, which is the signal `M -> q` needs.
 
 ## Known limits of the frozen controller
 

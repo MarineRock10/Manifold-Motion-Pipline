@@ -1,25 +1,25 @@
-"""The containment ruler, measured on real clips: box envelope vs the ellipsoid manifolds use.
+"""The containment ruler, checked against real clips.
 
 A recorded clip stores, every `envelope_stride` ticks, the body envelope `M_t` of that instant -
-computed by `recompute_envelopes` as the sampled body *surface* in the pelvis frame, at the tick
-it belongs to. This script reproduces that measurement and then judges a policy against it, with
-two radii per row, because the two are different shapes and the difference is 35%:
+written by `recompute_envelopes` (and by `clip.py` at collection time) as the sampled body
+*surface* in the pelvis frame, as an **ellipsoid**: the per-axis extents inflated by the single
+scalar `max_i ||rel_i / semi||`, which is the smallest uniform inflation containing the samples.
 
-  * `box`       - the stored envelope is an axis-aligned *box* (`max|rel|` per axis), so the
-                  recorded pose is inside it at exactly 1.000 by construction. This column
-                  verifies the reconstruction; it is not a policy score.
-  * `ellipsoid` - the manifold family is an *ellipsoid*, whose unit level set is inscribed in
-                  that box. A box corner sits at r = 1.73 and the real standing body at r = 1.35
-                  against its own recorded envelope, so `r > 1` here does NOT mean "outside the
-                  recording" - it means "outside the inscribed ellipsoid", which no recorded pose
-                  can satisfy.
+This script reproduces that measurement and reports two radii per row, because they answer
+different questions:
 
-**What this means for the numbers elsewhere in the pipeline.** The recorded envelope being a box
-while the policy's reward is an ellipsoid norm means the containment target is not the shape the
-data describes: maximising `w_inside` moves the body toward an inscribed ellipsoid that excludes
-~39% of the standing surface. That is worth knowing before reading any r near 1 as "almost
-inside". Fixing it means defining the envelope as an ellipsoid at measurement time (inflate the
-box semis by the factor that contains the body, 1.35 for the standing pose), not in the viewer.
+  * `ellipsoid` - containment in the stored envelope, which is the shape every manifold in this
+    project uses. This is the column that should read 1.00 for the recorded pose.
+  * `box`       - the same points against the raw per-axis extents (`max|rel|`, no inflation). A
+    box corner sits at r = 1.73, so a body inside the box still exceeds 1 here; this column is
+    only useful as a shape comparison, and reads ~0.72 for a pose whose ellipsoid r is 1.00.
+
+**Why this exists.** Until 2026-09-16 the clips stored the raw box half-extents and containment
+was measured as an ellipsoid norm, so the recorded pose scored r = 1.18-1.57 (median 1.40)
+against its own envelope - "fit inside the manifold" was unsatisfiable by the very pose the
+envelope was measured from, and the standing body sat at r = 1.145 against the family's
+scale-1.0 manifold. Both writers now fit an ellipsoid and the family base is derived from the
+same fit, so scale 1.0 means "the standing body fits exactly". Recorded poses now read r = 1.000.
 
     python3 -m manifold_g1.eval_session --policy reports/manifold_g1/bc/bc_policy.pt
     python3 -m manifold_g1.eval_session --clips 8 --device cpu --show 20
@@ -173,24 +173,22 @@ def report(rows: list[dict], args) -> None:
               f"{r['box_recorded']:>11.3f} {r['box_cloned']:>12.2f}")
 
     print(f"\n{len(rows)} sampled ticks (at the envelope's own sampling instants)")
-    print(f"  box test      - recorded pose inside its own envelope: "
-          f"{int((b_rec <= 1.0 + 1e-6).sum())}/{len(rows)}   (1.000 by construction: the envelope")
-    print(f"                  was measured from that pose; a real departure means the "
-          f"reconstruction drifted)")
-    print(f"                  the clone's pose inside it:           "
-          f"{int((b_clo <= 1.0).sum())}/{len(rows)}   ({float((b_clo <= 1.0).mean()):.0%})")
-    print(f"  ellipsoid test - recorded: {int((r_rec <= 1.0).sum())}/{len(rows)}   "
-          f"cloned: {int((r_clo <= 1.0).sum())}/{len(rows)}")
-    print(f"  recorded: box {np.median(b_rec):.3f} median (max {b_rec.max():.4f}), "
-          f"ellipsoid {np.median(r_rec):.2f} median")
-    print(f"  cloned  : box {np.median(b_clo):.2f} median, ellipsoid {np.median(r_clo):.2f} median")
+    print(f"  ellipsoid test - recorded: {int((r_rec <= 1.0 + 1e-4).sum())}/{len(rows)}   "
+          f"(1.000 by construction: the envelope was fitted to that pose)")
+    print(f"                   cloned:   {int((r_clo <= 1.0).sum())}/{len(rows)}")
+    print(f"  box test (no inflation, for shape reference) - recorded: "
+          f"{int((b_rec <= 1.0).sum())}/{len(rows)}   cloned: {int((b_clo <= 1.0).sum())}/{len(rows)}")
+    print(f"  recorded: ellipsoid {np.median(r_rec):.3f} median (max {r_rec.max():.4f}), "
+          f"box {np.median(b_rec):.2f}")
+    print(f"  cloned  : ellipsoid {np.median(r_clo):.2f} median, box {np.median(b_clo):.2f}")
     print(f"  clone pose error vs the recorded pose: "
           f"{np.mean([r['pose_err'] for r in rows]):.3f} rad")
-    print(f"\nThe two radii are different shapes: the stored envelope is a box, the manifold is the")
-    print(f"ellipsoid inscribed in it. A box corner sits at r = 1.73 and the real standing body at")
-    print(f"r = 1.35 against its own envelope, so 'ellipsoid r > 1' is not 'outside the recording'.")
-    print(f"Use the box column for containment in the recorded envelope; the ellipsoid column is")
-    print(f"what the policy's reward actually optimises, and the gap between them is worth knowing.")
+    print(f"\nThe two columns are different shapes. The stored envelope is an ellipsoid (the")
+    print(f"per-axis extents inflated until they contain the body's surface), and the recorded pose")
+    print(f"sits on or just inside it, so the ellipsoid column is the one to read: it is the shape")
+    print(f"every manifold in this project measures, and it should read 1.00 for 'recorded'.")
+    print(f"The box column drops the inflation, and a box corner sits at r = 1.73, so it reads less")
+    print(f"than 1 even for a body inside the box - useful only as a shape comparison.")
 
 
 def main() -> int:

@@ -25,16 +25,27 @@ import numpy as np
 from . import constants as C
 from .manifold import EllipsoidManifold, Primitive
 
-# standing extremity envelope, pelvis-anchored (see `BodyModel.at_pose(np.zeros(29))`)
-# Meshed body envelope at the standing pose, in the pelvis frame: the smallest axis-aligned
-# ellipsoid that contains the sampled body surface. It is what the 4-D static stage has always
-# used, and its meaning is unambiguous: at scale 1.0 the body fits exactly (r ~ 1.0).
-# Measured with `body_envelope.body_points`, which samples every group-0 geom on its surface
-# (mesh vertices, capsule end caps, sphere shells) - not at bounding-box corners, which inflate
-# a capsule by up to sqrt(2) of its radius. Both the numpy and the torch path use this ruler.
-BASE_CENTER_WORLD = np.array([0.1262, 0.0035, 0.6962])
-BASE_SEMI = np.array([0.2863, 0.4149, 0.9511])
-BASE_CENTER = BASE_CENTER_WORLD - np.array([0.0, 0.0, C.DEFAULT_HEIGHT])   # pelvis-relative
+# The standing envelope, pelvis-anchored: the smallest axis-aligned *ellipsoid* that contains the
+# sampled body surface at the standing pose, so that at scale 1.0 the body fits exactly (r = 1).
+#
+# It is the SAME object the demonstration set stores, because that is what the policy learned:
+# `demos.pose_envelope` builds each demo's manifold as `fit_ellipsoid(mesh_points_pose(pose))`,
+# and `report_specs()` must scale that same shape or verification measures a family the policy
+# never saw. Both come from the same two functions (`BodyModel.mesh_points_pose` -> `fit_ellipsoid`),
+# evaluated at the standing pose, so they cannot drift apart.
+#
+# Two things about the values, both of which matter:
+#   * the centre is NOT the pelvis. It is 0.11 m below it, because most of the body is legs. An
+#     earlier version centred the ellipsoid on the pelvis, which forced the semi-axes to grow
+#     ~40% in x to reach the feet and changed the shape - the family then disagreed with the
+#     demonstrations it was supposed to describe.
+#   * the semi-axes are the *fitted* values, not the box's half-extents. Using box half-extents
+#     as ellipsoid semi-axes is a different shape: the standing body scored r = 1.145 against its
+#     own scale-1.0 manifold, so the `h1.00_w1.00_d1.00` row of `report_specs` was unsatisfiable
+#     by standing still. Verified now: r = 1.0000.
+BASE_SEMI = np.array([0.2631, 0.3792, 0.8861])
+BASE_CENTER = np.array([0.0923, -0.0077, -0.1100])   # pelvis-relative, seen from the pelvis
+BASE_CENTER_WORLD = BASE_CENTER + np.array([0.0, 0.0, C.DEFAULT_HEIGHT])
 
 
 @dataclass(frozen=True)

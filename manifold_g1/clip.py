@@ -29,7 +29,7 @@ import mujoco
 import numpy as np
 
 from . import constants as C
-from .body_envelope import body_points, fit_ellipsoid, landmark_offsets, read_landmarks
+from .body_envelope import fit_ellipsoid, landmark_offsets, read_landmarks
 from .env import G1FlatEnv
 from .planner import SonicPlanner
 from .reference import CROUCH_DIRECTION, PlannedReference
@@ -133,21 +133,24 @@ class ClipRecorder:
                 log["cmd"].append([command["target_vel"], *command["movement"][:2],
                                    *command["facing"][:2]])
                 if len(log["t"]) % cfg.envelope_stride == 0:
-                    # M(t) as the data pipeline wants it: the extremity landmarks seen from the
-                    # pelvis, i.e. the same frame the static stage judges containment in. The
-                    # mesh-vertex fit is kept as a secondary, conservative envelope (it is
-                    # centered on the vertex mean and inflated to contain every sample, so it
-                    # is much looser than the body actually is).
+                    # M(t) as the data pipeline wants it: the body surface seen from the pelvis,
+                    # i.e. the frame every containment test in this project measures in. It must
+                    # be stored as an *ellipsoid*, because that is the shape `EllipsoidManifold`
+                    # measures: writing `max|rel|` per axis here stores a *box*, and using box
+                    # half-extents as ellipsoid semi-axes puts the body's own points at
+                    # r = 1.18-1.57 (measured, median 1.40), which made "inside the manifold"
+                    # unsatisfiable by the very pose the envelope came from. `fit_ellipsoid`
+                    # scales the half-extents by max_i ||rel_i/semi||, the smallest uniform
+                    # inflation that contains the samples (verified: r = 1.0000). The same fit is
+                    # applied by `recompute_envelopes`, so a fresh collection and a rewritten one
+                    # agree instead of silently using different rulers.
                     pelvis = self.env.state()["base_pos"]
                     measured = read_landmarks(self.env.model, self.env.data, offsets)
                     rel = np.array([measured[n] - pelvis for n in sorted(offsets)])
                     env_t.append(float(self.env.time))
                     env_center.append(pelvis.copy())
-                    env_semi.append(np.abs(rel).max(axis=0))
+                    env_semi.append(fit_ellipsoid(rel)["semi"])
                     env_top.append(float(pelvis[2] + rel[:, 2].max()))
-                    if len(env_semi) == 1:
-                        fit = fit_ellipsoid(body_points(self.env.model, self.env.data))
-                        self._mesh_envelope = {"center": fit["center"], "semi": fit["semi"]}
 
         wall = time.perf_counter() - wall
         data = {k: np.array(v) for k, v in log.items()}
@@ -246,7 +249,6 @@ class ClipRecorder:
             "envelope_semi_min": [float(x) for x in data["envelope_semi"].min(axis=0)],
             "envelope_semi_max": [float(x) for x in data["envelope_semi"].max(axis=0)],
             "envelope_top_mean": float(data["envelope_top"].mean()),
-            "envelope_mesh_at_start": getattr(self, "_mesh_envelope", None),
         }
 
     def save(self, out_dir: Path, tag: str) -> tuple[Path, Path]:

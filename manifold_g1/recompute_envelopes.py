@@ -36,15 +36,35 @@ class PoseSurfacer:
         self.max_vertices = max_vertices
 
     def envelope(self, q_policy: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
-        """Half-extents, body centre, and top height for one joint vector.
+        """Ellipsoid semi-axes, body centre, and top height for one joint vector.
 
         The first two are **pelvis-anchored** (the frame every manifold in this project is built
         in); the top height is in the floor frame, because it is compared against a corridor
         clearance. Writing the centre in world coordinates instead silently breaks every
         containment test downstream - the ellipsoid ends up near the floor while the body is
         described around the pelvis, and the ratio comes out around 10.
+
+        The semi-axes come from `fit_ellipsoid`, not from `max|rel|` per axis. That distinction
+        is the whole point of this function:
+
+          * `max|rel|` per axis is a **box**, and a box is not an ellipsoid. Using box
+            half-extents as ellipsoid semi-axes means the body's own points sit at
+            r = 1.18-1.57 (measured over 60 ticks; median 1.40) instead of <= 1 - so "fit inside
+            the manifold", which every reward and every verification test measures, was not
+            satisfiable even by the pose the envelope was measured from. 39% of the standing
+            surface scored outside its own envelope.
+          * `fit_ellipsoid` multiplies the half-extents by `max_i ||rel_i / semi||`, one scalar
+            for all three axes. That is exactly "inflate the box until the body fits", and it
+            makes r <= 1 true (verified: r = 1.0000 on every sampled tick).
+
+        Be precise about what this is and is not. It is a **uniform** scale of the box, so the
+        aspect ratio is unchanged; it is not a per-axis refit. A single global constant cannot
+        replace it, because the factor varies per tick (1.18-1.57, median 1.40) - a constant
+        would over-inflate the roomy ticks and still clip the tight ones.
         """
         import mujoco
+
+        from .body_envelope import fit_ellipsoid
 
         env = self.env
         env.data.qpos[env.body_qadr] = q_policy[C.ISAACLAB_TO_MUJOCO]
@@ -52,7 +72,9 @@ class PoseSurfacer:
         points = body_points(env.model, env.data, max_vertices=self.max_vertices)
         pelvis = env.data.xpos[mujoco.mj_name2id(env.model, mujoco.mjtObj.mjOBJ_BODY, "pelvis")]
         rel = points - pelvis
-        return np.abs(rel).max(axis=0), 0.5 * (rel.max(axis=0) + rel.min(axis=0)), \
+        fit = fit_ellipsoid(rel, center=np.zeros(3))
+        return np.asarray(fit["semi"], dtype=np.float64), np.asarray(fit["center"],
+                                                                    dtype=np.float64), \
             float(points[:, 2].max())
 
 
