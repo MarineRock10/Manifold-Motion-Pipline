@@ -33,26 +33,6 @@ from .torch_env import Config, TorchPrimitiveEnv
 OUT = BC_POLICY
 
 
-def build_dataset(kin, demo_poses: np.ndarray, cfg: Config):
-    """Observations from the environment's own obs layout, labels from the recorded poses.
-
-    The observation is built by the real environment (so training and deployment cannot drift
-    apart), but instead of rolling the policy the manifold of each demo is loaded directly.
-    """
-    import torch
-
-    from .manifold import EllipsoidManifold, Primitive
-    from .demos import load_demos as _load
-
-    _, all_demos = _load()
-    keys = list(all_demos)
-    pose_list = [all_demos[k] for k in keys]
-    env = TorchPrimitiveEnv(kin, demo_poses, cfg, n=1, pool=1, seed=0)
-
-    # one (M, q) pair per stored demo pose: the manifold is the envelope it was recorded under
-    semi = np.stack([np.array([float(v) for v in k.split(",")][:3]) for k in keys])
-    center = np.stack([np.array([float(v) for v in k.split(",")][3:]) for k in keys])
-    return env, semi, center, pose_list
 
 
 def train(args) -> int:

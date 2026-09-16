@@ -116,27 +116,8 @@ SIM_DT = 0.005         # 200 Hz physics
 DECIMATION = 4
 
 
-def strip_frame_suffix(name: str) -> str:
-    """'motion_joint_positions_10frame_step5' -> 'motion_joint_positions'."""
-    parts = name.split("_")
-    for i, part in enumerate(parts):
-        if part.endswith("frame") and part[:-5].isdigit():
-            return "_".join(parts[:i])
-    return name
 
 
-def frame_params(name: str) -> tuple[int, int]:
-    """Return (num_frames, step) encoded in an observation name (defaults 1, 1)."""
-    num_frames = 1
-    step = 1
-    for part in name.split("_"):
-        if part.endswith("frame") and part[:-5].isdigit():
-            num_frames = int(part[:-5])
-        elif part == "step" or part.startswith("step"):
-            tail = part[4:]
-            if tail.isdigit():
-                step = int(tail)
-    return num_frames, step
 
 
 def load_obs_layout(path: Path = OBS_CONFIG_PATH) -> dict:
@@ -248,8 +229,6 @@ def heading_quat(q: np.ndarray) -> np.ndarray:
     return quat_from_yaw(np.arctan2(forward[1], forward[0]))
 
 
-def quat_normalize(q: np.ndarray) -> np.ndarray:
-    return q / np.linalg.norm(q)
 
 
 def anchor_orientation_6d(base_quat: np.ndarray, ref_quat: np.ndarray,
