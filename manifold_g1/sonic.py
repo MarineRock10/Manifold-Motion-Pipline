@@ -21,7 +21,9 @@ class SonicController:
                  obs_config=C.OBS_CONFIG_PATH):
         options = ort.SessionOptions()
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        options.intra_op_num_threads = 4
+        options.intra_op_num_threads = C.ONNX_THREADS
+        options.inter_op_num_threads = 1        # ORT defaults this to the core count, which
+                                                # oversubscribes the CPU across parallel workers
         providers = ["CPUExecutionProvider"]
         self.encoder = ort.InferenceSession(str(encoder_path), sess_options=options, providers=providers)
         self.decoder = ort.InferenceSession(str(decoder_path), sess_options=options, providers=providers)

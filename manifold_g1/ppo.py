@@ -71,15 +71,38 @@ class RolloutBuffer:
         self.dones[self.ptr] = float(done)
         self.ptr += 1
 
-    def compute_gae(self, last_value: float, gamma: float, lam: float) -> tuple[np.ndarray, np.ndarray]:
+    def add_batch(self, obs, actions, logprobs, rewards, values, dones) -> None:
+        """Append one transition per environment; the buffer stays time-major."""
+        count = len(rewards)
+        span = slice(self.ptr, self.ptr + count)
+        self.obs[span] = obs
+        self.actions[span] = actions
+        self.logprobs[span] = logprobs
+        self.rewards[span] = rewards
+        self.values[span] = values
+        self.dones[span] = dones
+        self.ptr += count
+
+    def compute_gae(self, last_value, gamma: float, lam: float) -> tuple[np.ndarray, np.ndarray]:
+        """GAE over a time-major buffer holding `num_envs` parallel streams.
+
+        `last_value` is the bootstrap value per stream (a scalar is accepted for one stream);
+        transitions of one stream are `num_envs` apart, and `dones` breaks the chain.
+        """
+        last_value = np.atleast_1d(np.asarray(last_value, dtype=np.float64))
+        num_envs = len(last_value)
         advantages = np.zeros_like(self.rewards)
-        gae = 0.0
+        gae = np.zeros(num_envs)
+        tail = self.ptr - num_envs
         for t in reversed(range(self.ptr)):
-            next_value = last_value if t == self.ptr - 1 else self.values[t + 1]
+            if t >= tail:
+                next_value = last_value[t - tail]
+            else:
+                next_value = self.values[t + num_envs]
             next_nonterminal = 1.0 - self.dones[t]
             delta = self.rewards[t] + gamma * next_value * next_nonterminal - self.values[t]
-            gae = delta + gamma * lam * next_nonterminal * gae
-            advantages[t] = gae
+            gae[t % num_envs] = delta + gamma * lam * next_nonterminal * gae[t % num_envs]
+            advantages[t] = gae[t % num_envs]
         returns = advantages + self.values[: self.ptr]
         return advantages, returns
 
@@ -109,6 +132,20 @@ class PPO:
         action = dist.mean if deterministic else dist.sample()
         logprob = dist.log_prob(action).sum(-1)
         return action.squeeze(0).cpu().numpy(), float(logprob.item()), float(value.item())
+
+    @torch.no_grad()
+    def act_batch(self, obs: np.ndarray):
+        """Actions/logprobs/values for a batch of environments in one forward pass."""
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device)
+        dist, value = self.model.distribution(obs_t)
+        action = dist.sample()
+        logprob = dist.log_prob(action).sum(-1)
+        return (action.cpu().numpy(), logprob.cpu().numpy(), value.cpu().numpy())
+
+    @torch.no_grad()
+    def value_batch(self, obs: np.ndarray) -> np.ndarray:
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device)
+        return self.model(obs_t)[1].cpu().numpy()
 
     @torch.no_grad()
     def action_stats(self, obs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

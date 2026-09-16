@@ -1,17 +1,16 @@
 """Ellipsoid manifolds as *soft* conditioning geometry.
 
-There is no collision hull for the manifold: the robot walks on flat ground and the
+There is no collision hull for the manifold: the robot stands on flat ground and the
 manifold exists only as (a) translucent visual ellipsoids and (b) analytic terms in the
 observation / reward:
 
-  containment   r = min over primitives of the normalized radius; r > 1 means the body
-                point left the manifold and is penalized (soft constraint),
-  spine axis    the local +z axis of the nearest primitive is the direction the robot's
-                torso should align with (reward), which is how a tilted or flattened
-                manifold shapes the body orientation.
+  containment   r = normalized radius; r > 1 means the body point left the manifold and is
+                penalized (soft constraint),
+  spine axis    the local +z axis of the primitive is the direction the robot's torso should
+                align with, which is how a tilted or flattened manifold shapes the body.
 
-Because nothing collides with the ellipsoids, changing the manifold never requires
-rebuilding the MuJoCo model - it is pure data.
+Because nothing collides with the ellipsoids, changing the manifold never requires rebuilding
+the MuJoCo model - it is pure data.
 """
 
 from __future__ import annotations
@@ -59,21 +58,6 @@ _ELLIPSOID_GEOM = ('    <geom name="ellipsoid_{i}" type="ellipsoid" size="{a:.6g
                    'material="manifold_mat" group="1" contype="0" conaffinity="0"/>')
 
 
-def yaw_quat(yaw: float) -> np.ndarray:
-    return np.array([np.cos(0.5 * yaw), 0.0, 0.0, np.sin(0.5 * yaw)])
-
-
-def quat_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    w1, x1, y1, z1 = a
-    w2, x2, y2, z2 = b
-    return np.array([
-        w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
-        w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-        w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
-        w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
-    ])
-
-
 def quat_to_matrix(q: np.ndarray) -> np.ndarray:
     w, x, y, z = q
     return np.array([
@@ -104,90 +88,14 @@ class Primitive:
 
 @dataclass
 class EllipsoidManifold:
-    """A chain of soft ellipsoid primitives the robot should stay inside of."""
+    """An ellipsoid the robot's body should stay inside of."""
 
     primitives: list[Primitive]
 
-    # -- construction -------------------------------------------------------
-    @classmethod
-    def single(cls, semi_x: float = 2.6, semi_y: float = 1.3, semi_z: float = 0.62,
-               center_x: float = 0.0, tilt_deg: float = 0.0,
-               center_z: float | None = None) -> "EllipsoidManifold":
-        """One ellipsoid: the robot starts inside its near end and must reach the far end.
-
-        This is the minimal manifold for the first pipeline: a single primitive, one
-        fixed task, one policy - no chain, no randomization.
-        """
-        tilt = np.radians(tilt_deg)
-        z = 0.5 * semi_z if center_z is None else float(center_z)
-        center = np.array([center_x, 0.0, z])
-        quat = np.array([np.cos(0.5 * tilt), 0.0, np.sin(0.5 * tilt), 0.0])
-        return cls([Primitive(center=center, quat=quat, semi=np.array([semi_x, semi_y, semi_z]))])
-
-    @classmethod
-    def tunnel(cls, length: float = 4.5, semi_y: float = 1.1, entry_semi_z: float = 1.3,
-               tunnel_semi_z: float = 1.0, tilt_deg: float = 0.0, count: int = 3,
-               start_x: float = -1.5) -> "EllipsoidManifold":
-        """Chain of `count` ellipsoids along +x; the last ones can be flatter/smaller.
-
-        `tunnel_semi_z` is the half-height of the flattened section (the "low tunnel"
-        that forces crouching); `tilt_deg` tilts the primitives' spine axes.
-        """
-        tilt = np.radians(tilt_deg)
-        spacing = length / max(count - 1, 1)
-        primitives = []
-        for i in range(count):
-            fraction = i / max(count - 1, 1)
-            semi_z = entry_semi_z + (tunnel_semi_z - entry_semi_z) * fraction
-            center = np.array([start_x + i * spacing, 0.0, 0.5 * semi_z])
-            quat = quat_mul(yaw_quat(0.0), np.array([np.cos(0.5 * tilt), 0.0, np.sin(0.5 * tilt), 0.0]))
-            primitives.append(Primitive(center=center, quat=quat,
-                                        semi=np.array([0.62 * spacing, semi_y, semi_z])))
-        return cls(primitives)
-
-    def with_last_semi_z(self, semi_z: float) -> "EllipsoidManifold":
-        """Copy of the manifold with the far primitive flattened to `semi_z` (keeps x layout)."""
-        primitives = [Primitive(p.center.copy(), p.quat.copy(), p.semi.copy()) for p in self.primitives]
-        last = primitives[-1]
-        last.semi = np.array([last.semi[0], last.semi[1], float(semi_z)])
-        last.center = np.array([last.center[0], last.center[1], 0.5 * float(semi_z)])
-        return EllipsoidManifold(primitives)
-
-    # -- geometry -----------------------------------------------------------
     def radii(self, points: np.ndarray) -> np.ndarray:
-        """Normalized radius per point: min over primitives (< 1 inside the manifold)."""
+        """Normalized radius per point (1 = on the surface, < 1 inside)."""
         return np.min(np.stack([p.radius(points) for p in self.primitives]), axis=0)
 
-    def nearest(self, points: np.ndarray) -> np.ndarray:
-        """Index of the primitive with the smallest normalized radius per point."""
-        return np.argmin(np.stack([p.radius(points) for p in self.primitives]), axis=0)
-
-    def axis_at(self, point: np.ndarray) -> np.ndarray:
-        """Spine direction of the nearest primitive at a world point."""
-        index = int(np.argmin([p.radius(np.asarray(point)[None, :])[0] for p in self.primitives]))
-        return self.primitives[index].axis()
-
-    def goal(self) -> np.ndarray:
-        return np.array([self.goal_x(), 0.0, self.primitives[-1].center[2]])
-
-    def goal_x(self) -> float:
-        """x where the far end region begins (crossing it inside the manifold is success)."""
-        last = self.primitives[-1]
-        return float(last.center[0] + (0.45 * last.semi[0] if len(self.primitives) == 1 else 0.0))
-
-    def start_x(self) -> float:
-        """Spawn x: inside the near end for a single ellipsoid, before the chain otherwise."""
-        first = self.primitives[0]
-        return float(first.center[0] - (0.45 * first.semi[0] if len(self.primitives) == 1 else 0.9))
-
-    def start(self) -> np.ndarray:
-        return np.array([self.start_x(), 0.0, self.primitives[0].center[2]])
-
-    def params(self) -> np.ndarray:
-        """Flat parameter vector [K x 9]: relative centre, axis, semi-axes per primitive."""
-        return np.concatenate([np.concatenate([p.center, p.axis(), p.semi]) for p in self.primitives])
-
-    # -- scene --------------------------------------------------------------
     def scene_xml(self) -> str:
         body = []
         for i, primitive in enumerate(self.primitives):
@@ -209,12 +117,21 @@ def build_scene(manifold: EllipsoidManifold, path: Path = SCENE_PATH) -> Path:
     return path
 
 
-def update_visuals(model: mujoco.MjModel, manifold: EllipsoidManifold) -> None:
-    """Move the visual ellipsoids in place; they do not collide, so no model rebuild."""
+def update_visuals(model: mujoco.MjModel, manifold: EllipsoidManifold,
+                   follow: np.ndarray | None = None) -> None:
+    """Move the visual ellipsoids in place; they do not collide, so no model rebuild.
+
+    Manifolds are expressed in the **pelvis frame** (that is the frame containment is judged in,
+    and why `family.BASE_CENTER` sits at z = -0.13 m relative to the pelvis). To draw one, pass
+    the pelvis position as `follow` and the whole offset - including z - is applied; omitting it
+    draws the ellipsoid as if the pelvis were at the origin, which puts it under the floor.
+    """
+    offset = np.zeros(3) if follow is None else np.asarray(follow, dtype=np.float64)[:3]
     for i, primitive in enumerate(manifold.primitives):
         gid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, f"ellipsoid_{i}")
         if gid < 0:
             raise KeyError(f"ellipsoid_{i} not found; the scene was built for a different count")
         model.geom_size[gid] = primitive.semi
-        model.geom_pos[gid] = primitive.center
+        model.geom_pos[gid] = primitive.center + offset
         model.geom_quat[gid] = primitive.quat
+        model.geom_rbound[gid] = float(np.linalg.norm(primitive.semi))

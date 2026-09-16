@@ -1,39 +1,26 @@
-.PHONY : g1-stand
-g1-stand :
-	python3 -m manifold_g1.run --mode stand --seconds 5 --out reports/manifold_g1
+# Everything runs from the repo root. The first target is only needed after changing the
+# pose directions in manifold_g1/reference.py - it re-measures the robot body model.
 
-.PHONY : g1-walk
-g1-walk :
-	python3 -m manifold_g1.run --mode walk --seconds 10 --out reports/manifold_g1
+.PHONY : g1-envelope
+g1-envelope :
+	python3 -m manifold_g1.body_envelope --crouch 0,0.4,0.8,1.2,1.6,2.0 \
+		--lean 0,0.5,1.0 --twist="-1.2,0,1.2" --arms 0,0.5,1.0 --protocol slew
 
-.PHONY : g1-train
-g1-train :
-	python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15 \
-		--out reports/manifold_g1/ppo
+.PHONY : g1-static-train
+g1-static-train :
+	python3 -m manifold_g1.static_fit train --iterations 600 --rollout-steps 64 \
+		--envs 32 --w-effort 0.4 --w-outside 25 --entropy-end 0.001 \
+		--out reports/manifold_g1/static_fit
 
-.PHONY : g1-eval
-g1-eval :
-	python3 -m manifold_g1.train --eval-only --eval-episodes 20 \
-		--resume reports/manifold_g1/ppo/policy.pt --out reports/manifold_g1/ppo
+.PHONY : g1-static-report
+g1-static-report :
+	python3 -m manifold_g1.static_fit report --policy reports/manifold_g1/static_fit/policy.pt
 
-.PHONY : g1-sim2sim
-g1-sim2sim :
-	python3 -m manifold_g1.sim2sim --resume reports/manifold_g1/ppo_l3/policy.pt \
-		--height-start 1.5 --height-goal 1.0
+.PHONY : g1-static-verify
+g1-static-verify :
+	python3 -m manifold_g1.static_fit verify --policy reports/manifold_g1/static_fit/policy.pt \
+		--ticks 160
 
-.PHONY : g1-sim2sim-video
-g1-sim2sim-video :
-	python3 -m manifold_g1.sim2sim --resume reports/manifold_g1/ppo_l3/policy.pt \
-		--no-viewer --episodes 5 --video reports/manifold_g1/viz/sim2sim.mp4
-
-.PHONY : g1-train-l3
-g1-train-l3 :
-	python3 -m manifold_g1.train --iterations 60 --rollout-steps 512 --eval-every 15 --eval-episodes 3 \
-		--curriculum --height-start 1.5 --height-goal 1.5 --height-goal-min 0.95 \
-		--out reports/manifold_g1/ppo_l3
-
-.PHONY : g1-eval-l3
-g1-eval-l3 :
-	python3 -m manifold_g1.train --eval-only --eval-episodes 10 \
-		--eval-heights 1.5,1.3,1.2,1.1,1.0,0.95 \
-		--resume reports/manifold_g1/ppo_l3/policy.pt --out reports/manifold_g1/ppo_l3
+.PHONY : g1-static-view
+g1-static-view :
+	python3 -m manifold_g1.static_fit view --policy reports/manifold_g1/static_fit/policy.pt

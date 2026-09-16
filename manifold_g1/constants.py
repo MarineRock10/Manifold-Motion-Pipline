@@ -107,6 +107,11 @@ assert len(HAND_MOTOR_NAMES) == 14
 
 DEFAULT_HEIGHT = 0.793  # pelvis height used by the repo simulator at reset
 CONTROL_DT = 0.02      # 50 Hz policy/control tick
+PLANNER_DT = 1.0 / 30.0  # planner_sonic.onnx emits frames at 30 Hz
+# ONNX intra-op threads per session. Collection runs several processes in parallel, so a big
+# per-session thread count oversubscribes the CPU: 6 workers x 8 threads on 12 cores pushed the
+# load average to 76 and slowed every worker down.
+ONNX_THREADS = 2
 SIM_DT = 0.005         # 200 Hz physics
 DECIMATION = 4
 

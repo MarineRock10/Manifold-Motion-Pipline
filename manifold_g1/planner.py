@@ -12,10 +12,11 @@ class SonicPlanner:
     MIN_TOKENS = 6
     MAX_TOKENS = 16
 
-    def __init__(self, path=C.PLANNER_ONNX, num_threads: int = 8):
+    def __init__(self, path=C.PLANNER_ONNX, num_threads: int = C.ONNX_THREADS):
         options = ort.SessionOptions()
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         options.intra_op_num_threads = num_threads
+        options.inter_op_num_threads = 1        # see above: keep parallel workers thread-light
         self.session = ort.InferenceSession(str(path), sess_options=options,
                                             providers=["CPUExecutionProvider"])
         self.allowed_tokens = np.ones((1, self.MAX_TOKENS - self.MIN_TOKENS + 1), dtype=np.int64)
