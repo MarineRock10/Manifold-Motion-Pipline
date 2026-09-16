@@ -40,11 +40,13 @@ $$
 
 ## 2. 全链路
 
+**✅ = 已实现并在跑（Phase 1–3）　◻ = 设计已定，未实现**
+
 ```
 RGB-D / LiDAR / Point Cloud
               │
               ▼
-      3D Occupancy / SDF
+      3D Occupancy / SDF                                    ◻ Stage 0
               │
               ▼
       3D A* / Trajectory Opt.                    ┌──────────────────────────┐
@@ -61,33 +63,36 @@ RGB-D / LiDAR / Point Cloud
                                  │
                                  ▼
         ┌────────────────────────────────────────────┐
-        │ Stage 1：Motion Primitive   p_φ(z_p | M)   │
-        │ 单个局部流形 → 原语 + 姿态参数               │
-        │ 模仿 + RL + 二阶模仿                         │
+        │ Stage 1：Motion Primitive   p_φ(z_p | M)   │  ✅ 姿态部分已实现
+        │ 单个局部流形 → 姿态（z_p == q）              │     （步态 k 未做）
+        │ 已实现：克隆 + SONIC 在环                    │     ◻ 二阶模仿未做
+        │ 未实现：步态 k、能耗/平滑项、二阶模仿         │
         └────────────────┬───────────────────────────┘
                          ▼
-                  z_p = [k, α_height, α_pitch, α_stance, v, …]
+                  q = 29 维驻留姿态        ✅
                          │
         ┌────────────────┼────────────────┐
         │                │                │
-     State s_t      History H_t      Command c_t
+     State s_t      History H_t      Command c_t      ◻ Stage 2 才消费
         │                │                │
         └────────────────┼────────────────┘
                          ▼
         ┌────────────────────────────────────────────┐
-        │ Stage 2：Dynamic Motion Generator          │
+        │ Stage 2：Dynamic Motion Generator          │  ◻ 未实现（Phase 6–9）
         │ Conditional Flow Matching                  │
         │ v_θ(x, τ | M, z_p, s, H, c)                │
         └────────────────┬───────────────────────────┘
                          ▼
-                候选运动 R^(1…N)
+                候选运动 R^(1…N)                          ◻
                          ▼
-        Safety / Stability / Task / Energy / Smoothness
+        Safety / Stability / Task / Energy / Smoothness  ◻ 仅部分项有实现（门控）
                          ▼
-                        R* = argmin J(R^(i))
+                        R* = argmin J(R^(i))              ◻
                          ▼
-                      SONIC  →  G1
+                      SONIC  →  G1                        ✅ 唯一可信的落点来源
 ```
+
+**当前真正端到端跑通的只有这一段**：`M → q → SONIC → 实测落点`。上游（环境流形）和下游（动态生成）都是设计。
 
 ---
 
@@ -121,7 +126,7 @@ $$
 
 ---
 
-## 4. 两个 Stage 的分工
+## 4. Stage 1：流形 → 姿态（**已实现**）
 
 | | Stage 1 | Stage 2 |
 |---|---|---|
@@ -130,10 +135,13 @@ $$
 | 输出 | `z_p` 原语（含姿态参数） | `R_{t:t+H}`：T 帧关节轨迹 |
 | 方法 | 模仿 + RL + 二阶模仿 | Conditional Flow Matching + N 候选 + J(R) 选择 |
 | 时间性 | **无**：一个驻留姿态/步态 | **有**：整段运动 |
+| **状态** | **✅ 姿态部分已实现** | ❌ 未实现 |
 
 Stage 1 输出**一个**驻留姿态，它的**时间展开是 Stage 2 的工作**。这条边界是刻意的：它让"姿态可行性"和"动态可行性"可以分别训练、分别验收、分别失败。
 
-### 4.1 原语 `z_p` 不要做成 one-hot
+### 4.1 设计意图：原语 `z_p` 的完整形态
+
+**（目标形态，尚未完全实现）**
 
 ```python
 z_p = [k, α_height, α_pitch, α_stance, v, …]
@@ -143,7 +151,7 @@ z_p = [k, α_height, α_pitch, α_stance, v, …]
 
 离散类型 + 连续参数的混合，才能表达"低矮通道里小步快走的蹲行"这类组合；one-hot 会把强度信息丢掉。
 
-### 4.2 Stage 1 网络
+### 4.2 Stage 1 网络（设计）
 
 ```
 单个流形 M
@@ -157,7 +165,7 @@ z_p = [k, α_height, α_pitch, α_stance, v, …]
      └─ 曲率
      │
      ▼
-PointNet++ / 3D CNN / Transformer        ← 当前实现里 `M` 已是解析椭球，这一步退化为 MLP
+PointNet++ / 3D CNN / Transformer
      │
      ▼
 特征融合 MLP
@@ -172,14 +180,105 @@ walk/crouch/…    height/pitch/stance/v/…
            z_p
 ```
 
-**当前实现对应关系**：因为上游给的是解析椭球而不是点云，编码器那两层退化成 15 维观测 + MLP
-（见 §6.2）；Primitive Head 尚未实现（还没学 `k`），Parameter Head 输出的是 29 维驻留姿态 `q`
-（而非抽象的 `α_height` 等参数——直接用关节角是因为走路帧的大部分构型在肩 roll / 肘 / 腕 / 髋 pitch 上，
-任何低维基都盖不住，而风格差异正好住在那里）。
+### 4.3 当前实现（**这一段是真在跑的**）
+
+上游给的是**解析椭球**，不是点云，所以几何编码器不需要 PointNet——**退化成 15 维观测 + MLP**：
+
+```
+M（椭球：center, semi, quat） + 当前姿态 q
+     │
+     ▼
+15 维观测（pose_policy.observation，唯一定义）
+     ├─ pose[:3] / 1.4            3   当前姿态的前三个关节
+     ├─ pose mean, std            2   整体形变程度
+     ├─ 包含度 r                  1   几何上离流形表面多远
+     ├─ (center − pelvis) / 0.5   3   流形相对身体在哪
+     ├─ semi                      3   多大
+     └─ axis                      3   脊柱该朝哪
+     │
+     ▼
+MLP  body: 15 → 256 → 128        （40891 参数，BC 与微调同一结构）
+     │
+     ▼
+mu: 128 → 29                     ← Parameter Head
+     │
+     ▼
+q = tanh(mu) × 1.4               ← 29 维驻留姿态（action_to_pose）
+```
+
+| 设计中的东西 | 当前实现 |
+|---|---|
+| Primitive Head（学 `k`） | **未实现**——没有步态分类，策略只输出姿态 |
+| Parameter Head 输出 `α_height, α_pitch, …` | 输出 **29 维关节角本身**。不用低维参数是因为走路帧的大部分构型在肩 roll / 肘 / 腕 / 髋 pitch 上，任何低维基都盖不住，而**风格差异正好住在那里** |
+| 几何编码器 / PointNet | 退化为 15 维观测 + MLP（`M` 已是解析椭球） |
+| 模仿 + RL + 二阶模仿 | 实现为 **① 克隆（模仿）+ ③ 在环微调（RL）**；二阶模仿（`q̇`/`q̈`/contact）**未做**——静态姿态没有时间维度，它是 Stage 2 的事 |
+
+**为什么先只做姿态**：`M → q` 是无时间维度的最简闭环，它的可行性判据（r ≤ 1、运动学门控）能独立验证。步态 `k` 需要时间维度才有意义（"crouch-walk" 是一个运动，不是一个姿态），所以归 Stage 2。
+
+**训练信号必须来自实测**：`M → q` 的监督来自真控制器记录的运动（①），微调的奖励来自真控制器**实测的落点**（③），不是任何模型的预测。原因见 §8.3。
+
+### 4.4 原语 `z_p` 与 `q` 的关系
+
+当前 `z_p` **等价于 `q`**（29 维姿态）。将来加入 `k` 后：
+
+$$
+z_p = (k,\; q) \qquad\text{或}\qquad z_p = (k,\; \alpha_{height}, \alpha_{pitch}, \dots) \to q
+$$
+
+接口已按这个方向留好：`z_p` 是 Stage 1 的输出、Stage 2 的输入，中间怎么分解不影响上下游。
+
+### 4.5 Stage 1 的奖励与模仿
+
+**设计（完整版，含时间维度）**：
+
+$$
+r_t = w_{safe}r_{safe} + w_{task}r_{task} + w_{stable}r_{stable}
+     + w_{energy}r_{energy} + w_{smooth}r_{smooth} + w_{clear}r_{clear}
+$$
+
+$$
+r_{safe} = -\max(0, d_{safe} - d_{robot}), \qquad
+r_{stable} = -\|\theta_{base}\|^2 - \beta\|\omega_{base}\|^2
+$$
+$$
+r_{energy} = -\sum_i |\tau_i \dot q_i|, \qquad
+r_{smooth} = -\|\ddot q\|^2 - \eta\|j_q\|^2
+$$
+
+二阶模仿损失（只模仿位置会丢失动态风格，所以 `q` / `q̇` / `q̈` / contact 一起）：
+
+$$
+L_{IM} = \lambda_q L_q + \lambda_{\dot q} L_{\dot q} + \lambda_{\ddot q} L_{\ddot q} + \lambda_c L_{contact}
+$$
+
+训练顺序：`监督/模仿 → RL 微调 → 二阶模仿精修`。
+
+**当前实现（静态姿态，无时间维度，只有一阶）**：
+
+$$
+L = \mathrm{MSE}\big(\tanh(a)\cdot 1.4,\; q_{demo}\big)              \quad\text{① 克隆}
+$$
+
+$$
+r = \underbrace{w_{gate}\cdot\text{运动学门控}}_{\text{违规就扣}} + w_{inside}\cdot\text{余量}
+    + w_{outside}\cdot(\text{超出量}) + w_{track}\cdot\text{跟踪} + w_{imitation}\cdot\text{距示范}
+    + \text{success}
+$$
+
+| 设计中的项 | 当前实现 |
+|---|---|
+| `r_{energy}`（能耗）、`r_{smooth}`（平滑） | **未实现**——两者都需要 `q̇`/`q̈`，静态姿态没有 |
+| 二阶模仿 `L_{q̇}, L_{q̈}, L_{contact}` | **未实现**，同上 |
+| `r_{stable}` | 实现为**运动学门控**：质心偏离支撑 / 抬脚 / 超关节极限 → 直接判违规（比软惩罚更强，因为不可保持的姿态不该有部分分） |
+| 训练顺序 | **一阶**：① 克隆 → ③ 在环 RL，没有第三段精修 |
+
+**门控比奖励更重要的原因**：一个会摔倒的姿态，无论它对包络内性做了什么，都不该得到分。"装进流形"只在**机器人真能保持的姿态**上才是目标——否则策略会学会用不可执行的姿态骗奖励（这一点实测过，见 §8.3）。
 
 ---
 
 ## 5. Robot Capability Manifold `M^R`
+
+**（设计目标；当前只有一个具体实例，见文末）**
 
 除了**环境**流形，还要从 SONIC 已验证能执行的运动**反向**构建**机器人能力**流形：
 
@@ -196,15 +295,20 @@ $$
 - `M^E`：环境允许怎么动；
 - `M^R`：G1 实际能怎么动。
 
-**这使模型不只是"理解环境"，而是理解"这个环境对 G1 意味着什么动作"。** 当前实现里的 `capability.py` 就是这条的一个具体实例（从记录的运动里统计某个流形下机器人实际主动采用的包络）。
+**这使模型不只是"理解环境"，而是理解"这个环境对 G1 意味着什么动作"。**
+
+**当前实现的实例**：`capability.py` 做了一次这个反向统计，但只覆盖了**一个轴**——从记录的运动里统计"给定走廊（clearance、半宽），这个动作可行吗、多快"，得到 `capability.json`（clearance / half_width / speed 的可行域）。它是完整 `M^R` 的一个切片：只回答了"能不能走、多快"，没有回答"该摆什么姿态"。
+
+`M* = M^E ∩ M^R` 这个交集的**用法**目前也还没落地：现在的流程直接把记录的运动流形当训练输入，没有做"环境允许 ∩ 机器人能做"的裁剪。
 
 ---
 
-## 6. 冻结的接口
+## 6. 接口
 
-改接口必须说明理由并等确认——接口一改，上下游全部作废。
+改接口必须说明理由并等确认——接口一改，上下游全部作废。标 ✅ 的是**现在冻结、已在跑**的；
+标 ◻ 的是**为将来留好、尚未使用**的。
 
-### 6.1 流形 `M`
+### 6.1 流形 `M` ✅
 
 ```python
 M = {"center": [x,y,z], "semi": [sx,sy,sz], "quat": [w,x,y,z]}
@@ -220,23 +324,24 @@ $$
 
 对**所有身体表面点**取最大。
 
-### 6.2 原语 `z_p` 与姿态 `q`
+### 6.2 姿态 `q` ✅ / 原语 `z_p` ◻
 
-- `q`：29 维关节向量，**policy(IsaacLab) 顺序**，相对默认站姿的**增量**；
+- **`q`（现在就在用）**：29 维关节向量，**policy(IsaacLab) 顺序**，相对默认站姿的**增量**；
+- **`z_p`（预留）**：设计上是 `(k, 参数)` 的混合，当前**等价于 `q`**——Stage 1 只输出姿态，没有步态 `k`。Stage 2 实现时再决定怎么分解（见 §4.4）；
 - 观测：15 维，单一定义在 `pose_policy.observation`：
   `pose[:3]/1.4 (3) + mean,std (2) + r (1) + (center−pelvis)/0.5 (3) + semi (3) + axis (3)`；
 - 动作映射：`q = tanh(a) × 1.4`，单一定义在 `pose_policy.action_to_pose`。用 `tanh` 不用 `clamp`——clamp 会饱和并失去"回来"的梯度。
 
-### 6.3 运动 `R`
+### 6.3 运动 `R` ✅（只用到 T=1）
 
 ```python
 R = {"joint_pos": [T,29], "joint_vel": [T,29],
      "root_pos": [T,3], "root_quat": [T,4]}          # 全部 policy 顺序
 ```
 
-SONIC 读的是**运动参考**：逐帧关节位置/速度 + 根位姿。**一个关键帧就是 T=1 的 `R`**——这是静态姿态能直接接到 SONIC 上的原因（`reference.KeyframeReference`）。
+SONIC 读的是**运动参考**：逐帧关节位置/速度 + 根位姿。**一个关键帧就是 T=1 的 `R`**——这是静态姿态能直接接到 SONIC 上的原因（`reference.KeyframeReference`）。T>1 的用法（Stage 2 的输出）还没实现。
 
-### 6.4 执行层
+### 6.4 执行层 ✅
 
 - SONIC ONNX，50 Hz 控制 / 200 Hz 物理（4 子步）；
 - `q_target = default_angles[isaaclab→mujoco] + action × g1_action_scale`，PD 力矩控制；
@@ -374,32 +479,6 @@ $$
 ```text
 Flow Matching → Multiple Motions → Feasibility + Cost → Optimal Motion R*
 ```
-
-### 10.5 Stage 1 的奖励与二阶模仿
-
-奖励（Stage 1 RL 用）：
-
-$$
-r_t = w_{safe}r_{safe} + w_{task}r_{task} + w_{stable}r_{stable}
-     + w_{energy}r_{energy} + w_{smooth}r_{smooth} + w_{clear}r_{clear}
-$$
-
-$$
-r_{safe} = -\max(0, d_{safe} - d_{robot}), \qquad
-r_{stable} = -\|\theta_{base}\|^2 - \beta\|\omega_{base}\|^2
-$$
-$$
-r_{energy} = -\sum_i |\tau_i \dot q_i|, \qquad
-r_{smooth} = -\|\ddot q\|^2 - \eta\|j_q\|^2
-$$
-
-二阶模仿损失（只模仿位置会丢失动态风格，所以 q / q̇ / q̈ / contact 一起）：
-
-$$
-L_{IM} = \lambda_q L_q + \lambda_{\dot q} L_{\dot q} + \lambda_{\ddot q} L_{\ddot q} + \lambda_c L_{contact}
-$$
-
-训练顺序：`监督/模仿 → RL 微调 → 二阶模仿精修`。
 
 ---
 
