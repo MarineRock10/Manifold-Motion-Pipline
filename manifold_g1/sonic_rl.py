@@ -47,7 +47,7 @@ from .keyframe_env import KeyframeEnv
 from .manifold import EllipsoidManifold, Primitive
 from .pose_policy import OBS_DIM, POSE_DIM, POSE_LIMIT, action_to_pose, observation
 from .ppo import PPO, RolloutBuffer
-from .demos import load_demos
+from .demos import demo_values, load_demos
 from .paths import BC_POLICY, RL_DIR, RL_POLICY
 
 OUT = RL_DIR
@@ -109,7 +109,7 @@ class SonicPoseEnv:
             out = self._reshape(values, perturb, keep_demo=True)
             return out
         key, poses = self._entries[int(self.rng.integers(len(self._entries)))]
-        self._base_values = np.array([float(v) for v in key.split(",")])
+        self._base_values = demo_values(key)
         self.demo = poses[np.argmin(np.abs(poses).mean(axis=1))]
         return self._reshape(self._base_values, perturb, keep_demo=True)
 

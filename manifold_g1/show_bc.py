@@ -29,7 +29,7 @@ from .demo_spread import spread
 from .manifold import build_scene, update_visuals
 from .pose_policy import POSE_DIM
 from .ppo import PPO
-from .demos import load_demos
+from .demos import demo_values, load_demos
 from .body_model import BodyModel
 from .viewer import SETTLE_STEPS, mark_pose, settle
 
@@ -67,7 +67,7 @@ def collect(args) -> tuple[list[dict], dict]:
             len(keys), args.sample, replace=False)]
     for key in keys:
         poses = all_demos[key]
-        values = np.array([float(v) for v in key.split(",")])
+        values = demo_values(key)
         semi, center = values[:3], values[3:]
         _, median_dev, near = spread(poses)
         near_frac = near / len(poses)

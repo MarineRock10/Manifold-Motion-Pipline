@@ -25,7 +25,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import constants as C
-from .demos import load_demos
+from .demos import demo_values, load_demos
 from .pose_policy import POSE_DIM
 from .pose_policy import POSE_LIMIT
 
@@ -123,7 +123,7 @@ class TorchPrimitiveEnv:
         center = np.zeros((pool, 3))
         demo = np.full((pool, POSE_DIM), np.nan)
         for i, key in enumerate(chosen):
-            values = np.array([float(v) for v in key.split(",")])
+            values = demo_values(key)
             semi[i], center[i] = values[:3], values[3:]
             poses = all_demos[key]
             demo[i] = poses[np.argmin(np.abs(poses).mean(axis=1))]      # the least extreme pose
@@ -139,7 +139,7 @@ class TorchPrimitiveEnv:
     @staticmethod
     def _difficulty_of(key: str) -> float:
         """How much posing this recorded envelope demands: smaller means easier."""
-        values = np.array([float(v) for v in key.split(",")])
+        values = demo_values(key)
         semi = values[:3]
         return float(np.linalg.norm(semi))
 

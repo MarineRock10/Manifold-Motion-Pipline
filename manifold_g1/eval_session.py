@@ -59,6 +59,7 @@ def evaluate(args) -> int:
     from .pose_policy import POSE_DIM, action_to_pose, observation
     from .ppo import PPO
     from .demos import load_demos
+    from .demo_spread import nearest_key, spread
 
     kin = TorchKinematics(device=args.device)
     _, all_demos = load_demos()
@@ -106,8 +107,8 @@ def evaluate(args) -> int:
             r_recorded = float(manifold.radii(rel_recorded).max())
             box_recorded = float((np.abs(rel_recorded) / semi).max())   # inside the recorded box?
 
-            demos = _closest_demos(all_demos, semi)
-            _, med_dev, near = spread_of(demos)
+            demos = all_demos[nearest_key(all_demos, semi)]
+            _, med_dev, near = spread(demos)
 
             pose = np.zeros(POSE_DIM)
             with torch.no_grad():
@@ -148,18 +149,6 @@ def _points(kin, pose: np.ndarray) -> np.ndarray:
 
     return kin.forward(torch.as_tensor(pose[None, :], dtype=kin.dtype,
                                        device=kin.device))[0].cpu().numpy()
-
-
-def spread_of(poses: np.ndarray):
-    from .demo_spread import spread
-
-    return spread(poses)
-
-
-def _closest_demos(all_demos: dict, semi: np.ndarray) -> np.ndarray:
-    keys = np.stack([np.array([float(v) for v in k.split(",")][:3]) for k in all_demos])
-    nearest = int(np.argmin(np.abs(keys - semi[None, :]).mean(axis=1)))
-    return all_demos[list(all_demos)[nearest]]
 
 
 def report(rows: list[dict], args) -> None:

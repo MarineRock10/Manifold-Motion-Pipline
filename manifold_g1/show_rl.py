@@ -31,7 +31,7 @@ from . import constants as C
 from .manifold import build_scene, update_visuals
 from .pose_policy import POSE_DIM
 from .ppo import PPO
-from .demos import load_demos
+from .demos import demo_values, load_demos
 from .body_model import BodyModel
 from .viewer import SETTLE_STEPS, mark_pose, settle
 
@@ -57,7 +57,7 @@ class Episode:
         self.perturb = perturb
         self.tilt_deg = tilt_deg
         self.roll_deg = roll_deg
-        self.base = np.array([float(v) for v in key.split(",")])
+        self.base = demo_values(key)
         self.demo = poses[np.argmin(np.abs(poses).mean(axis=1))]     # least extreme pose
         self.height = self.width = self.depth = 1.0
         self.offset = 0.0

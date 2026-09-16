@@ -25,7 +25,7 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
-from .demos import load_demos
+from .demos import demo_values, load_demos
 from .paths import BC_POLICY
 from .pose_policy import POSE_DIM
 from .torch_env import Config, TorchPrimitiveEnv
@@ -49,12 +49,12 @@ def train(args) -> int:
     obs_dim = probe.obs().shape[1]
     ppo = PPO(obs_dim, POSE_DIM, init_log_std=[-0.3] * POSE_DIM, device=args.device)
 
-    from .demos import load_demos as _load
+    from .demos import demo_values, load_demos as _load
 
     _, all_demos = _load()
     keys = list(all_demos)
-    semi_all = np.stack([np.array([float(v) for v in k.split(",")][:3]) for k in keys])
-    center_all = np.stack([np.array([float(v) for v in k.split(",")][3:]) for k in keys])
+    values = np.stack([demo_values(k) for k in keys])
+    semi_all, center_all = values[:, :3], values[:, 3:]
     poses = np.concatenate([all_demos[key] for key in keys])
     owner = np.concatenate([np.full(len(all_demos[key]), i) for i, key in enumerate(keys)])
 
@@ -144,12 +144,12 @@ def evaluate(args) -> int:
     env = TorchPrimitiveEnv(kin, demo_poses, Config(), n=1, pool=1, seed=0)
     ppo = PPO(env.obs().shape[1], POSE_DIM, device=args.device)
     ppo.load(args.policy)
-    from .demos import load_demos as _load
+    from .demos import demo_values, load_demos as _load
 
     _, all_demos = _load()
     keys = list(all_demos)
-    semi = np.stack([np.array([float(v) for v in k.split(",")][:3]) for k in keys])
-    center = np.stack([np.array([float(v) for v in k.split(",")][3:]) for k in keys])
+    values = np.stack([demo_values(k) for k in keys])
+    semi, center = values[:, :3], values[:, 3:]
     poses = np.concatenate([all_demos[key] for key in keys])
     owner = np.concatenate([np.full(len(all_demos[key]), i) for i, key in enumerate(keys)])
     rng = np.random.default_rng(0)

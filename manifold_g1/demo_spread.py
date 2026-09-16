@@ -18,7 +18,7 @@ import argparse
 import numpy as np
 
 from . import constants as C
-from .demos import load_demos
+from .demos import demo_values, load_demos
 
 # Near-spread criterion: a recorded pose counts as "the same posture" when its mean absolute
 # joint difference from the manifold's least-extreme pose is under this. 0.10 rad is about the
@@ -48,13 +48,26 @@ def table(min_poses: int = 4) -> dict[str, dict]:
         if len(poses) < min_poses:
             continue
         deviations, median_dev, near = spread(poses)
-        values = np.array([float(v) for v in key.split(",")])
+        values = demo_values(key)
         out[key] = {
             "semi": values[:3], "center": values[3:], "count": len(poses),
             "spread": median_dev, "near": near, "near_frac": near / len(poses),
             "worst": float(deviations.max()),
         }
     return out
+
+
+def nearest_key(all_demos: dict, semi: np.ndarray) -> str:
+    """The recorded manifold whose envelope is closest to `semi` (in semi-axes only).
+
+    The recorded envelopes and this query are both the same measured object, so the nearest key
+    is the same manifold up to the key's 2-decimal rounding - which is exactly the tolerance
+    that makes a lookup meaningful rather than accidental. Used by `eval_session` to report the
+    recorded-pose spread of the manifold a row is judged on.
+    """
+
+    keys = np.stack([demo_values(k)[:3] for k in all_demos])
+    return list(all_demos)[int(np.argmin(np.abs(keys - np.asarray(semi)[None, :]).mean(axis=1)))]
 
 
 def main() -> int:

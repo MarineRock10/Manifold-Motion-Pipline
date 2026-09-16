@@ -50,6 +50,17 @@ def demo_key(semi: np.ndarray, center: np.ndarray) -> str:
     return ",".join(f"{v:.2f}" for v in values)
 
 
+def demo_values(key: str) -> np.ndarray:
+    """`demo_key` reversed: a key back to `[semi(3), center(3)]`.
+
+    Pairs with `demo_key`, and exists because that parse was open-coded nine times across the
+    package (`np.array([float(v) for v in key.split(",")])`, then `[:3]` for the semi and `[3:]`
+    for the centre). A change to the key format - an extra field, a different rounding - would
+    have had to find all nine, and a missed one silently pairs poses with the wrong ellipsoid.
+    """
+    return np.array([float(v) for v in key.split(",")], dtype=np.float64)
+
+
 def load_demos(path: Path = DEMOS) -> tuple[dict, dict]:
     """Demo poses grouped by the manifold they were recorded under.
 
