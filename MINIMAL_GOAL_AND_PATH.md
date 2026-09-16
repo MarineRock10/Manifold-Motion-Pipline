@@ -30,7 +30,7 @@
 | 格 | 第一轮（最简，先跑通） | 之后升级 | 现有资产 |
 |---|---|---|---|
 | 环境 → 流形 `M_1..M_T` | **手写走廊**：一列椭球沿路径排布，高度/宽度可调 | 点云/SDF → 3D A* → Safe Corridor | `manifold.py` 的 `build_scene`/`update_visuals` 还在；`tunnel()` 在 git 历史里 |
-| Stage 1 `M→z_p` | **常数速度**（或查表：局部高度→速度档） | 学 `p(z_p|M)`（RL / 监督） | 静态那套 `static_fit` 的环境与训练器可直接改造 |
+| Stage 1 `M→z_p` | **常数速度**（或查表：局部高度→速度档） | 学 `p(z_p|M)`（RL / 监督） | `torch_env.py` 的批量环境可直接改造（旧的 `static_fit` 训练器已删除） |
 | Stage 2 `(M,z_p,s,H,c)→R` | **planner_sonic 生成步态**（已接通，10 Hz 重规划 + 8 帧 crossfade） | Conditional Flow Matching（用第一轮采到的数据训） | `planner.py` + `PlannedReference`（已恢复）；采集端 `clip.py` |
 | 执行 | **冻结 SONIC + MuJoCo**（已有） | 换 `vr_3point` 接口 / 非冻结 WBC | `env.py` + `sonic.py` + `keyframe_env.py` |
 | 评估 | 逐 tick 记录 + 汇总指标 | 加 `J(R)` 排序、多候选 | `clip.py` 的记录器（命令 vs 实际、接触、包络） |

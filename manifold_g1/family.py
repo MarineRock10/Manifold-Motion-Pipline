@@ -47,10 +47,18 @@ BASE_SEMI = np.array([0.2631, 0.3792, 0.8861])
 BASE_CENTER = np.array([0.0923, -0.0077, -0.1100])   # pelvis-relative, seen from the pelvis
 BASE_CENTER_WORLD = BASE_CENTER + np.array([0.0, 0.0, C.DEFAULT_HEIGHT])
 
+# Envelope -> manifold margin, shared with the demonstration set (`demos.MARGIN`). A manifold is
+# the body envelope times this, so a pose that exactly fills the body reads r = 1/1.05 = 0.952 in
+# it, and a policy can hold a pose without sitting on the boundary. The demonstrations, the
+# batched environment and `report_specs` all use this one value: when `report_specs` omitted it,
+# verification measured a family 5% tighter than anything the policy was trained on, and every
+# result read ~5% high (predicted 0.98 * 1.05 = 1.029, measured 1.030).
+MARGIN = 1.05
+
 
 @dataclass(frozen=True)
 class ManifoldSpec:
-    """A manifold in the family: the standing extremity envelope scaled and shifted."""
+    """A manifold in the family: the standing body envelope scaled and shifted."""
 
     height: float = 1.0        # vertical semi-axis scale
     width: float = 1.0         # lateral semi-axis scale
@@ -59,11 +67,19 @@ class ManifoldSpec:
     tilt_deg: float = 0.0      # sagittal tilt of the axis (+ leans forward)
 
     def build(self, base_semi: np.ndarray = BASE_SEMI,
-              base_center: np.ndarray = BASE_CENTER) -> EllipsoidManifold:
-        scale = np.array([self.depth, self.width, self.height])
+              base_center: np.ndarray = BASE_CENTER,
+              margin: float = MARGIN) -> EllipsoidManifold:
+        """The manifold for this spec: semi-axes scaled, centre kept where the body is.
+
+        The scale applies to the semi-axes only. The centre is a *position* - where the body sits
+        relative to the pelvis, 0.11 m below it - so scaling it would move the ellipsoid off the
+        body rather than resize it; measured, that alone costs 0.005 in r. The earlier version
+        scaled the centre by the spec's height/width/depth, which drifted the manifold further
+        the more extreme the spec was, and the offset was then added in world terms on top.
+        """
+        scale = np.array([self.depth, self.width, self.height]) * margin
         semi = np.asarray(base_semi, dtype=np.float64) * scale
-        center = np.asarray(base_center, dtype=np.float64) * scale
-        center = center + np.array([0.0, self.offset, 0.0])
+        center = np.asarray(base_center, dtype=np.float64) + np.array([0.0, self.offset, 0.0])
         half = np.radians(self.tilt_deg) / 2.0
         quat = np.array([np.cos(half), 0.0, np.sin(half), 0.0])
         return EllipsoidManifold([Primitive(center=center, quat=quat, semi=semi)])

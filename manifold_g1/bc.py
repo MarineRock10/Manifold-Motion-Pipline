@@ -25,7 +25,8 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
-from .demos import POSE_DIM, load_demos
+from .demos import load_demos
+from .pose_policy import POSE_DIM
 from .torch_env import Config, TorchPrimitiveEnv
 
 OUT = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"

@@ -21,10 +21,10 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
+from .family import MARGIN
 from .dataset import present_episodes
 
 CLIP_DIR = Path("reports/manifold_g1/clips")
-MARGIN = 1.05          # body envelope -> manifold, same as the dataset builder
 
 
 def _load(path: Path) -> tuple[dict, dict]:

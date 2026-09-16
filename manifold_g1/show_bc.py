@@ -27,10 +27,11 @@ import numpy as np
 from . import constants as C
 from .demo_spread import spread
 from .manifold import build_scene, update_visuals
-from .pose_policy import POSE_DIM, action_to_pose, observation
+from .pose_policy import POSE_DIM
 from .ppo import PPO
 from .demos import load_demos
-from .static_fit import BodyModel
+from .body_model import BodyModel
+from .viewer import mark_pose, settle
 
 DEFAULT = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
 SCENE = C.REPO / "data" / "g1_flat" / "scene_manifold.xml"
@@ -77,14 +78,8 @@ def collect(args) -> tuple[list[dict], dict]:
         recorded = poses[np.argmin(np.abs(poses).mean(axis=1))]
 
         # the clone's answer for this envelope, through the same observation layout training used
-        pose = np.zeros(POSE_DIM)
-        with torch.no_grad():
-            for _ in range(SETTLE_STEPS):
-                r_now = float(manifold.radii(_points(kin, pose).cpu().numpy()).max())
-                obs = observation(pose, manifold.primitives[0], r_now, np.zeros(3))
-                action, _, _ = ppo.act(obs, deterministic=True)
-                target = np.asarray(action_to_pose(action, torch))
-                pose = pose + (target - pose) * 0.5
+        pose = settle(ppo, manifold,
+                      lambda p: manifold.radii(_points(kin, p).cpu().numpy()).max())
         r_clone = float(manifold.radii(
             _points(kin, pose).cpu().numpy()).max())
         r_recorded = float(manifold.radii(
@@ -219,9 +214,9 @@ def main() -> int:
             update_visuals(env.env.model, entry["manifold"], follow=pelvis)
             scene = viewer.user_scn
             scene.ngeom = 0
-            _dots(scene, body, entry["recorded_pose"], pelvis, (0.2, 0.9, 1.0))   # target
+            mark_pose(scene, body, entry["recorded_pose"], pelvis, (0.2, 0.9, 1.0))   # target
             if which == "clone":
-                _dots(scene, body, entry["clone_pose"], pelvis, (0.3, 1.0, 0.4))  # the answer
+                mark_pose(scene, body, entry["clone_pose"], pelvis, (0.3, 1.0, 0.4))  # the answer
             viewer.set_texts([
                 (None, None,
                  f"[{state['index'] + 1}/{len(entries)}]  {entry['key']}   "
@@ -247,20 +242,6 @@ def _points(kin, pose: np.ndarray):
 
     return kin.forward(torch.as_tensor(pose[None, :], dtype=kin.dtype, device=kin.device))[0]
 
-
-def _dots(scene, body: BodyModel, pose: np.ndarray, pelvis: np.ndarray, rgb) -> None:
-    """A pose marked with points, in the frame of the displayed robot."""
-    import mujoco
-
-    points = body.mesh_points_pose(pose, max_vertices=16) + pelvis
-    step = max(1, len(points) // 100)
-    for p in points[::step]:
-        if scene.ngeom >= scene.maxgeom:
-            break
-        geom = scene.geoms[scene.ngeom]
-        mujoco.mjv_initGeom(geom, mujoco.mjtGeom.mjGEOM_SPHERE, np.array([0.011, 0, 0]), p,
-                            np.eye(3).flatten(), np.array([*rgb, 0.55]))
-        scene.ngeom += 1
 
 
 if __name__ == "__main__":

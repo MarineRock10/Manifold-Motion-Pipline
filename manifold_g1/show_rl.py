@@ -29,10 +29,11 @@ import numpy as np
 
 from . import constants as C
 from .manifold import build_scene, update_visuals
-from .pose_policy import POSE_DIM, action_to_pose, observation
+from .pose_policy import POSE_DIM
 from .ppo import PPO
 from .demos import load_demos
-from .static_fit import BodyModel
+from .body_model import BodyModel
+from .viewer import mark_pose, settle
 
 RL_POLICY = C.REPO / "reports" / "manifold_g1" / "sonic_rl" / "policy_sonicrl.pt"
 BC_POLICY = C.REPO / "reports" / "manifold_g1" / "bc" / "bc_policy.pt"
@@ -49,11 +50,14 @@ class Episode:
     the family parameters the reported manifolds use.
     """
 
-    def __init__(self, key: str, poses: np.ndarray, rng: np.random.Generator, perturb: float):
+    def __init__(self, key: str, poses: np.ndarray, rng: np.random.Generator, perturb: float,
+                 tilt_deg: float = 0.0, roll_deg: float = 0.0):
         self.key = key
         self.poses = poses
         self.rng = rng
         self.perturb = perturb
+        self.tilt_deg = tilt_deg
+        self.roll_deg = roll_deg
         self.base = np.array([float(v) for v in key.split(",")])
         self.demo = poses[np.argmin(np.abs(poses).mean(axis=1))]     # least extreme pose
         self.height = self.width = self.depth = 1.0
@@ -68,15 +72,25 @@ class Episode:
             semi = semi * np.clip(1.0 + self.rng.normal(0, self.perturb, 3), 0.85, 1.15)
             center = center + np.array([self.rng.normal(0, 0.02), self.rng.normal(0, 0.02), 0.0])
         self.semi, self.center = semi, center
+        # orientation: the recorded envelopes are axis-aligned, so without this the viewer shows
+        # a narrower distribution than the fine-tune actually trained on
+        tilt = np.radians(self.rng.normal(0.0, self.tilt_deg)) if self.tilt_deg else 0.0
+        roll = np.radians(self.rng.normal(0.0, self.roll_deg)) if self.roll_deg else 0.0
+        qt = np.array([np.cos(tilt / 2), 0.0, np.sin(tilt / 2), 0.0])
+        qr = np.array([np.cos(roll / 2), np.sin(roll / 2), 0.0, 0.0])
+        from .constants import quat_mul
+        self.quat = quat_mul(qr, qt)
         self.clean = self.base[:3]   # the recorded envelope, for the "did it help" column
 
     def scaled(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """The perturbed envelope with the key-driven scaling applied: (semi, center, quat)."""
         semi = self.semi * np.array([self.depth, self.width, self.height])
-        center = self.center * np.array([self.depth, self.width, self.height])
-        center = center + np.array([0.0, self.offset, 0.0])
+        center = self.center + np.array([0.0, self.offset, 0.0])
         half = np.radians(self.tilt) / 2.0
-        return semi, center, np.array([np.cos(half), 0.0, np.sin(half), 0.0])
+        # the key-driven tilt composes with the sampled orientation
+        key_quat = np.array([np.cos(half), 0.0, np.sin(half), 0.0])
+        from .constants import quat_mul
+        return semi, center, quat_mul(key_quat, self.quat)
 
     def nudge(self, key: str) -> bool:
         """Move one shape parameter. Returns False when the key is not a shape key."""
@@ -110,19 +124,10 @@ class Episode:
                 f"d {self.depth:.2f}  offset {self.offset:+.2f}  tilt {self.tilt:+.0f}deg")
 
 
-def solve(ppo, body: BodyModel, manifold, kin, steps: int = SETTLE_STEPS) -> np.ndarray:
-    """The pose the policy proposes: a few relaxation steps, exactly as the environment does."""
-    import torch
-
-    pose = np.zeros(POSE_DIM)
-    with torch.no_grad():
-        for _ in range(steps):
-            r_now = float(manifold.radii(body.mesh_points_pose(pose)).max())
-            obs = observation(pose, manifold.primitives[0], r_now, np.zeros(3))
-            action, _, _ = ppo.act(obs, deterministic=True)
-            target = np.asarray(action_to_pose(action, torch))
-            pose = pose + (target - pose) * 0.5
-    return pose
+def solve(ppo, body: BodyModel, manifold, steps: int = SETTLE_STEPS) -> np.ndarray:
+    """The policy's pose for a manifold, measured through MuJoCo's mesh points."""
+    return settle(ppo, manifold,
+                  lambda p: manifold.radii(body.mesh_points_pose(p)).max(), steps=steps)
 
 
 def training_summary() -> dict | None:
@@ -157,6 +162,11 @@ def main() -> int:
                         help="used when --policy does not exist")
     parser.add_argument("--perturb", type=float, default=0.08,
                         help="semi-axis jitter, matching the fine-tune's default")
+    parser.add_argument("--tilt-deg", type=float, default=6.0,
+                        help="sagittal tilt std of the sampled manifold, matching the "
+                             "fine-tune's default (this is the axis the evaluation family uses)")
+    parser.add_argument("--roll-deg", type=float, default=3.0,
+                        help="lateral roll std of the sampled manifold, matching the default")
     parser.add_argument("--obs-dim", type=int, default=15)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--seed", type=int, default=0)
@@ -175,7 +185,8 @@ def main() -> int:
         return 1
 
     index = int(rng.integers(len(keys)))
-    episode = Episode(keys[index], all_demos[keys[index]], rng, args.perturb)
+    episode = Episode(keys[index], all_demos[keys[index]], rng, args.perturb,
+                    args.tilt_deg, args.roll_deg)
 
     def manifold_of(ep: Episode):
         semi, center, quat = ep.scaled()
@@ -192,7 +203,8 @@ def main() -> int:
         print(f"logged fine-tune: {summary['iterations']} iterations, last-10 success "
               f"{summary['success']:.2f}, r achieved {summary['r_achieved']:.2f}, "
               f"gated {summary['gated']}")
-    print(f"perturbation: semi +-{args.perturb:.0%}, centre +-2 cm   "
+    print(f"perturbation: semi +-{args.perturb:.0%}, centre +-2 cm, "
+          f"tilt {args.tilt_deg:.0f} deg, roll {args.roll_deg:.0f} deg   "
           f"(the distribution the fine-tune trained on)")
 
     state = {"pose": np.zeros(POSE_DIM), "requested": np.zeros(POSE_DIM), "which": "policy",
@@ -204,7 +216,7 @@ def main() -> int:
         state["dirty"] = False
         state["elapsed"] = 0.0
         manifest = manifold_of(episode)
-        requested = (solve(ppo, body, manifest, kin) if state["which"] == "policy"
+        requested = (solve(ppo, body, manifest) if state["which"] == "policy"
                      else episode.demo)
         env.reset()
         env.set_joints(requested)
@@ -236,7 +248,8 @@ def main() -> int:
         """A new recorded envelope, with a fresh perturbation of it."""
         nonlocal episode
         idx = (keys.index(episode.key) + step) % len(keys)
-        episode = Episode(keys[idx], all_demos[keys[idx]], rng, args.perturb)
+        episode = Episode(keys[idx], all_demos[keys[idx]], rng, args.perturb,
+                        args.tilt_deg, args.roll_deg)
         state["dirty"] = True
 
     viewer = mujoco.viewer.launch_passive(env.env.model, env.env.data, key_callback=key_callback,
@@ -279,9 +292,9 @@ def main() -> int:
             scene = viewer.user_scn
             scene.ngeom = 0
             if state["which"] == "recorded":
-                _dots(scene, body, episode.demo, pelvis, (0.2, 0.9, 1.0))
+                mark_pose(scene, body, episode.demo, pelvis, (0.2, 0.9, 1.0))
             else:
-                _dots(scene, body, requested, pelvis, (0.3, 1.0, 0.4))
+                mark_pose(scene, body, requested, pelvis, (0.3, 1.0, 0.4))
 
             viewer.set_texts([
                 (None, None,
@@ -300,20 +313,6 @@ def main() -> int:
         viewer.close()
     return 0
 
-
-def _dots(scene, body: BodyModel, pose: np.ndarray, pelvis: np.ndarray, rgb) -> None:
-    """The requested pose as points, next to the robot the controller actually produced."""
-    import mujoco
-
-    points = body.mesh_points_pose(pose, max_vertices=16) + pelvis
-    step = max(1, len(points) // 110)
-    for p in points[::step]:
-        if scene.ngeom >= scene.maxgeom:
-            break
-        geom = scene.geoms[scene.ngeom]
-        mujoco.mjv_initGeom(geom, mujoco.mjtGeom.mjGEOM_SPHERE, np.array([0.011, 0, 0]), p,
-                            np.eye(3).flatten(), np.array([*rgb, 0.55]))
-        scene.ngeom += 1
 
 
 if __name__ == "__main__":

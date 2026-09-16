@@ -27,11 +27,11 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
+from .family import MARGIN
 
 HORIZON = 50          # ticks in the prediction window (1 s at 50 Hz)
 HISTORY = 25          # ticks of history the sample carries (0.5 s)
 STRIDE = 5            # 10 Hz window starts
-MARGIN = 1.05         # body envelope -> manifold, a little room so the policy is not on the edge
 
 
 def _arrays(path: Path) -> dict:

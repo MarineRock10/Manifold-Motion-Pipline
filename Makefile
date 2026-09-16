@@ -1,5 +1,5 @@
 # Everything runs from the repo root. These are the three live stages plus the viewers; the
-# retired 4-channel geometric route (static_fit train/report/verify/view) has no targets left.
+# (the retired 4-channel geometric route and its `static_fit` trainer have no targets left)
 
 .PHONY : g1-data
 g1-data :

@@ -60,9 +60,9 @@
 `bc.py`，导致它从 8/10 掉到 3/10）。产物目录 `reports/manifold_g1/primitive_torch/` 随之更名
 `bc/`，因为它现在只装 `bc_policy.pt`。
 
-`static_fit.py` 只在被需要的那一半上存活：`BodyModel`（29 关节姿态 → 身体表面点）仍被
-`sonic_rl`、两个 viewer、`verify_sonic`、`demos` 依赖；它的 `train` / `report` / `verify` /
-`diagnostics` 子命令属于旧的 4 通道路线，已无调用者。
+`static_fit.py` 已删除：只有 `BodyModel`（29 关节姿态 → 身体表面点）有调用者，已抽成
+`body_model.py`；它的 `StaticFitEnv` / `BatchedStaticEnv` / `PoseSlew` 与整个 CLI 属于旧的
+4 通道路线，无调用者。
 
 ---
 

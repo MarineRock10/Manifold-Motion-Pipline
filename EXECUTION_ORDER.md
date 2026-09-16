@@ -186,9 +186,9 @@ metrics = {"track_err", "containment_r", "speed", "min_clearance", "fell", "succ
 |---|---|---|
 | 正常走路跟踪误差 | 0.033 rad | `clips/walk.json` |
 | 走路 4 s 前进 | 1.87 m（0.49 m/s） | 同上 |
-| 静态姿态真机验证差 | 0.01–0.05 | `static_fit/verify_sonic.json` |
+| 静态姿态真机验证差 | 0.01–0.05 | `bc/verify_sonic.json` |
 | 蹲行 | 不可执行（vx 0.03） | `clips/crouchwalk08.json` |
-| 静态策略训练 | 600 轮 / ~5 分钟 | `static_fit/train_log.csv` |
+| 静态策略训练 | 600 轮 / ~5 分钟 | `bc/train_log.csv`（历史，见 `sonic_rl/train_log.csv`） |
 | 录制一个 4 s 片段 | 3.4 s 挂钟（1.2× 实时，单进程） | `clips/*.json` |
 | 并行采集吞吐 | 2.05× 实时（6 进程，`--replan-every 10`） | `clips/batch_seed1000.json` |
 | 随机走路跟踪误差 | p50 0.048 rad / max 0.056 rad | `clips/ep*.json` |

@@ -26,16 +26,15 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
+from .family import MARGIN
+from .pose_policy import POSE_DIM
 from .reference import ARM_DIRECTION, CROUCH_DIRECTION, LEAN_DIRECTION, TWIST_DIRECTION
 
 DATASET = Path("reports/manifold_g1/dataset")
 CLIPS = Path("reports/manifold_g1/clips")
-POSE_DIM = 29                                   # the full pose, in policy joint order
 DEFAULT_ISAAC = C.DEFAULT_ANGLES[C.MUJOCO_TO_ISAACLAB]
 DEFAULT_STRIDE = 10                             # 0.2 s at 50 Hz
 DEMOS = C.REPO / "reports" / "manifold_g1" / "dataset" / "pose_demos.npz"
-MARGIN = 1.05                   # envelope -> manifold margin: the recorded pose fits inside
-                                # the stored ellipsoid with this much room to spare
 MAX_POSE_DELTA = 1.4                            # rad; joints further than this are doing motion,
                                                 # not holding a pose (a knee at 66 deg swings past)
 
@@ -89,7 +88,7 @@ def pose_envelope(body_model, pose: np.ndarray) -> tuple[np.ndarray, np.ndarray]
 
 
 def build(args) -> int:
-    from .static_fit import BodyModel as _BodyModel
+    from .body_model import BodyModel as _BodyModel
 
     body_model = _BodyModel()
     rows = []

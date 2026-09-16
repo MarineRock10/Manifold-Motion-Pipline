@@ -25,7 +25,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import constants as C
-from .demos import POSE_DIM, load_demos
+from .demos import load_demos
+from .pose_policy import POSE_DIM
 from .pose_policy import POSE_LIMIT
 
 OUT_DIR = C.REPO / "reports" / "manifold_g1" / "bc"

@@ -61,7 +61,7 @@ def policy_pose(ppo, kin, obs_dim: int, manifold, max_steps: int = 8):
 def main() -> int:
     from .keyframe_env import KeyframeEnv
     from .ppo import PPO
-    from .static_fit import BodyModel
+    from .body_model import BodyModel
 
     parser = argparse.ArgumentParser(description="Validate primitive poses on frozen SONIC")
     parser.add_argument("--policy", type=Path,

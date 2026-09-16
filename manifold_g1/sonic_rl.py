@@ -40,7 +40,7 @@ from pathlib import Path
 import numpy as np
 
 from . import constants as C
-from .static_fit import BodyModel
+from .body_model import BodyModel
 from .demos import DEFAULT_ISAAC
 from .family import BASE_CENTER, BASE_SEMI
 from .keyframe_env import KeyframeEnv
@@ -60,6 +60,11 @@ class SonicConfig:
     # kinematics gate
     com_limit: float = 0.10        # centre of mass within this of the support centre
     foot_spread: float = 0.03      # feet no further apart vertically than this
+    # orientation perturbation (std of the sampled tilt/roll, degrees). The recorded envelopes
+    # are axis-aligned, so without these the policy never sees a tilted manifold and the
+    # `report_specs` tilt rows are extrapolation - see `_reshape`.
+    tilt_deg: float = 6.0          # sagittal tilt, the axis the evaluation family uses
+    roll_deg: float = 3.0          # lateral roll, half as much: it is harder to hold
     # rewards
     w_containment: float = 4.0     # per unit of margin, only when the gate passes
     w_outside: float = 8.0
@@ -108,13 +113,36 @@ class SonicPoseEnv:
         return self._reshape(self._base_values, perturb, keep_demo=True)
 
     def _reshape(self, values: np.ndarray, perturb: float, keep_demo: bool) -> np.ndarray:
-        """Build the manifold for this episode from a recorded envelope, jittered."""
+        """Build the manifold for this episode from a recorded envelope, jittered.
+
+        Three perturbation channels, all applied to the demonstration's own envelope:
+
+          * **shape** - each semi-axis scaled by up to +-`perturb` (clipped to +-15%);
+          * **position** - the centre shifted by up to 2 cm laterally;
+          * **orientation** - the axis tilted by up to `tilt_deg` sagittally and rolled by up to
+            `roll_deg` laterally.
+
+        Orientation is here because it was missing, and its absence was measurable: the recorded
+        envelopes are axis-aligned (their stored quats are pelvis *yaw* from walking, 0.5% carry a
+        real tilt), and nothing perturbed orientation either, so `report_specs`' t=+-10 manifolds
+        were pure extrapolation. The policy does respond to them - its pose differs by 0.065 rad
+        between +10 and -10, correctly signed - but far too weakly to fit, scoring r 1.10-1.33
+        against 0.96 upright. Training on tilted manifolds is what gives that response amplitude.
+        """
         semi = values[:3].copy()
         center = values[3:].copy()
         if perturb > 0:
             semi = semi * np.clip(1.0 + self.rng.normal(0, perturb, 3), 0.85, 1.15)
             center = center + np.array([self.rng.normal(0, 0.02), self.rng.normal(0, 0.02), 0.0])
-        self.manifold = EllipsoidManifold([Primitive(center=center, semi=semi)])
+        tilt = np.radians(self.rng.normal(0.0, self.cfg.tilt_deg)) if self.cfg.tilt_deg else 0.0
+        roll = np.radians(self.rng.normal(0.0, self.cfg.roll_deg)) if self.cfg.roll_deg else 0.0
+        # quaternions about world y (sagittal tilt) and x (lateral roll)
+        qt = np.array([np.cos(tilt / 2), 0.0, np.sin(tilt / 2), 0.0])
+        qr = np.array([np.cos(roll / 2), np.sin(roll / 2), 0.0, 0.0])
+        from .constants import quat_mul
+
+        self.manifold = EllipsoidManifold([Primitive(center=center, semi=semi,
+                                                     quat=quat_mul(qr, qt))])
         self.env.reset()
         self.achieved = np.zeros(POSE_DIM)
         self.elapsed = 0.0
@@ -193,7 +221,8 @@ class SonicPoseEnv:
 def run(args) -> int:
     import torch
 
-    cfg = SonicConfig(steps=args.steps, mean_probe=not args.no_mean_probe)
+    cfg = SonicConfig(steps=args.steps, mean_probe=not args.no_mean_probe,
+                      tilt_deg=args.tilt_deg, roll_deg=args.roll_deg)
     env = SonicPoseEnv(cfg, seed=args.seed)
     ppo = PPO(OBS_DIM, POSE_DIM, init_log_std=[-1.0] * POSE_DIM, device=args.device)
     # An iteration holds only manifolds x steps transitions (60 at the defaults), while the PPO
@@ -278,7 +307,8 @@ def evaluate(args) -> int:
 
     from .kinematics import TorchKinematics
 
-    cfg = SonicConfig(steps=args.steps, mean_probe=not args.no_mean_probe)
+    cfg = SonicConfig(steps=args.steps, mean_probe=not args.no_mean_probe,
+                      tilt_deg=args.tilt_deg, roll_deg=args.roll_deg)
     env = SonicPoseEnv(cfg, seed=args.seed)
     kin = TorchKinematics(device="cpu")
     policies = {"BC": C.REPO / "reports/manifold_g1/bc/bc_policy.pt"}
@@ -326,6 +356,12 @@ def main() -> int:
     parser.add_argument("--manifolds", type=int, default=16)
     parser.add_argument("--steps", type=int, default=8)
     parser.add_argument("--perturb", type=float, default=0.05)
+    parser.add_argument("--tilt-deg", type=float, default=6.0,
+                        help="std of the sampled sagittal tilt, degrees; 0 disables it (which is "
+                             "what the recorded envelopes have, so the evaluation family's tilt "
+                             "rows become extrapolation)")
+    parser.add_argument("--roll-deg", type=float, default=3.0,
+                        help="std of the sampled lateral roll, degrees; 0 disables it")
     parser.add_argument("--no-mean-probe", action="store_true",
                         help="ablation: score only sampled actions")
     parser.add_argument("--perturb-repeats", type=int, default=3,
