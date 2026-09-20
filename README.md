@@ -17,10 +17,27 @@ GR00T-WholeBodyControl trees were removed.
 | document | what it covers |
 |---|---|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | **the whole system**: environment → manifold → primitive → dynamic motion → SONIC, both stages, the capability manifold, the reverse-data loops, the frozen interfaces, and the nine phases with their acceptance criteria |
+| [`ARCHITECTURE_CURRENT.md`](ARCHITECTURE_CURRENT.md) | **current runnable architecture**: online state/history, Flow candidates, optimization-embedded projection, SONIC/MuJoCo physical gate, and the `center/low/narrow/wide` reproducibility assets |
 | [`PIPELINE.md`](PIPELINE.md) | **what is built**: only Phase 1–3 (`M → pose`, no time dimension) — the three stages, their measured numbers, the bugs that were fixed, what is still unsolved |
+| [`STAGE2.md`](STAGE2.md) | **the dynamic-data implementation**: selected BONES-SEED G1 CSV → frozen SONIC replay/gate → actor-disjoint windows → bounded latent Flow Matching → SONIC validation |
+
+### Stage-2 GUI
+
+To open the accepted independent normal-walking result in the WSLg MuJoCo window, run
+`run_stage2_gui.ps1` from PowerShell, or follow the GUI command in [`STAGE2.md`](STAGE2.md).
+The viewer shows the actual SONIC/MuJoCo execution together with the generated reference,
+held-out SEED reference, and conditioned corridor; it is not a kinematic teleport demo.
+For Windows Remote Desktop sessions that show a white `COPY MODE` surface, run
+`run_stage2_render.ps1`; it creates and opens `stage2_walk_effect.gif` using offscreen EGL rendering.
+For a reproducible training-effect check, run `run_stage2_comparison.ps1`; for the full five-window
+residual-Flow gate, run `run_stage2_acceptance.ps1`.
+`run_stage2_residual_comparison.ps1` renders a three-panel GIF with a stochastic residual candidate.
+For the clearest before/after evidence, run `run_stage2_effect_dashboard.ps1`; it plots SEED,
+generated-reference, and actual-execution paths for the same held-out window.
 
 Start with ARCHITECTURE to see where the project is going and what the interfaces are; PIPELINE
-is the honest account of how far it has actually got.
+is the honest account of the static stage; STAGE2 is the runnable dynamic-motion path and its
+current flat-ground boundary.
 
 ## Layout
 
@@ -35,7 +52,7 @@ is the honest account of how far it has actually got.
 
 ```bash
 python3 -m pip install -r requirements.txt
-python3 download_from_hf.py          # fetches the SONIC ONNX models from nvidia/GEAR-SONIC
+python3 download_from_hf.py --stage2-only  # Stage-2 encoder/decoder/config; skip the large planner
 ```
 
 The G1 model and meshes live in `data/g1_flat/`.

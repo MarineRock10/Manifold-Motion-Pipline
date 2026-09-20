@@ -68,6 +68,7 @@ def train(args) -> int:
     optimizer = torch.optim.Adam(ppo.model.parameters(), lr=args.lr)
     started = time.perf_counter()
     best = float("inf")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
     for epoch in range(1, args.epochs + 1):
         rng.shuffle(train_idx)
         losses = []

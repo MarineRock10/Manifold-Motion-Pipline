@@ -1,0 +1,267 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1450" viewBox="0 0 2000 1450">
+  <defs>
+    <linearGradient id="title" x1="0" x2="1"><stop offset="0" stop-color="#063b71"/><stop offset="1" stop-color="#0a6aa8"/></linearGradient>
+    <linearGradient id="blue" x1="0" x2="1"><stop stop-color="#edf7ff"/><stop offset="1" stop-color="#d8efff"/></linearGradient>
+    <linearGradient id="green" x1="0" x2="1"><stop stop-color="#ecfbf3"/><stop offset="1" stop-color="#d6f3e4"/></linearGradient>
+    <linearGradient id="purple" x1="0" x2="1"><stop stop-color="#f5efff"/><stop offset="1" stop-color="#e9ddff"/></linearGradient>
+    <linearGradient id="orange" x1="0" x2="1"><stop stop-color="#fff4e7"/><stop offset="1" stop-color="#ffe2bd"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#17466b" flood-opacity=".18"/></filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#28618a"/></marker>
+    <marker id="arrowWhite" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#fff"/></marker>
+    <style>
+      .title{font:700 32px 'Noto Sans CJK SC','Microsoft YaHei',Arial,sans-serif;fill:#fff}
+      .subtitle{font:500 16px 'Noto Sans CJK SC','Microsoft YaHei',Arial,sans-serif;fill:#eaf5ff}
+      .section{font:700 23px 'Noto Sans CJK SC','Microsoft YaHei',Arial,sans-serif;fill:#07385f}
+      .sectionW{font:700 23px 'Noto Sans CJK SC','Microsoft YaHei',Arial,sans-serif;fill:#fff}
+      .boxTitle{font:700 18px 'Noto Sans CJK SC','Microsoft YaHei',Arial,sans-serif;fill:#0b426a}
+      .body{font:500 15px 'Noto Sans CJK SC','Microsoft YaHei',Arial,sans-serif;fill:#163c56}
+      .small{font:500 13px 'Noto Sans CJK SC','Microsoft YaHei',Arial,sans-serif;fill:#31546b}
+      .tiny{font:500 11px 'Noto Sans CJK SC','Microsoft YaHei',Arial,sans-serif;fill:#46677b}
+      .mono{font:600 14px 'DejaVu Sans Mono','Consolas',monospace;fill:#1c4d6e}
+      .white{fill:#fff}
+      .panel{stroke:#75a9c8;stroke-width:2;rx:14;filter:url(#shadow)}
+      .thin{stroke:#4d86aa;stroke-width:2;fill:none}
+      .dash{stroke:#7c70b4;stroke-width:2;stroke-dasharray:8 6;fill:none}
+    </style>
+  </defs>
+
+  <rect width="2000" height="1450" fill="#f5f9fc"/>
+  <rect x="24" y="22" width="1952" height="84" rx="18" fill="url(#title)" filter="url(#shadow)"/>
+  <text x="55" y="61" class="title">G1 人形机器人：基于流形的在线分层运动生成系统</text>
+  <text x="55" y="89" class="subtitle">最新实现架构（2026-09）｜Mₑ(t) → 原语路由 → 在线状态/history 条件 → Flow 候选 → 投影 → SONIC/MuJoCo 物理闭环</text>
+  <text x="1935" y="70" text-anchor="end" class="subtitle">Stage 1 + Stage 2 + online safety gate</text>
+
+  <!-- Top runtime pipeline -->
+  <rect x="24" y="124" width="1952" height="264" rx="18" fill="url(#blue)" stroke="#5f9ec3" stroke-width="2"/>
+  <text x="48" y="158" class="section">运行时主链路（当前代码实际执行路径）</text>
+
+  <g class="panel">
+    <rect x="48" y="179" width="250" height="177" fill="#fff"/>
+    <text x="70" y="209" class="boxTitle">1. 环境感知与地图</text>
+    <text x="70" y="236" class="body">RGB-D / LiDAR / 点云</text>
+    <rect x="70" y="251" width="92" height="67" rx="8" fill="#d9efff" stroke="#79b5d8"/>
+    <path d="M77 304 L95 275 L112 293 L132 263 L155 303" fill="none" stroke="#1875ad" stroke-width="4"/>
+    <circle cx="98" cy="274" r="5" fill="#ee7d3e"/><circle cx="132" cy="263" r="5" fill="#4db578"/>
+    <text x="174" y="276" class="small">3D occupancy</text><text x="174" y="297" class="small">障碍几何 / SDF</text>
+    <text x="70" y="342" class="mono">X_env → boxes, pointcloud</text>
+  </g>
+  <path d="M304 267 H330" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="338" y="179" width="260" height="177" fill="#fff"/>
+    <text x="360" y="209" class="boxTitle">2. 路径与安全走廊</text>
+    <text x="360" y="236" class="body">A* / TrajOpt + keyframes</text>
+    <path d="M367 314 C414 273 436 302 470 264 S536 278 574 231" fill="none" stroke="#e55f51" stroke-width="5"/>
+    <circle cx="367" cy="314" r="7" fill="#3b82c4"/><circle cx="574" cy="231" r="7" fill="#e55f51"/>
+    <ellipse cx="421" cy="285" rx="54" ry="29" fill="#7dd3c7" opacity=".33"/><ellipse cx="512" cy="267" rx="62" ry="34" fill="#7dd3c7" opacity=".33"/>
+    <text x="360" y="342" class="mono">route + corridor + route_yaw</text>
+  </g>
+  <path d="M604 267 H630" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="638" y="179" width="310" height="177" fill="#fff"/>
+    <text x="660" y="209" class="boxTitle">3. 环境流形 Mₑ(t)</text>
+    <text x="660" y="236" class="body">按路段连续变化的可行空间</text>
+    <ellipse cx="736" cy="278" rx="61" ry="34" fill="#8be0c6" opacity=".50" stroke="#24a57a" stroke-width="2"/>
+    <ellipse cx="825" cy="278" rx="48" ry="26" fill="#f5c778" opacity=".55" stroke="#c78726" stroke-width="2"/>
+    <ellipse cx="895" cy="278" rx="28" ry="47" fill="#f49a91" opacity=".55" stroke="#d1584d" stroke-width="2"/>
+    <path d="M674 316 C726 297 758 306 800 279 S861 248 922 275" fill="none" stroke="#28618a" stroke-width="3"/>
+    <text x="660" y="342" class="mono">corridor [48×7] + SDF [10×10×8]</text>
+  </g>
+  <path d="M954 267 H980" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="988" y="179" width="395" height="177" fill="#fff"/>
+    <text x="1010" y="209" class="boxTitle">4. 在线真实状态与历史</text>
+    <rect x="1010" y="225" width="172" height="94" rx="9" fill="#e9f5ff" stroke="#6ba8cc"/>
+    <text x="1025" y="248" class="small">MuJoCo / SONIC 实测</text>
+    <text x="1025" y="272" class="mono">sₜ ∈ R⁶⁹</text>
+    <text x="1025" y="295" class="tiny">q, dq, gravity, v_base</text>
+    <text x="1025" y="312" class="tiny">foot/hand/contact</text>
+    <path d="M1195 272 H1248" class="thin" marker-end="url(#arrow)"/>
+    <rect x="1260" y="225" width="98" height="94" rx="9" fill="#f0e9ff" stroke="#9378c5"/>
+    <text x="1274" y="248" class="small">最近 0.4 s</text>
+    <text x="1274" y="273" class="mono">Hₜ</text>
+    <text x="1274" y="297" class="tiny">12×69</text>
+    <text x="1010" y="342" class="mono">sₜ, Hₜ = boundary re-conditioning</text>
+  </g>
+  <path d="M1389 267 H1415" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="1423" y="179" width="260" height="177" fill="#fff"/>
+    <text x="1445" y="209" class="boxTitle">5. 原语路由 Stage 1</text>
+    <text x="1445" y="237" class="body">Mₑ aperture + route curvature</text>
+    <rect x="1445" y="253" width="211" height="49" rx="8" fill="#d9f2e4"/>
+    <text x="1458" y="274" class="small">walk_nominal · crouch · side_on · turn</text>
+    <text x="1458" y="292" class="tiny">crawl / jump：能力门控，当前不自动宣称</text>
+    <text x="1445" y="338" class="mono">pₜ = router(Mₑ, curvature)</text>
+  </g>
+  <path d="M1689 267 H1715" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="1723" y="179" width="228" height="177" fill="#fff"/>
+    <text x="1745" y="209" class="boxTitle">6. 条件包</text>
+    <text x="1745" y="239" class="mono">Xₜ = (Mₑ, pₜ,</text>
+    <text x="1745" y="260" class="mono">sₜ, Hₜ, cₜ)</text>
+    <text x="1745" y="291" class="small">输入 Stage 2 Flow</text>
+    <text x="1745" y="316" class="tiny">route command / target yaw</text>
+  </g>
+
+  <!-- stage 1 -->
+  <rect x="24" y="408" width="1952" height="237" rx="18" fill="#eaf5ff" stroke="#4a99c4" stroke-width="2"/>
+  <rect x="24" y="408" width="1952" height="43" rx="18" fill="#1685c2"/>
+  <text x="48" y="438" class="sectionW">阶段 1：原语模型 / 原语路由（Manifold → Motion Primitive）</text>
+  <text x="1535" y="438" class="subtitle">当前实现：几何流形驱动 + SEED 物理验证锚点</text>
+
+  <g class="panel">
+    <rect x="52" y="476" width="352" height="143" fill="#fff"/>
+    <text x="74" y="507" class="boxTitle">1. 流形特征</text>
+    <text x="74" y="533" class="body">vertical / lateral free semi-axis</text>
+    <text x="74" y="559" class="body">route heading change / clearance</text>
+    <text x="74" y="590" class="mono">Mₑ(t) → [z_free, y_free, Δyaw]</text>
+  </g>
+  <path d="M414 548 H440" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="448" y="476" width="410" height="143" fill="#fff"/>
+    <text x="470" y="507" class="boxTitle">2. 几何原语决策器</text>
+    <text x="470" y="534" class="body">低垂直空间 → crouch</text>
+    <text x="470" y="558" class="body">窄横向空间 → strict side-on</text>
+    <text x="470" y="582" class="body">路线曲率 → walk_turn</text>
+    <text x="470" y="606" class="mono">pₜ = f(Mₑ(t), Δyaw)</text>
+  </g>
+  <path d="M868 548 H894" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="902" y="476" width="476" height="143" fill="#fff"/>
+    <text x="924" y="507" class="boxTitle">3. 物理验证的运动原语库</text>
+    <rect x="924" y="524" width="95" height="35" rx="8" fill="#d8efff"/><text x="971" y="547" text-anchor="middle" class="small">walk</text>
+    <rect x="1030" y="524" width="95" height="35" rx="8" fill="#ffedcf"/><text x="1077" y="547" text-anchor="middle" class="small">crouch</text>
+    <rect x="1136" y="524" width="105" height="35" rx="8" fill="#d9f2e4"/><text x="1188" y="547" text-anchor="middle" class="small">side-on</text>
+    <rect x="1252" y="524" width="104" height="35" rx="8" fill="#f1e4ff"/><text x="1304" y="547" text-anchor="middle" class="small">turn</text>
+    <text x="924" y="588" class="tiny">SEED target_ref + 冻结 SONIC 回放 → 可执行 anchor</text>
+  </g>
+  <path d="M1388 548 H1414" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="1422" y="476" width="529" height="143" fill="#fff"/>
+    <text x="1444" y="507" class="boxTitle">4. 原语安全策略</text>
+    <text x="1444" y="534" class="body">candidate 0：训练支持锚点 / 严格侧身 raw exemplar</text>
+    <text x="1444" y="558" class="body">candidate K−1：在线 state/history Flow 候选</text>
+    <text x="1444" y="582" class="mono">拒绝 backward-facing locomotion</text>
+    <text x="1444" y="606" class="tiny">所有候选统一进入 Stage 2 物理门控</text>
+  </g>
+
+  <!-- stage 2 -->
+  <rect x="24" y="665" width="1952" height="404" rx="18" fill="url(#green)" stroke="#4ca878" stroke-width="2"/>
+  <rect x="24" y="665" width="1952" height="43" rx="18" fill="#15945f"/>
+  <text x="48" y="695" class="sectionW">阶段 2：动态模型与在线安全执行（Conditioned Flow → Projected Reference → SONIC）</text>
+  <text x="1630" y="695" class="subtitle">不是离线动作拼接：每个路段由实测状态/history 重条件化</text>
+
+  <g class="panel">
+    <rect x="52" y="733" width="298" height="287" fill="#fff"/>
+    <text x="74" y="765" class="boxTitle">1. 条件输入 Xₜ</text>
+    <rect x="74" y="785" width="251" height="52" rx="8" fill="#e3f3ff" stroke="#70aacc"/>
+    <text x="88" y="807" class="mono">Mₑ(t): corridor + SDF</text><text x="88" y="827" class="tiny">48×7 / 10×10×8</text>
+    <rect x="74" y="848" width="251" height="52" rx="8" fill="#f2eaff" stroke="#987ac7"/>
+    <text x="88" y="870" class="mono">sₜ: 69-D true state</text><text x="88" y="890" class="tiny">q, dq, gravity, v, contacts</text>
+    <rect x="74" y="911" width="251" height="52" rx="8" fill="#fff0d9" stroke="#d6a460"/>
+    <text x="88" y="933" class="mono">Hₜ: 12×69 history</text><text x="88" y="953" class="tiny">recent executed boundary frames</text>
+    <text x="74" y="991" class="mono">+ pₜ + command cₜ</text>
+  </g>
+  <path d="M360 876 H388" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="396" y="733" width="356" height="287" fill="#fff"/>
+    <text x="418" y="765" class="boxTitle">2. Latent Flow Matching</text>
+    <rect x="418" y="793" width="109" height="61" rx="8" fill="#dff2e8" stroke="#72b890"/><text x="472" y="819" text-anchor="middle" class="small">Condition</text><text x="472" y="839" text-anchor="middle" class="small">Encoder</text>
+    <path d="M540 823 H569" class="thin" marker-end="url(#arrow)"/>
+    <rect x="579" y="793" width="139" height="61" rx="8" fill="#e9f3ff" stroke="#78a8ca"/><text x="648" y="819" text-anchor="middle" class="small">latent Flow</text><text x="648" y="839" text-anchor="middle" class="small">32 integration steps</text>
+    <path d="M462 885 C502 865 537 909 577 885 S650 865 702 888" fill="none" stroke="#6c74d4" stroke-width="3"/>
+    <circle cx="470" cy="885" r="5" fill="#ef7f45"/><circle cx="538" cy="893" r="5" fill="#4a9ed0"/><circle cx="608" cy="879" r="5" fill="#5bb48a"/><circle cx="694" cy="888" r="5" fill="#cf6ac1"/>
+    <text x="418" y="927" class="body">生成 K 条候选参考轨迹</text>
+    <text x="418" y="955" class="mono">R_refᵏ ∈ R⁴⁸×³⁸</text>
+    <text x="418" y="985" class="tiny">q₍₂₉₎ + root pos₍₃₎ + root rot6</text>
+  </g>
+  <path d="M762 876 H790" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="798" y="733" width="360" height="287" fill="#fff"/>
+    <text x="820" y="765" class="boxTitle">3. Optimization-Embedded Projection</text>
+    <text x="820" y="792" class="body">投影梯度 / feasibility correction</text>
+    <rect x="820" y="809" width="310" height="40" rx="8" fill="#fff1de" stroke="#da9d49"/><text x="834" y="834" class="small">joint limits + temporal smoothness</text>
+    <rect x="820" y="858" width="310" height="40" rx="8" fill="#e7f7ee" stroke="#65ad85"/><text x="834" y="883" class="small">handoff continuity + route-center root</text>
+    <path d="M845 929 L876 906 L907 944 L940 917 L975 953 L1006 924 L1043 950 L1082 914" fill="none" stroke="#db7c42" stroke-width="3"/>
+    <text x="820" y="978" class="mono">J = J_smooth + J_limit</text>
+    <text x="820" y="1002" class="mono">  + J_handoff + J_corridor</text>
+  </g>
+  <path d="M1168 876 H1196" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="1204" y="733" width="350" height="287" fill="#fff"/>
+    <text x="1226" y="765" class="boxTitle">4. 统一物理候选门</text>
+    <rect x="1226" y="791" width="128" height="53" rx="8" fill="#e9f5ff" stroke="#71aaca"/><text x="1290" y="813" text-anchor="middle" class="small">冻结 SONIC</text><text x="1290" y="833" text-anchor="middle" class="tiny">ONNX policy</text>
+    <rect x="1370" y="791" width="157" height="53" rx="8" fill="#f2ebff" stroke="#9a81c8"/><text x="1448" y="813" text-anchor="middle" class="small">MuJoCo G1</text><text x="1448" y="833" text-anchor="middle" class="tiny">candidate replay</text>
+    <text x="1226" y="878" class="body">硬门：接触 / 跌倒 / roll</text>
+    <text x="1226" y="902" class="body">关节跟踪 / keyframe</text>
+    <text x="1226" y="926" class="body">route deviation / body yaw</text>
+    <text x="1226" y="963" class="mono">R* = argmin J(R) | feasible</text>
+    <text x="1226" y="993" class="tiny">无可行候选：拒绝，不执行</text>
+  </g>
+  <path d="M1564 876 H1592" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="1600" y="733" width="351" height="287" fill="#fff"/>
+    <text x="1622" y="765" class="boxTitle">5. 连续执行与重条件化</text>
+    <path d="M1630 816 C1666 786 1698 851 1737 815 S1803 784 1844 815 S1905 848 1930 810" fill="none" stroke="#e47745" stroke-width="4"/>
+    <circle cx="1630" cy="816" r="6" fill="#2587bc"/><circle cx="1737" cy="815" r="6" fill="#56aa7d"/><circle cx="1844" cy="815" r="6" fill="#d6a53f"/>
+    <text x="1622" y="858" class="body">segment boundary：</text>
+    <text x="1622" y="882" class="body">读取真实 sₜ / Hₜ → 再采样</text>
+    <text x="1622" y="919" class="body">不 reset simulator</text>
+    <text x="1622" y="943" class="body">keyframe 未到达不释放下一段</text>
+    <text x="1622" y="981" class="mono">R_ref → SONIC → q_exec</text>
+    <text x="1622" y="1005" class="tiny">root position 当前不进入 SONIC action head</text>
+  </g>
+
+  <!-- feedback loop -->
+  <path d="M1774 1030 C1774 1095 1450 1125 1114 1125 C738 1125 426 1110 219 1029" fill="none" stroke="#0d7d62" stroke-width="4" stroke-dasharray="12 8" marker-end="url(#arrow)"/>
+  <rect x="726" y="1081" width="555" height="52" rx="26" fill="#0d7d62"/>
+  <text x="1003" y="1114" text-anchor="middle" class="sectionW">闭环反馈：MuJoCo 实测执行 → 下一路段真实状态/history</text>
+
+  <!-- offline data -->
+  <rect x="24" y="1097" width="1952" height="247" rx="18" fill="url(#purple)" stroke="#806db2" stroke-width="2"/>
+  <rect x="24" y="1097" width="1952" height="42" rx="18" fill="#7655ad"/>
+  <text x="48" y="1126" class="sectionW">离线数据与训练（只负责提供可泛化的候选分布；在线物理门仍然有效）</text>
+  <g class="panel">
+    <rect x="52" y="1161" width="342" height="145" fill="#fff"/>
+    <text x="74" y="1192" class="boxTitle">SEED + metadata</text>
+    <text x="74" y="1220" class="body">walk / crouch / lateral / turn</text>
+    <text x="74" y="1245" class="body">SONIC replay：R_ref / R_exec</text>
+    <text x="74" y="1275" class="mono">actor-disjoint split</text>
+  </g>
+  <path d="M402 1233 H428" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="436" y="1161" width="380" height="145" fill="#fff"/>
+    <text x="458" y="1192" class="boxTitle">反向构建训练条件</text>
+    <text x="458" y="1220" class="body">executed envelope → corridor / SDF</text>
+    <text x="458" y="1247" class="body">state 69-D + history 12×69</text>
+    <text x="458" y="1278" class="mono">target_ref [48×38]</text>
+  </g>
+  <path d="M824 1233 H850" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="858" y="1161" width="368" height="145" fill="#fff"/>
+    <text x="880" y="1192" class="boxTitle">模型训练</text>
+    <text x="880" y="1220" class="body">AE：trajectory ↔ latent z</text>
+    <text x="880" y="1247" class="body">Flow Matching：vθ(z,t | X)</text>
+    <text x="880" y="1278" class="mono">X=(Mₑ,p,s,H,c)</text>
+  </g>
+  <path d="M1234 1233 H1260" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="1268" y="1161" width="322" height="145" fill="#fff"/>
+    <text x="1290" y="1192" class="boxTitle">审计与消融</text>
+    <text x="1290" y="1220" class="body">raw Flow vs projected reference</text>
+    <text x="1290" y="1247" class="body">anchor / online candidates</text>
+    <text x="1290" y="1278" class="mono">GIF + report.json + metrics</text>
+  </g>
+  <path d="M1598 1233 H1624" class="thin" marker-end="url(#arrow)"/>
+  <g class="panel">
+    <rect x="1632" y="1161" width="319" height="145" fill="#fff"/>
+    <text x="1654" y="1192" class="boxTitle">当前能力边界</text>
+    <text x="1654" y="1220" class="body">crawl / jump 未纳入自动路由</text>
+    <text x="1654" y="1247" class="body">需低接触 SONIC 控制器/数据</text>
+    <text x="1654" y="1278" class="tiny">不能仅凭流形标签宣称已学会</text>
+  </g>
+
+  <rect x="24" y="1370" width="1952" height="54" rx="15" fill="#07385f"/>
+  <text x="55" y="1404" class="sectionW">最终目标：</text>
+  <text x="210" y="1404" class="subtitle">让 G1 在真实环境流形约束下，在线选择可执行原语，生成连续动态参考，并通过物理闭环安全执行。</text>
+  <text x="1935" y="1404" text-anchor="end" class="subtitle">Mₑ → p → (s,H) → R* → SONIC</text>
+</svg>

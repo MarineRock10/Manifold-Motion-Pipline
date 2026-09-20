@@ -1,0 +1,4879 @@
+{
+  "experiment": "environment-manifold-caused primitive routing",
+  "scenario": "CENTER BLOCK: ONLINE MANIFOLD ROUTE",
+  "scene": "data/g1_flat/scene_long_avoidance.xml",
+  "obstacles": [
+    "obstacle_center_block",
+    "obstacle_left_boundary",
+    "obstacle_right_boundary"
+  ],
+  "planner": {
+    "body_radius_m": 0.4,
+    "clearance_m": 0.1,
+    "inflation_m": 0.5,
+    "resolution_m": 0.05
+  },
+  "routing_contract": "primitive is a deterministic function of measured M_e aperture and route heading change; never segment index",
+  "side_gait_mode": "diagonal",
+  "online_conditioning": {
+    "iterations": 1,
+    "contract": "probe rollout -> measured executed 69-D state and 12-frame history -> per-segment Flow reconditioning",
+    "segments": {
+      "0": {
+        "tick": 0,
+        "history_ticks": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "1": {
+        "tick": 145,
+        "history_ticks": [
+          125,
+          127,
+          129,
+          130,
+          132,
+          134,
+          136,
+          138,
+          140,
+          141,
+          143,
+          145
+        ]
+      },
+      "2": {
+        "tick": 190,
+        "history_ticks": [
+          170,
+          172,
+          174,
+          175,
+          177,
+          179,
+          181,
+          183,
+          185,
+          186,
+          188,
+          190
+        ]
+      },
+      "3": {
+        "tick": 228,
+        "history_ticks": [
+          208,
+          210,
+          212,
+          213,
+          215,
+          217,
+          219,
+          221,
+          223,
+          224,
+          226,
+          228
+        ]
+      },
+      "4": {
+        "tick": 277,
+        "history_ticks": [
+          257,
+          259,
+          261,
+          262,
+          264,
+          266,
+          268,
+          270,
+          272,
+          273,
+          275,
+          277
+        ]
+      },
+      "5": {
+        "tick": 317,
+        "history_ticks": [
+          297,
+          299,
+          301,
+          302,
+          304,
+          306,
+          308,
+          310,
+          312,
+          313,
+          315,
+          317
+        ]
+      },
+      "6": {
+        "tick": 357,
+        "history_ticks": [
+          337,
+          339,
+          341,
+          342,
+          344,
+          346,
+          348,
+          350,
+          352,
+          353,
+          355,
+          357
+        ]
+      },
+      "7": {
+        "tick": 397,
+        "history_ticks": [
+          377,
+          379,
+          381,
+          382,
+          384,
+          386,
+          388,
+          390,
+          392,
+          393,
+          395,
+          397
+        ]
+      },
+      "8": {
+        "tick": 442,
+        "history_ticks": [
+          422,
+          424,
+          426,
+          427,
+          429,
+          431,
+          433,
+          435,
+          437,
+          438,
+          440,
+          442
+        ]
+      },
+      "9": {
+        "tick": 487,
+        "history_ticks": [
+          467,
+          469,
+          471,
+          472,
+          474,
+          476,
+          478,
+          480,
+          482,
+          483,
+          485,
+          487
+        ]
+      }
+    },
+    "probe_execution": {
+      "accepted": true,
+      "failed_checks": [],
+      "no_reset_between_primitives": true,
+      "physics_ticks": 598,
+      "duration_s": 11.96,
+      "keyframes_reached": 10,
+      "keyframes_total_excluding_start": 10,
+      "keyframe_events": [
+        {
+          "keyframe_index": 1,
+          "tick": 145,
+          "planned_xy_m": [
+            0.3318917367827921,
+            0.3367202759007401
+          ],
+          "executed_xy_m": [
+            0.16427057360373556,
+            0.19780643366286021
+          ],
+          "position_error_m": 0.2177014237684046,
+          "q_tracking_rms_rad": 0.09548135945488673
+        },
+        {
+          "keyframe_index": 2,
+          "tick": 190,
+          "planned_xy_m": [
+            0.6318917367827921,
+            0.6700536092340742
+          ],
+          "executed_xy_m": [
+            0.48964482880127513,
+            0.5116285482985221
+          ],
+          "position_error_m": 0.21291473120180188,
+          "q_tracking_rms_rad": 0.14308973997834976
+        },
+        {
+          "keyframe_index": 3,
+          "tick": 228,
+          "planned_xy_m": [
+            0.9318917367827921,
+            1.0033869425674082
+          ],
+          "executed_xy_m": [
+            0.7310740725923872,
+            0.9330285921958434
+          ],
+          "position_error_m": 0.21278635228298384,
+          "q_tracking_rms_rad": 0.1521097643375878
+        },
+        {
+          "keyframe_index": 4,
+          "tick": 277,
+          "planned_xy_m": [
+            1.3818917367827923,
+            1.0033869425674082
+          ],
+          "executed_xy_m": [
+            1.183796223346703,
+            0.908912804384976
+          ],
+          "position_error_m": 0.2194702604655609,
+          "q_tracking_rms_rad": 0.15778252176101443
+        },
+        {
+          "keyframe_index": 5,
+          "tick": 317,
+          "planned_xy_m": [
+            1.8318917367827925,
+            1.0033869425674082
+          ],
+          "executed_xy_m": [
+            1.6400964008739292,
+            1.0909315283748668
+          ],
+          "position_error_m": 0.21083051340020306,
+          "q_tracking_rms_rad": 0.16696738646800285
+        },
+        {
+          "keyframe_index": 6,
+          "tick": 357,
+          "planned_xy_m": [
+            2.281891736782792,
+            1.0033869425674082
+          ],
+          "executed_xy_m": [
+            2.0715563155541092,
+            0.9450223733416273
+          ],
+          "position_error_m": 0.21828287235685348,
+          "q_tracking_rms_rad": 0.17503711117017381
+        },
+        {
+          "keyframe_index": 7,
+          "tick": 397,
+          "planned_xy_m": [
+            2.731891736782792,
+            1.0033869425674082
+          ],
+          "executed_xy_m": [
+            2.5285248828363778,
+            1.0469190815461054
+          ],
+          "position_error_m": 0.20797385510713323,
+          "q_tracking_rms_rad": 0.1662678738455978
+        },
+        {
+          "keyframe_index": 8,
+          "tick": 442,
+          "planned_xy_m": [
+            3.031891736782792,
+            0.6700536092340741
+          ],
+          "executed_xy_m": [
+            2.8246029083418396,
+            0.713825232559604
+          ],
+          "position_error_m": 0.2118598909774445,
+          "q_tracking_rms_rad": 0.15037253787424748
+        },
+        {
+          "keyframe_index": 9,
+          "tick": 487,
+          "planned_xy_m": [
+            3.3318917367827923,
+            0.33672027590074005
+          ],
+          "executed_xy_m": [
+            3.2928858428545147,
+            0.5436407240894713
+          ],
+          "position_error_m": 0.21056479202319045,
+          "q_tracking_rms_rad": 0.18307868266715466
+        },
+        {
+          "keyframe_index": 10,
+          "tick": 598,
+          "planned_xy_m": [
+            3.631891736782792,
+            0.00338694256740604
+          ],
+          "executed_xy_m": [
+            3.5645173672075603,
+            0.20986087268178477
+          ],
+          "position_error_m": 0.2171883732904164,
+          "q_tracking_rms_rad": 0.13422481883450502
+        }
+      ],
+      "terminal_error_m": 0.2171883732904164,
+      "route_deviation_mean_m": 0.0733938018075926,
+      "route_deviation_p95_m": 0.17438289758116107,
+      "route_deviation_max_m": 0.18874182128453318,
+      "track_err_mean_rad": 0.10581986516439591,
+      "base_z_min_m": 0.7328127712120723,
+      "roll_abs_max_deg": 7.589789126343587,
+      "body_route_yaw_abs_p95_deg": 16.802820340965198,
+      "body_route_yaw_abs_max_deg": 27.69701372296097,
+      "side_on_ticks": 0,
+      "side_on_body_yaw_error_p95_deg": 0.0,
+      "side_on_body_yaw_abs_median_deg": 0.0,
+      "obstacle_contact_ticks": 0,
+      "primitive_switches": [
+        {
+          "tick": 0,
+          "from": null,
+          "to": [
+            0,
+            0
+          ],
+          "primitive": "walk_turn",
+          "candidate_index": 1,
+          "target_keyframe": 1,
+          "route_progress_m": 0.0,
+          "selected_start_phase": 6,
+          "phase_handoff": "semantic_transition_prefix",
+          "route_yaw_error_rad": 0.8047317380849446,
+          "alignment_yaw_error_rad": 1.17124302700711,
+          "pre_switch_joint_rms_rad": 0.0,
+          "handoff_blend_ticks": 0
+        },
+        {
+          "tick": 8,
+          "from": [
+            0,
+            0
+          ],
+          "to": [
+            0,
+            1
+          ],
+          "primitive": "walk_nominal",
+          "candidate_index": 0,
+          "target_keyframe": 1,
+          "route_progress_m": 0.0,
+          "selected_start_phase": 6,
+          "phase_handoff": "semantic_transition_prefix_crossfade",
+          "route_yaw_error_rad": -0.13437593245902324,
+          "alignment_yaw_error_rad": 0.23213535646314298,
+          "pre_switch_joint_rms_rad": 0.00858851876238372,
+          "handoff_blend_ticks": 12
+        },
+        {
+          "tick": 145,
+          "from": [
+            0,
+            1
+          ],
+          "to": [
+            1,
+            0
+          ],
+          "primitive": "walk_lateral_reverse",
+          "candidate_index": 0,
+          "target_keyframe": 2,
+          "route_progress_m": 0.23306764269401867,
+          "selected_start_phase": 6,
+          "phase_handoff": "semantic_transition_prefix_crossfade",
+          "route_yaw_error_rad": -0.2104711981333347,
+          "alignment_yaw_error_rad": -0.041453675058358286,
+          "pre_switch_joint_rms_rad": 0.022529748910860597,
+          "handoff_blend_ticks": 12
+        },
+        {
+          "tick": 190,
+          "from": [
+            1,
+            0
+          ],
+          "to": [
+            2,
+            0
+          ],
+          "primitive": "walk_lateral_reverse",
+          "candidate_index": 0,
+          "target_keyframe": 3,
+          "route_progress_m": 0.6839936847706898,
+          "selected_start_phase": 50,
+          "phase_handoff": "same_primitive_nearest_pose",
+          "route_yaw_error_rad": -0.32606940769694814,
+          "alignment_yaw_error_rad": -0.15705188462197128,
+          "pre_switch_joint_rms_rad": 0.0,
+          "handoff_blend_ticks": 0
+        },
+        {
+          "tick": 228,
+          "from": [
+            2,
+            0
+          ],
+          "to": [
+            3,
+            0
+          ],
+          "primitive": "walk_turn",
+          "candidate_index": 0,
+          "target_keyframe": 4,
+          "route_progress_m": 1.1587255199064002,
+          "selected_start_phase": 6,
+          "phase_handoff": "semantic_transition_prefix_crossfade",
+          "route_yaw_error_rad": -0.6802737851253378,
+          "alignment_yaw_error_rad": -0.5112562620503613,
+          "pre_switch_joint_rms_rad": 0.022192011398003586,
+          "handoff_blend_ticks": 12
+        },
+        {
+          "tick": 233,
+          "from": [
+            3,
+            0
+          ],
+          "to": [
+            3,
+            1
+          ],
+          "primitive": "walk_lateral_reverse",
+          "candidate_index": 0,
+          "target_keyframe": 4,
+          "route_progress_m": 1.2009313538725916,
+          "selected_start_phase": 6,
+          "phase_handoff": "semantic_transition_prefix_crossfade",
+          "route_yaw_error_rad": -0.4371038174783304,
+          "alignment_yaw_error_rad": -0.26808629440335396,
+          "pre_switch_joint_rms_rad": 0.01295650706034371,
+          "handoff_blend_ticks": 12
+        },
+        {
+          "tick": 277,
+          "from": [
+            3,
+            1
+          ],
+          "to": [
+            4,
+            0
+          ],
+          "primitive": "walk_lateral_reverse",
+          "candidate_index": 0,
+          "target_keyframe": 5,
+          "route_progress_m": 1.5972668912712833,
+          "selected_start_phase": 49,
+          "phase_handoff": "same_primitive_nearest_pose",
+          "route_yaw_error_rad": -0.5229158576388708,
+          "alignment_yaw_error_rad": -0.3538983345638944,
+          "pre_switch_joint_rms_rad": 0.0,
+          "handoff_blend_ticks": 0
+        },
+        {
+          "tick": 317,
+          "from": [
+            4,
+            0
+          ],
+          "to": [
+            5,
+            0
+          ],
+          "primitive": "walk_lateral_reverse",
+          "candidate_index": 0,
+          "target_keyframe": 6,
+          "route_progress_m": 2.0535670687985097,
+          "selected_start_phase": 15,
+          "phase_handoff": "same_primitive_nearest_pose",
+          "route_yaw_error_rad": -0.1633125435846594,
+          "alignment_yaw_error_rad": 0.005704979490317452,
+          "pre_switch_joint_rms_rad": 0.0,
+          "handoff_blend_ticks": 0
+        },
+        {
+          "tick": 357,
+          "from": [
+            5,
+            0
+          ],
+          "to": [
+            6,
+            0
+          ],
+          "primitive": "walk_lateral_reverse",
+          "candidate_index": 0,
+          "target_keyframe": 7,
+          "route_progress_m": 2.4850269834786896,
+          "selected_start_phase": 54,
+          "phase_handoff": "same_primitive_nearest_pose",
+          "route_yaw_error_rad": -0.4307955431391082,
+          "alignment_yaw_error_rad": -0.2617780200641313,
+          "pre_switch_joint_rms_rad": 0.0,
+          "handoff_blend_ticks": 0
+        },
+        {
+          "tick": 397,
+          "from": [
+            6,
+            0
+          ],
+          "to": [
+            7,
+            0
+          ],
+          "primitive": "walk_turn",
+          "candidate_index": 0,
+          "target_keyframe": 8,
+          "route_progress_m": 2.941995550760958,
+          "selected_start_phase": 6,
+          "phase_handoff": "semantic_transition_prefix_crossfade",
+          "route_yaw_error_rad": -0.8354125525309204,
+          "alignment_yaw_error_rad": -0.666395029455944,
+          "pre_switch_joint_rms_rad": 0.020691598142033266,
+          "handoff_blend_ticks": 12
+        },
+        {
+          "tick": 404,
+          "from": [
+            7,
+            0
+          ],
+          "to": [
+            7,
+            1
+          ],
+          "primitive": "walk_lateral_reverse",
+          "candidate_index": 0,
+          "target_keyframe": 8,
+          "route_progress_m": 2.9910673418812457,
+          "selected_start_phase": 6,
+          "phase_handoff": "semantic_transition_prefix_crossfade",
+          "route_yaw_error_rad": -0.43977868367432293,
+          "alignment_yaw_error_rad": -0.2707611605993465,
+          "pre_switch_joint_rms_rad": 0.014761771878319131,
+          "handoff_blend_ticks": 12
+        },
+        {
+          "tick": 442,
+          "from": [
+            7,
+            1
+          ],
+          "to": [
+            8,
+            0
+          ],
+          "primitive": "walk_lateral_reverse",
+          "candidate_index": 0,
+          "target_keyframe": 9,
+          "route_progress_m": 3.422612432733894,
+          "selected_start_phase": 43,
+          "phase_handoff": "same_primitive_nearest_pose",
+          "route_yaw_error_rad": -0.6524216055106984,
+          "alignment_yaw_error_rad": -0.4834040824357215,
+          "pre_switch_joint_rms_rad": 0.0,
+          "handoff_blend_ticks": 0
+        },
+        {
+          "tick": 487,
+          "from": [
+            8,
+            0
+          ],
+          "to": [
+            9,
+            0
+          ],
+          "primitive": "walk_nominal",
+          "candidate_index": 0,
+          "target_keyframe": 10,
+          "route_progress_m": 3.8623743492713403,
+          "selected_start_phase": 6,
+          "phase_handoff": "semantic_transition_prefix_crossfade",
+          "route_yaw_error_rad": -0.13560523581859485,
+          "alignment_yaw_error_rad": 0.24365125452915937,
+          "pre_switch_joint_rms_rad": 0.02507301502068419,
+          "handoff_blend_ticks": 12
+        }
+      ],
+      "primitive_switch_count": 12,
+      "max_pre_switch_joint_rms_rad": 0.02507301502068419,
+      "primitive_ticks": {
+        "crouch": 0,
+        "walk_lateral_reverse": 330,
+        "walk_nominal": 248,
+        "walk_turn": 20
+      },
+      "start_world_xy_m": [
+        0.031891736782792134,
+        0.00338694256740604
+      ],
+      "final_world_xy_m": [
+        3.5645173672075603,
+        0.20986087268178477
+      ],
+      "phase_contract": "nearest-pose handoff plus continuous 50 Hz phase; no per-segment phase reset"
+    }
+  },
+  "optimization_embedded_projection": {
+    "contract": "projected-gradient feasibility layer between Flow decode and SONIC gate",
+    "config": {
+      "iterations": 1,
+      "step_size": 0.08,
+      "smooth_weight": 0.01,
+      "handoff_weight": 0.35,
+      "corridor_weight": 0.85,
+      "root_blend": 0.85,
+      "max_joint_step": 0.005
+    },
+    "root_position_note": "root position is projected for target consistency; current SONIC action head consumes joint pose/velocity and base orientation, so MuJoCo execution remains authoritative"
+  },
+  "decisions": [
+    {
+      "primitive_id": 5,
+      "primitive": "walk_nominal",
+      "reason": "wide_and_tall_enough_for_nominal_walk",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.699999988079071,
+      "heading_rad": 0.8379812250083912,
+      "heading_change_rad": 0.8379812250083911,
+      "requires_turn": true,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 0,
+      "start_xy_m": [
+        0.0,
+        0.0
+      ],
+      "end_xy_m": [
+        0.3,
+        0.3333333333333341
+      ]
+    },
+    {
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "reason": "lateral_free_semi_below_side_threshold",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.05999999865889549,
+      "heading_rad": 0.8379812250083912,
+      "heading_change_rad": 0.0,
+      "requires_turn": false,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 1,
+      "start_xy_m": [
+        0.3,
+        0.3333333333333341
+      ],
+      "end_xy_m": [
+        0.6,
+        0.6666666666666682
+      ]
+    },
+    {
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "reason": "lateral_free_semi_below_side_threshold",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.05999999865889549,
+      "heading_rad": 0.837981225008391,
+      "heading_change_rad": 0.0,
+      "requires_turn": false,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 2,
+      "start_xy_m": [
+        0.6,
+        0.6666666666666682
+      ],
+      "end_xy_m": [
+        0.9,
+        1.0000000000000022
+      ]
+    },
+    {
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "reason": "lateral_free_semi_below_side_threshold",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.3400000035762787,
+      "heading_rad": 0.0,
+      "heading_change_rad": -0.8379812250083911,
+      "requires_turn": true,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 3,
+      "start_xy_m": [
+        0.9,
+        1.0000000000000022
+      ],
+      "end_xy_m": [
+        1.35,
+        1.0000000000000022
+      ]
+    },
+    {
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "reason": "lateral_free_semi_below_side_threshold",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.3400000035762787,
+      "heading_rad": 0.0,
+      "heading_change_rad": 0.0,
+      "requires_turn": false,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 4,
+      "start_xy_m": [
+        1.35,
+        1.0000000000000022
+      ],
+      "end_xy_m": [
+        1.8000000000000003,
+        1.0000000000000022
+      ]
+    },
+    {
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "reason": "lateral_free_semi_below_side_threshold",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.3400000035762787,
+      "heading_rad": 0.0,
+      "heading_change_rad": 0.0,
+      "requires_turn": false,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 5,
+      "start_xy_m": [
+        1.8000000000000003,
+        1.0000000000000022
+      ],
+      "end_xy_m": [
+        2.25,
+        1.0000000000000022
+      ]
+    },
+    {
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "reason": "lateral_free_semi_below_side_threshold",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.3400000035762787,
+      "heading_rad": 0.0,
+      "heading_change_rad": 0.0,
+      "requires_turn": false,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 6,
+      "start_xy_m": [
+        2.25,
+        1.0000000000000022
+      ],
+      "end_xy_m": [
+        2.7,
+        1.0000000000000022
+      ]
+    },
+    {
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "reason": "lateral_free_semi_below_side_threshold",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.05999999865889549,
+      "heading_rad": -0.8379812250083916,
+      "heading_change_rad": -0.8379812250083916,
+      "requires_turn": true,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 7,
+      "start_xy_m": [
+        2.7,
+        1.0000000000000022
+      ],
+      "end_xy_m": [
+        3.0,
+        0.6666666666666681
+      ]
+    },
+    {
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "reason": "lateral_free_semi_below_side_threshold",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.05999999865889549,
+      "heading_rad": -0.8379812250083907,
+      "heading_change_rad": 8.881784197001252e-16,
+      "requires_turn": false,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 8,
+      "start_xy_m": [
+        3.0,
+        0.6666666666666681
+      ],
+      "end_xy_m": [
+        3.3000000000000003,
+        0.33333333333333404
+      ]
+    },
+    {
+      "primitive_id": 5,
+      "primitive": "walk_nominal",
+      "reason": "wide_and_tall_enough_for_nominal_walk",
+      "vertical_free_semi_min_m": 1.3376097679138184,
+      "lateral_free_semi_min_m": 0.699999988079071,
+      "heading_rad": -0.8379812250083913,
+      "heading_change_rad": -8.881784197001252e-16,
+      "requires_turn": false,
+      "thresholds": {
+        "crouch_semi_z_m": 1.12,
+        "side_semi_y_m": 0.42,
+        "turn_heading_change_rad": 0.28
+      },
+      "segment_index": 9,
+      "start_xy_m": [
+        3.3000000000000003,
+        0.33333333333333404
+      ],
+      "end_xy_m": [
+        3.6,
+        0.0
+      ]
+    }
+  ],
+  "selected_plans": [
+    [
+      {
+        "primitive": "walk_turn",
+        "candidate_index": 1,
+        "screen_summary": {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1649772304140422,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.116497580124004,
+          "base_z_min_m": 0.7315339885331964,
+          "base_z_mean_m": 0.7338891502641147,
+          "exec_path_m": 0.12513622088527818,
+          "exec_displacement_xy_m": [
+            -0.05192166126217338,
+            0.02183149438295978
+          ],
+          "forward_progress_m": -0.05192166126217338,
+          "lateral_drift_m": 0.02183149438295978,
+          "side_heading_error_rad": 1.172768985189832,
+          "exec_heading_offset_rad": 2.7435653119847285,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.003861899109811632,
+              "smoothness": 0.014142934777757937,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.004377023249451826
+            },
+            "objective_after": {
+              "total": 0.00022662797887303062,
+              "smoothness": 0.01429174092272644,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 9.848302311266613e-05
+            },
+            "joint_delta_max_rad": 0.0010733511447906484,
+            "root_delta_max_m": 0.1356546714901924,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 0,
+            "history_ticks": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      },
+      {
+        "primitive": "walk_nominal",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.7781846936406233,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07781840720594525,
+          "base_z_min_m": 0.7698314059893503,
+          "base_z_mean_m": 0.7757182953066358,
+          "exec_path_m": 0.32144738061098826,
+          "exec_displacement_xy_m": [
+            0.25928865358445535,
+            -0.09952925228417163
+          ],
+          "forward_progress_m": 0.25928865358445535,
+          "lateral_drift_m": 0.09952925228417163,
+          "side_heading_error_rad": 1.2042850378727308,
+          "exec_heading_offset_rad": -0.3665112889221659,
+          "source_index": 2072,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.004215199468868869,
+              "smoothness": 0.0061523185587624065,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.004886677980330876
+            },
+            "objective_after": {
+              "total": 0.00015561583978777996,
+              "smoothness": 0.006215812341395194,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00010995025455744472
+            },
+            "joint_delta_max_rad": 0.0006740576744079518,
+            "root_delta_max_m": 0.1766340032219887,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 0,
+            "history_ticks": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "candidate0_training_support_anchor": true
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.046200164722469995,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05434753308341348
+            },
+            "objective_after": {
+              "total": 0.0010441760133494422,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012228194943768038
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5439947187900542,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 145,
+            "history_ticks": [
+              125,
+              127,
+              129,
+              130,
+              132,
+              134,
+              136,
+              138,
+              140,
+              141,
+              143,
+              145
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.046200164722469995,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05434753308341348
+            },
+            "objective_after": {
+              "total": 0.0010441760133494422,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012228194943768038
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5439947187900542,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 190,
+            "history_ticks": [
+              170,
+              172,
+              174,
+              175,
+              177,
+              179,
+              181,
+              183,
+              185,
+              186,
+              188,
+              190
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_turn",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.7522999182888563,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07522988996150229,
+          "base_z_min_m": 0.7734084588618867,
+          "base_z_mean_m": 0.7813539365533264,
+          "exec_path_m": 0.23412251146020385,
+          "exec_displacement_xy_m": [
+            0.08224148571949208,
+            -0.08977270804238895
+          ],
+          "forward_progress_m": 0.08224148571949208,
+          "lateral_drift_m": 0.08977270804238895,
+          "side_heading_error_rad": 0.7416435437743054,
+          "exec_heading_offset_rad": -0.8291527830205911,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.006318561901076438,
+              "smoothness": 0.010078342216538536,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.007315033504601239
+            },
+            "objective_after": {
+              "total": 0.00024176740481400176,
+              "smoothness": 0.010186738903850297,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00016458825385352798
+            },
+            "joint_delta_max_rad": 0.0009716777801513921,
+            "root_delta_max_m": 0.237143374979496,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 228,
+            "history_ticks": [
+              208,
+              210,
+              212,
+              213,
+              215,
+              217,
+              219,
+              221,
+              223,
+              224,
+              226,
+              228
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      },
+      {
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04601247887566938,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05412672620482452
+            },
+            "objective_after": {
+              "total": 0.0010399530817964283,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012178513396085523
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5426807492971419,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 228,
+            "history_ticks": [
+              208,
+              210,
+              212,
+              213,
+              215,
+              217,
+              219,
+              221,
+              223,
+              224,
+              226,
+              228
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04601247887566938,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05412672620482452
+            },
+            "objective_after": {
+              "total": 0.0010399530817964283,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012178513396085523
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5426807492971419,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 277,
+            "history_ticks": [
+              257,
+              259,
+              261,
+              262,
+              264,
+              266,
+              268,
+              270,
+              272,
+              273,
+              275,
+              277
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04601247887566938,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05412672620482452
+            },
+            "objective_after": {
+              "total": 0.0010399530817964283,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012178513396085523
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5426807492971419,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 317,
+            "history_ticks": [
+              297,
+              299,
+              301,
+              302,
+              304,
+              306,
+              308,
+              310,
+              312,
+              313,
+              315,
+              317
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04601247887566938,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05412672620482452
+            },
+            "objective_after": {
+              "total": 0.0010399530817964283,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012178513396085523
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5426807492971419,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 357,
+            "history_ticks": [
+              337,
+              339,
+              341,
+              342,
+              344,
+              346,
+              348,
+              350,
+              352,
+              353,
+              355,
+              357
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_turn",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.792091625464778,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07920904231846104,
+          "base_z_min_m": 0.7751573406409631,
+          "base_z_mean_m": 0.7805856711343717,
+          "exec_path_m": 0.14229196737134622,
+          "exec_displacement_xy_m": [
+            -0.08660953675375314,
+            -0.03579447536343701
+          ],
+          "forward_progress_m": -0.08660953675375314,
+          "lateral_drift_m": 0.03579447536343701,
+          "side_heading_error_rad": 1.1788895604437486,
+          "exec_heading_offset_rad": -2.749685887238645,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.010488629606247994,
+              "smoothness": 0.011895291273434904,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.012199619639427818
+            },
+            "objective_after": {
+              "total": 0.00035354574608608254,
+              "smoothness": 0.012022802048202545,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.000274491441887126
+            },
+            "joint_delta_max_rad": 0.0011008522987365765,
+            "root_delta_max_m": 0.292743207514286,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 397,
+            "history_ticks": [
+              377,
+              379,
+              381,
+              382,
+              384,
+              386,
+              388,
+              390,
+              392,
+              393,
+              395,
+              397
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      },
+      {
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04620016472247,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05434753308341349
+            },
+            "objective_after": {
+              "total": 0.001044176013349442,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012228194943768036
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5439947187900542,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 397,
+            "history_ticks": [
+              377,
+              379,
+              381,
+              382,
+              384,
+              386,
+              388,
+              390,
+              392,
+              393,
+              395,
+              397
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04620016472247,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05434753308341349
+            },
+            "objective_after": {
+              "total": 0.0010441760133494424,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.001222819494376804
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5439947187900542,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 442,
+            "history_ticks": [
+              422,
+              424,
+              426,
+              427,
+              429,
+              431,
+              433,
+              435,
+              437,
+              438,
+              440,
+              442
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        }
+      }
+    ],
+    [
+      {
+        "primitive": "walk_nominal",
+        "candidate_index": 0,
+        "screen_summary": {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.7641380118234928,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07641373936748046,
+          "base_z_min_m": 0.7700733204039901,
+          "base_z_mean_m": 0.7759301762178235,
+          "exec_path_m": 0.32852178933117493,
+          "exec_displacement_xy_m": [
+            0.26698770321591525,
+            -0.10640817741928554
+          ],
+          "forward_progress_m": 0.26698770321591525,
+          "lateral_drift_m": 0.10640817741928554,
+          "side_heading_error_rad": 1.1915398364471428,
+          "exec_heading_offset_rad": -0.3792564903477537,
+          "source_index": 2072,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.004717762562717845,
+              "smoothness": 0.006118332147925134,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.005478328519104228
+            },
+            "objective_after": {
+              "total": 0.0001665878995666647,
+              "smoothness": 0.006181486663879636,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0001232623916798451
+            },
+            "joint_delta_max_rad": 0.0006980712890625046,
+            "root_delta_max_m": 0.18486537486314775,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 487,
+            "history_ticks": [
+              467,
+              469,
+              471,
+              472,
+              474,
+              476,
+              478,
+              480,
+              482,
+              483,
+              485,
+              487
+            ],
+            "candidate0_training_support_anchor": true
+          }
+        }
+      }
+    ]
+  ],
+  "candidate_evidence": [
+    {
+      "segment_index": 0,
+      "primitive_id": 6,
+      "primitive": "walk_turn",
+      "selected_candidate_index": 1,
+      "online_condition": {
+        "used": true,
+        "tick": 0,
+        "history_ticks": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.9338559544932987,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.19338459149126855,
+          "base_z_min_m": 0.7250499178567001,
+          "base_z_mean_m": 0.746148889464815,
+          "exec_path_m": 0.7801203409859959,
+          "exec_displacement_xy_m": [
+            0.6964697248005334,
+            0.10285162313077148
+          ],
+          "forward_progress_m": 0.6964697248005334,
+          "lateral_drift_m": 0.10285162313077148,
+          "side_heading_error_rad": 1.4241803482204953,
+          "exec_heading_offset_rad": 0.14661597857440117,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.03344623108727438,
+              "smoothness": 0.09933392086321603,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.03817987279840261
+            },
+            "objective_after": {
+              "total": 0.0017341481092218892,
+              "smoothness": 0.1003958041952439,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0008590471379640591
+            },
+            "joint_delta_max_rad": 0.002838563346862777,
+            "root_delta_max_m": 0.4703617379069328,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1649772304140422,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.116497580124004,
+          "base_z_min_m": 0.7315339885331964,
+          "base_z_mean_m": 0.7338891502641147,
+          "exec_path_m": 0.12513622088527818,
+          "exec_displacement_xy_m": [
+            -0.05192166126217338,
+            0.02183149438295978
+          ],
+          "forward_progress_m": -0.05192166126217338,
+          "lateral_drift_m": 0.02183149438295978,
+          "side_heading_error_rad": 1.172768985189832,
+          "exec_heading_offset_rad": 2.7435653119847285,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.003861899109811632,
+              "smoothness": 0.014142934777757937,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.004377023249451826
+            },
+            "objective_after": {
+              "total": 0.00022662797887303062,
+              "smoothness": 0.01429174092272644,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 9.848302311266613e-05
+            },
+            "joint_delta_max_rad": 0.0010733511447906484,
+            "root_delta_max_m": 0.1356546714901924,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 0,
+            "history_ticks": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.3549731003440812,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.13549712523469598,
+          "base_z_min_m": 0.6879482417412852,
+          "base_z_mean_m": 0.6989717108219593,
+          "exec_path_m": 0.21337639789190396,
+          "exec_displacement_xy_m": [
+            -0.1292249898485071,
+            0.010648299253510688
+          ],
+          "forward_progress_m": -0.1292249898485071,
+          "lateral_drift_m": 0.010648299253510688,
+          "side_heading_error_rad": 1.488580832300824,
+          "exec_heading_offset_rad": 3.0593771590957206,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.004431173064933895,
+              "smoothness": 0.018289941924826414,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.004997968994924272
+            },
+            "objective_after": {
+              "total": 0.00028038586251609454,
+              "smoothness": 0.01847997054881678,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00011245430238579615
+            },
+            "joint_delta_max_rad": 0.0011907458305358883,
+            "root_delta_max_m": 0.13212435692548752,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 0,
+      "primitive_id": 5,
+      "primitive": "walk_nominal",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 0,
+        "history_ticks": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "candidate0_training_support_anchor": true
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.7781846936406233,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07781840720594525,
+          "base_z_min_m": 0.7698314059893503,
+          "base_z_mean_m": 0.7757182953066358,
+          "exec_path_m": 0.32144738061098826,
+          "exec_displacement_xy_m": [
+            0.25928865358445535,
+            -0.09952925228417163
+          ],
+          "forward_progress_m": 0.25928865358445535,
+          "lateral_drift_m": 0.09952925228417163,
+          "side_heading_error_rad": 1.2042850378727308,
+          "exec_heading_offset_rad": -0.3665112889221659,
+          "source_index": 2072,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.004215199468868869,
+              "smoothness": 0.0061523185587624065,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.004886677980330876
+            },
+            "objective_after": {
+              "total": 0.00015561583978777996,
+              "smoothness": 0.006215812341395194,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00010995025455744472
+            },
+            "joint_delta_max_rad": 0.0006740576744079518,
+            "root_delta_max_m": 0.1766340032219887,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 0,
+            "history_ticks": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "candidate0_training_support_anchor": true
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.2927379723177046,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.12927359989058912,
+          "base_z_min_m": 0.6920038623175335,
+          "base_z_mean_m": 0.707300559673263,
+          "exec_path_m": 0.24816894128134442,
+          "exec_displacement_xy_m": [
+            -0.18914207393157395,
+            -0.009603287349798616
+          ],
+          "forward_progress_m": -0.18914207393157395,
+          "lateral_drift_m": 0.009603287349798616,
+          "side_heading_error_rad": 1.5200670108181815,
+          "exec_heading_offset_rad": -3.090863337613078,
+          "source_index": 2072,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0053815683568632046,
+              "smoothness": 0.019529224226320065,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.006101501311294123
+            },
+            "objective_after": {
+              "total": 0.00031403238854478874,
+              "smoothness": 0.019734117596628863,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0001372837795041178
+            },
+            "joint_delta_max_rad": 0.0010870474815368597,
+            "root_delta_max_m": 0.17424144893884658,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.2381770962597038,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.12381755503161977,
+          "base_z_min_m": 0.6716723673294261,
+          "base_z_mean_m": 0.6903835738320164,
+          "exec_path_m": 0.22624362680549814,
+          "exec_displacement_xy_m": [
+            -0.14629098617337039,
+            0.014590435445065544
+          ],
+          "forward_progress_m": -0.14629098617337039,
+          "lateral_drift_m": 0.014590435445065544,
+          "side_heading_error_rad": 1.4713893539220928,
+          "exec_heading_offset_rad": 3.0421856807169894,
+          "source_index": 2072,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0049197182676937665,
+              "smoothness": 0.015299075266070978,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.005607914723568303
+            },
+            "objective_after": {
+              "total": 0.00026184571823886614,
+              "smoothness": 0.01545943491506223,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00012617808128028685
+            },
+            "joint_delta_max_rad": 0.0011295570850372305,
+            "root_delta_max_m": 0.16438860297203062,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 1,
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 145,
+        "history_ticks": [
+          125,
+          127,
+          129,
+          130,
+          132,
+          134,
+          136,
+          138,
+          140,
+          141,
+          143,
+          145
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.046200164722469995,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05434753308341348
+            },
+            "objective_after": {
+              "total": 0.0010441760133494422,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012228194943768038
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5439947187900542,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 145,
+            "history_ticks": [
+              125,
+              127,
+              129,
+              130,
+              132,
+              134,
+              136,
+              138,
+              140,
+              141,
+              143,
+              145
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.8499734920865318,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.0849972981052466,
+          "base_z_min_m": 0.7718422601315245,
+          "base_z_mean_m": 0.7758563029552238,
+          "exec_path_m": 0.06696310142543403,
+          "exec_displacement_xy_m": [
+            -0.03956705422928058,
+            0.011195097925473475
+          ],
+          "forward_progress_m": -0.03956705422928058,
+          "lateral_drift_m": 0.011195097925473475,
+          "side_heading_error_rad": 1.2950635517499531,
+          "exec_heading_offset_rad": 2.8658598785448497,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0035834945646772125,
+              "smoothness": 0.005056335828693254,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0041563896545768
+            },
+            "objective_after": {
+              "total": 0.00013059435996812404,
+              "smoothness": 0.005110340782434277,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 9.351876722797798e-05
+            },
+            "joint_delta_max_rad": 0.0006682616233825711,
+            "root_delta_max_m": 0.10632505863904951,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.9107949961665063,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.09107945503141242,
+          "base_z_min_m": 0.7727220050964326,
+          "base_z_mean_m": 0.7753555240107812,
+          "exec_path_m": 0.0640828493238579,
+          "exec_displacement_xy_m": [
+            -0.029486818593130164,
+            0.011472118921820103
+          ],
+          "forward_progress_m": -0.029486818593130164,
+          "lateral_drift_m": 0.011472118921820103,
+          "side_heading_error_rad": 1.199757083083211,
+          "exec_heading_offset_rad": 2.7705534098781075,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0027227495933482867,
+              "smoothness": 0.00441167731432236,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0031513327296530153
+            },
+            "objective_after": {
+              "total": 0.00010485447686710958,
+              "smoothness": 0.0044585238412495655,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 7.090498641719285e-05
+            },
+            "joint_delta_max_rad": 0.000587567710876466,
+            "root_delta_max_m": 0.09143801480531688,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 2,
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 190,
+        "history_ticks": [
+          170,
+          172,
+          174,
+          175,
+          177,
+          179,
+          181,
+          183,
+          185,
+          186,
+          188,
+          190
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.046200164722469995,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05434753308341348
+            },
+            "objective_after": {
+              "total": 0.0010441760133494422,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012228194943768038
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5439947187900542,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 190,
+            "history_ticks": [
+              170,
+              172,
+              174,
+              175,
+              177,
+              179,
+              181,
+              183,
+              185,
+              186,
+              188,
+              190
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.2304915694158334,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.12304906148613239,
+          "base_z_min_m": 0.7607614920543154,
+          "base_z_mean_m": 0.764489152483869,
+          "exec_path_m": 0.16956369548499156,
+          "exec_displacement_xy_m": [
+            -0.059493575831950155,
+            -0.0134690526843091
+          ],
+          "forward_progress_m": -0.059493575831950155,
+          "lateral_drift_m": 0.0134690526843091,
+          "side_heading_error_rad": 1.348154427410078,
+          "exec_heading_offset_rad": -2.9189507542049746,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.005103377314712775,
+              "smoothness": 0.009445795460321931,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.005892846306011242
+            },
+            "objective_after": {
+              "total": 0.00020815614005650015,
+              "smoothness": 0.009545545445403513,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00013258904188525296
+            },
+            "joint_delta_max_rad": 0.0011343197822570872,
+            "root_delta_max_m": 0.1863666743040085,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.3857084894187555,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.13857076313352018,
+          "base_z_min_m": 0.7530342843113929,
+          "base_z_mean_m": 0.7660621580633804,
+          "exec_path_m": 0.3632823778860471,
+          "exec_displacement_xy_m": [
+            -0.3227002408418443,
+            -0.05961343297587965
+          ],
+          "forward_progress_m": -0.3227002408418443,
+          "lateral_drift_m": 0.05961343297587965,
+          "side_heading_error_rad": 1.3881225892260116,
+          "exec_heading_offset_rad": -2.958918916020908,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.005502575937468404,
+              "smoothness": 0.00848961376404322,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.006373740940974084
+            },
+            "objective_after": {
+              "total": 0.00020770615650353137,
+              "smoothness": 0.008580836100740194,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00014340917117191697
+            },
+            "joint_delta_max_rad": 0.0010015410423278581,
+            "root_delta_max_m": 0.18476840406656264,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 3,
+      "primitive_id": 6,
+      "primitive": "walk_turn",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 228,
+        "history_ticks": [
+          208,
+          210,
+          212,
+          213,
+          215,
+          217,
+          219,
+          221,
+          223,
+          224,
+          226,
+          228
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.7522999182888563,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07522988996150229,
+          "base_z_min_m": 0.7734084588618867,
+          "base_z_mean_m": 0.7813539365533264,
+          "exec_path_m": 0.23412251146020385,
+          "exec_displacement_xy_m": [
+            0.08224148571949208,
+            -0.08977270804238895
+          ],
+          "forward_progress_m": 0.08224148571949208,
+          "lateral_drift_m": 0.08977270804238895,
+          "side_heading_error_rad": 0.7416435437743054,
+          "exec_heading_offset_rad": -0.8291527830205911,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.006318561901076438,
+              "smoothness": 0.010078342216538536,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.007315033504601239
+            },
+            "objective_after": {
+              "total": 0.00024176740481400176,
+              "smoothness": 0.010186738903850297,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00016458825385352798
+            },
+            "joint_delta_max_rad": 0.0009716777801513921,
+            "root_delta_max_m": 0.237143374979496,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 228,
+            "history_ticks": [
+              208,
+              210,
+              212,
+              213,
+              215,
+              217,
+              219,
+              221,
+              223,
+              224,
+              226,
+              228
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.9523312446980141,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.09523306108175647,
+          "base_z_min_m": 0.7696479532844532,
+          "base_z_mean_m": 0.7721405035987892,
+          "exec_path_m": 0.09583455832632028,
+          "exec_displacement_xy_m": [
+            -0.05430134304805694,
+            0.020358345597894213
+          ],
+          "forward_progress_m": -0.05430134304805694,
+          "lateral_drift_m": 0.020358345597894213,
+          "side_heading_error_rad": 1.2121008642545208,
+          "exec_heading_offset_rad": 2.7828971910494174,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0009989260292050147,
+              "smoothness": 0.006272941423919079,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0011014077823127341
+            },
+            "objective_after": {
+              "total": 8.445246668907403e-05,
+              "smoothness": 0.006338804285234298,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 2.4781675102036528e-05
+            },
+            "joint_delta_max_rad": 0.0010222880363464082,
+            "root_delta_max_m": 0.07594723403453829,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.8326837665012884,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.08326832984889704,
+          "base_z_min_m": 0.77255809902888,
+          "base_z_mean_m": 0.7752264161432535,
+          "exec_path_m": 0.06267048393853941,
+          "exec_displacement_xy_m": [
+            -0.03814400368584804,
+            0.015040215782863717
+          ],
+          "forward_progress_m": -0.03814400368584804,
+          "lateral_drift_m": 0.015040215782863717,
+          "side_heading_error_rad": 1.195212583118237,
+          "exec_heading_offset_rad": 2.7660089099131335,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.001949311912206199,
+              "smoothness": 0.004630328181970383,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0022388336828076416
+            },
+            "objective_after": {
+              "total": 8.961892307576334e-05,
+              "smoothness": 0.004680122889206718,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 5.037375786317195e-05
+            },
+            "joint_delta_max_rad": 0.0006681012153625376,
+            "root_delta_max_m": 0.08068454116582871,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 3,
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 228,
+        "history_ticks": [
+          208,
+          210,
+          212,
+          213,
+          215,
+          217,
+          219,
+          221,
+          223,
+          224,
+          226,
+          228
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04601247887566938,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05412672620482452
+            },
+            "objective_after": {
+              "total": 0.0010399530817964283,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012178513396085523
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5426807492971419,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 228,
+            "history_ticks": [
+              208,
+              210,
+              212,
+              213,
+              215,
+              217,
+              219,
+              221,
+              223,
+              224,
+              226,
+              228
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.0932025834151478,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.10932019748133542,
+          "base_z_min_m": 0.7502189448977342,
+          "base_z_mean_m": 0.7541507008919591,
+          "exec_path_m": 0.1348891390627376,
+          "exec_displacement_xy_m": [
+            -0.05416227524682836,
+            -0.003747231020923676
+          ],
+          "forward_progress_m": -0.05416227524682836,
+          "lateral_drift_m": 0.003747231020923676,
+          "side_heading_error_rad": 1.5017211396035455,
+          "exec_heading_offset_rad": -3.072517466398442,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.002143470411062225,
+              "smoothness": 0.00602264864647921,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0024508752054087446
+            },
+            "objective_after": {
+              "total": 0.00010773316798167205,
+              "smoothness": 0.00608601796782298,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 5.514469212169676e-05
+            },
+            "joint_delta_max_rad": 0.0009179382324218666,
+            "root_delta_max_m": 0.09022430926561353,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.1719344380595722,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11719339782088065,
+          "base_z_min_m": 0.7534026480096997,
+          "base_z_mean_m": 0.7555413579463202,
+          "exec_path_m": 0.1359926129159855,
+          "exec_displacement_xy_m": [
+            -0.0604986680031295,
+            -0.020409953625998106
+          ],
+          "forward_progress_m": -0.0604986680031295,
+          "lateral_drift_m": 0.020409953625998106,
+          "side_heading_error_rad": 1.24542433553259,
+          "exec_heading_offset_rad": -2.8162206623274866,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.002903850275191566,
+              "smoothness": 0.004550155049968452,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.003362763205519861
+            },
+            "objective_after": {
+              "total": 0.00011029792376230808,
+              "smoothness": 0.004598507745674071,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 7.566217212419692e-05
+            },
+            "joint_delta_max_rad": 0.0006021879196166993,
+            "root_delta_max_m": 0.10624663718044758,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 4,
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 277,
+        "history_ticks": [
+          257,
+          259,
+          261,
+          262,
+          264,
+          266,
+          268,
+          270,
+          272,
+          273,
+          275,
+          277
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04601247887566938,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05412672620482452
+            },
+            "objective_after": {
+              "total": 0.0010399530817964283,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012178513396085523
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5426807492971419,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 277,
+            "history_ticks": [
+              257,
+              259,
+              261,
+              262,
+              264,
+              266,
+              268,
+              270,
+              272,
+              273,
+              275,
+              277
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.8920972549580939,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.08920963482082792,
+          "base_z_min_m": 0.7682102147660156,
+          "base_z_mean_m": 0.7733749431812784,
+          "exec_path_m": 0.14747708826217526,
+          "exec_displacement_xy_m": [
+            -0.07023820779600026,
+            0.006960012874948443
+          ],
+          "forward_progress_m": -0.07023820779600026,
+          "lateral_drift_m": 0.006960012874948443,
+          "side_heading_error_rad": 1.4720272104833247,
+          "exec_heading_offset_rad": 3.0428235372782213,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0004273771656010712,
+              "smoothness": 0.008969324887135796,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0003972751961526038
+            },
+            "objective_after": {
+              "total": 9.827286499594409e-05,
+              "smoothness": 0.009067497686952555,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 8.938691913433586e-06
+            },
+            "joint_delta_max_rad": 0.0010181782722473165,
+            "root_delta_max_m": 0.06093240305781364,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.9044485096785502,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.090444798744086,
+          "base_z_min_m": 0.7742882918276481,
+          "base_z_mean_m": 0.7761712715408936,
+          "exec_path_m": 0.05891639846699087,
+          "exec_displacement_xy_m": [
+            -0.022456178033923784,
+            0.009488012901995111
+          ],
+          "forward_progress_m": -0.022456178033923784,
+          "lateral_drift_m": 0.009488012901995111,
+          "side_heading_error_rad": 1.1710346135512264,
+          "exec_heading_offset_rad": 2.741830940346123,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0015393309459270903,
+              "smoothness": 0.005166336567446558,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0017501971532383823
+            },
+            "objective_after": {
+              "total": 8.569628633100471e-05,
+              "smoothness": 0.005222376577532065,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 3.93794359478636e-05
+            },
+            "joint_delta_max_rad": 0.0006116126060485838,
+            "root_delta_max_m": 0.07408038154244423,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 5,
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 317,
+        "history_ticks": [
+          297,
+          299,
+          301,
+          302,
+          304,
+          306,
+          308,
+          310,
+          312,
+          313,
+          315,
+          317
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04601247887566938,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05412672620482452
+            },
+            "objective_after": {
+              "total": 0.0010399530817964283,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012178513396085523
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5426807492971419,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 317,
+            "history_ticks": [
+              297,
+              299,
+              301,
+              302,
+              304,
+              306,
+              308,
+              310,
+              312,
+              313,
+              315,
+              317
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.1555522755604823,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11555518543582065,
+          "base_z_min_m": 0.7538661000664288,
+          "base_z_mean_m": 0.7559208696121922,
+          "exec_path_m": 0.1130176409675298,
+          "exec_displacement_xy_m": [
+            -0.05963205576015611,
+            -0.019131685732525612
+          ],
+          "forward_progress_m": -0.05963205576015611,
+          "lateral_drift_m": 0.019131685732525612,
+          "side_heading_error_rad": 1.2603416753869023,
+          "exec_heading_offset_rad": -2.831138002181799,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.002967034763721932,
+              "smoothness": 0.004167668726101207,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0034415977370128473
+            },
+            "objective_after": {
+              "total": 0.00010794078679334898,
+              "smoothness": 0.0042120230072978234,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 7.74359490827891e-05
+            },
+            "joint_delta_max_rad": 0.00045508699417112775,
+            "root_delta_max_m": 0.11422093361616134,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.9405623904436712,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.09405617822051399,
+          "base_z_min_m": 0.7726383176180674,
+          "base_z_mean_m": 0.7746249186987539,
+          "exec_path_m": 0.07354319069885819,
+          "exec_displacement_xy_m": [
+            -0.03923374065658666,
+            0.015008229314044004
+          ],
+          "forward_progress_m": -0.03923374065658666,
+          "lateral_drift_m": 0.015008229314044004,
+          "side_heading_error_rad": 1.205437153267669,
+          "exec_heading_offset_rad": 2.7762334800625657,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0015682848907658368,
+              "smoothness": 0.006017844788055362,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0017742428739826862
+            },
+            "objective_after": {
+              "total": 9.475625001294203e-05,
+              "smoothness": 0.006082385504802314,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 3.992046466461046e-05
+            },
+            "joint_delta_max_rad": 0.0009105504989623814,
+            "root_delta_max_m": 0.07505571953952313,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 6,
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 357,
+        "history_ticks": [
+          337,
+          339,
+          341,
+          342,
+          344,
+          346,
+          348,
+          350,
+          352,
+          353,
+          355,
+          357
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04601247887566938,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05412672620482452
+            },
+            "objective_after": {
+              "total": 0.0010399530817964283,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012178513396085523
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5426807492971419,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 357,
+            "history_ticks": [
+              337,
+              339,
+              341,
+              342,
+              344,
+              346,
+              348,
+              350,
+              352,
+              353,
+              355,
+              357
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.8602834189910568,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.08602826871621083,
+          "base_z_min_m": 0.7705479523352794,
+          "base_z_mean_m": 0.7755532813790862,
+          "exec_path_m": 0.10774557535731141,
+          "exec_displacement_xy_m": [
+            -0.04039346343995716,
+            0.015984815412293477
+          ],
+          "forward_progress_m": -0.04039346343995716,
+          "lateral_drift_m": 0.015984815412293477,
+          "side_heading_error_rad": 1.1939783191896742,
+          "exec_heading_offset_rad": 2.764774645984571,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0005359164828871044,
+              "smoothness": 0.007239179107953122,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.000545323166832439
+            },
+            "objective_after": {
+              "total": 8.361219988941386e-05,
+              "smoothness": 0.007318289432374346,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 1.2269771253729878e-05
+            },
+            "joint_delta_max_rad": 0.0008987389564514281,
+            "root_delta_max_m": 0.07073480039834976,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.9596804480945109,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.09596797333690686,
+          "base_z_min_m": 0.7704869498772873,
+          "base_z_mean_m": 0.773156592644008,
+          "exec_path_m": 0.11660037077435785,
+          "exec_displacement_xy_m": [
+            -0.06626282205145448,
+            0.002602431821658251
+          ],
+          "forward_progress_m": -0.06626282205145448,
+          "lateral_drift_m": 0.002602431821658251,
+          "side_heading_error_rad": 1.5315421128350062,
+          "exec_heading_offset_rad": 3.1023384396299027,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.00044588580516893633,
+              "smoothness": 0.007072055422452632,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00044137088346401176
+            },
+            "objective_after": {
+              "total": 7.991375619729159e-05,
+              "smoothness": 0.007147253805104235,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 9.930844877940265e-06
+            },
+            "joint_delta_max_rad": 0.0009275561332702797,
+            "root_delta_max_m": 0.06635998114943503,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 7,
+      "primitive_id": 6,
+      "primitive": "walk_turn",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 397,
+        "history_ticks": [
+          377,
+          379,
+          381,
+          382,
+          384,
+          386,
+          388,
+          390,
+          392,
+          393,
+          395,
+          397
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.792091625464778,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07920904231846104,
+          "base_z_min_m": 0.7751573406409631,
+          "base_z_mean_m": 0.7805856711343717,
+          "exec_path_m": 0.14229196737134622,
+          "exec_displacement_xy_m": [
+            -0.08660953675375314,
+            -0.03579447536343701
+          ],
+          "forward_progress_m": -0.08660953675375314,
+          "lateral_drift_m": 0.03579447536343701,
+          "side_heading_error_rad": 1.1788895604437486,
+          "exec_heading_offset_rad": -2.749685887238645,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.010488629606247994,
+              "smoothness": 0.011895291273434904,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.012199619639427818
+            },
+            "objective_after": {
+              "total": 0.00035354574608608254,
+              "smoothness": 0.012022802048202545,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.000274491441887126
+            },
+            "joint_delta_max_rad": 0.0011008522987365765,
+            "root_delta_max_m": 0.292743207514286,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 397,
+            "history_ticks": [
+              377,
+              379,
+              381,
+              382,
+              384,
+              386,
+              388,
+              390,
+              392,
+              393,
+              395,
+              397
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.0791521109256488,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.10791515536523016,
+          "base_z_min_m": 0.7460544805060615,
+          "base_z_mean_m": 0.7510368314868873,
+          "exec_path_m": 0.1354751755577463,
+          "exec_displacement_xy_m": [
+            -0.0480274324321185,
+            -0.005945783162785698
+          ],
+          "forward_progress_m": -0.0480274324321185,
+          "lateral_drift_m": 0.005945783162785698,
+          "side_heading_error_rad": 1.4476233107144258,
+          "exec_heading_offset_rad": -3.0184196375093224,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.003384433710523697,
+              "smoothness": 0.0055143987886097515,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.003916811438397175
+            },
+            "objective_after": {
+              "total": 0.00013063635105701977,
+              "smoothness": 0.005572733229767378,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 8.812825736393647e-05
+            },
+            "joint_delta_max_rad": 0.0005521426200866819,
+            "root_delta_max_m": 0.11457677185535414,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.204181117700949,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.12041806680231129,
+          "base_z_min_m": 0.7489722775278013,
+          "base_z_mean_m": 0.7568838751555423,
+          "exec_path_m": 0.29788694460071746,
+          "exec_displacement_xy_m": [
+            -0.2708442534562817,
+            0.007613848592010656
+          ],
+          "forward_progress_m": -0.2708442534562817,
+          "lateral_drift_m": 0.007613848592010656,
+          "side_heading_error_rad": 1.542692190159464,
+          "exec_heading_offset_rad": 3.1134885169543605,
+          "source_index": 2113,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0018028883739580502,
+              "smoothness": 0.004449888558638186,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0020686935157313746
+            },
+            "objective_after": {
+              "total": 8.453154323939303e-05,
+              "smoothness": 0.004496777975103047,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 4.654560410395594e-05
+            },
+            "joint_delta_max_rad": 0.0006056740760803231,
+            "root_delta_max_m": 0.0833043929189442,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 7,
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 397,
+        "history_ticks": [
+          377,
+          379,
+          381,
+          382,
+          384,
+          386,
+          388,
+          390,
+          392,
+          393,
+          395,
+          397
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04620016472247,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05434753308341349
+            },
+            "objective_after": {
+              "total": 0.001044176013349442,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0012228194943768036
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5439947187900542,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 397,
+            "history_ticks": [
+              377,
+              379,
+              381,
+              382,
+              384,
+              386,
+              388,
+              390,
+              392,
+              393,
+              395,
+              397
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.115148516390997,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.1115147939959693,
+          "base_z_min_m": 0.7473199928786678,
+          "base_z_mean_m": 0.7530743804346713,
+          "exec_path_m": 0.17447263240104993,
+          "exec_displacement_xy_m": [
+            -0.13785912864176364,
+            -0.016363775570665273
+          ],
+          "forward_progress_m": -0.13785912864176364,
+          "lateral_drift_m": 0.016363775570665273,
+          "side_heading_error_rad": 1.4526498796819323,
+          "exec_heading_offset_rad": -3.023446206476829,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0031716658122503535,
+              "smoothness": 0.005703718477910822,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0036642689734955832
+            },
+            "objective_after": {
+              "total": 0.00012772227719220672,
+              "smoothness": 0.005764313307410368,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 8.244605190365065e-05
+            },
+            "joint_delta_max_rad": 0.0005902262687683124,
+            "root_delta_max_m": 0.11084610670804962,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 1.165146996989003,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11651465742261098,
+          "base_z_min_m": 0.7607829117714437,
+          "base_z_mean_m": 0.7631486265877434,
+          "exec_path_m": 0.11629482529722872,
+          "exec_displacement_xy_m": [
+            -0.06340080305184502,
+            -0.03169369834345925
+          ],
+          "forward_progress_m": -0.06340080305184502,
+          "lateral_drift_m": 0.03169369834345925,
+          "side_heading_error_rad": 1.1072333030437376,
+          "exec_heading_offset_rad": -2.678029629838634,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0015116962759230126,
+              "smoothness": 0.004183229633399843,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.001729251740692958
+            },
+            "objective_after": {
+              "total": 7.534822826274257e-05,
+              "smoothness": 0.004227628872198975,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 3.890816416559155e-05
+            },
+            "joint_delta_max_rad": 0.000520396041870097,
+            "root_delta_max_m": 0.07020090371370336,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 8,
+      "primitive_id": 4,
+      "primitive": "walk_lateral_reverse",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 442,
+        "history_ticks": [
+          422,
+          424,
+          426,
+          427,
+          429,
+          431,
+          433,
+          435,
+          437,
+          438,
+          440,
+          442
+        ],
+        "candidate0_training_support_anchor": false
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 1.1320042412456697,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.11320041934512341,
+          "base_z_min_m": 0.7358046617887398,
+          "base_z_mean_m": 0.7516811027196637,
+          "exec_path_m": 0.9214519677400047,
+          "exec_displacement_xy_m": [
+            0.8563861920400861,
+            -0.1461385062312832
+          ],
+          "forward_progress_m": 0.8563861920400861,
+          "lateral_drift_m": 0.1461385062312832,
+          "side_heading_error_rad": 1.40177880371992,
+          "exec_heading_offset_rad": -0.1690175230749766,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.04620016472247,
+              "smoothness": 0.00047616015685353016,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.05434753308341349
+            },
+            "objective_after": {
+              "total": 0.0010441760133494424,
+              "smoothness": 0.00047794431291589676,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.001222819494376804
+            },
+            "joint_delta_max_rad": 0.0002751775860786454,
+            "root_delta_max_m": 0.5439947187900542,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 442,
+            "history_ticks": [
+              422,
+              424,
+              426,
+              427,
+              429,
+              431,
+              433,
+              435,
+              437,
+              438,
+              440,
+              442
+            ],
+            "candidate0_training_support_anchor": false
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.8081999860724078,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.08081994471823441,
+          "base_z_min_m": 0.773305117431932,
+          "base_z_mean_m": 0.7767300759412361,
+          "exec_path_m": 0.10413194088827778,
+          "exec_displacement_xy_m": [
+            -0.06455741709473084,
+            0.02372045511993092
+          ],
+          "forward_progress_m": -0.06455741709473084,
+          "lateral_drift_m": 0.02372045511993092,
+          "side_heading_error_rad": 1.2186771456030967,
+          "exec_heading_offset_rad": 2.7894734723979933,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.009242969262218178,
+              "smoothness": 0.005333864438434749,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.010811330138628035
+            },
+            "objective_after": {
+              "total": 0.0002606556921897507,
+              "smoothness": 0.005388900328848943,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00024325492811913093
+            },
+            "joint_delta_max_rad": 0.0006023819923400842,
+            "root_delta_max_m": 0.22185393273830412,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.7632156854908584,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07632151815013165,
+          "base_z_min_m": 0.7740213877348631,
+          "base_z_mean_m": 0.7765922561838938,
+          "exec_path_m": 0.04823170006441651,
+          "exec_displacement_xy_m": [
+            -0.020234708756892893,
+            0.011307943452965203
+          ],
+          "forward_progress_m": -0.020234708756892893,
+          "lateral_drift_m": 0.011307943452965203,
+          "side_heading_error_rad": 1.0611923089340962,
+          "exec_heading_offset_rad": 2.6319886357289928,
+          "source_index": 1375,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.00901162214503168,
+              "smoothness": 0.004988538782207095,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.010543219714364246
+            },
+            "objective_after": {
+              "total": 0.0002520380325601154,
+              "smoothness": 0.0050398955522899195,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.00023722244357319552
+            },
+            "joint_delta_max_rad": 0.0005787642478942978,
+            "root_delta_max_m": 0.2384434878826141,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    },
+    {
+      "segment_index": 9,
+      "primitive_id": 5,
+      "primitive": "walk_nominal",
+      "selected_candidate_index": 0,
+      "online_condition": {
+        "used": true,
+        "tick": 487,
+        "history_ticks": [
+          467,
+          469,
+          471,
+          472,
+          474,
+          476,
+          478,
+          480,
+          482,
+          483,
+          485,
+          487
+        ],
+        "candidate0_training_support_anchor": true
+      },
+      "candidates": [
+        {
+          "candidate_index": 0,
+          "accepted": true,
+          "directional_semantics_passed": true,
+          "side_on_semantics_passed": false,
+          "score": 0.7641380118234928,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.07641373936748046,
+          "base_z_min_m": 0.7700733204039901,
+          "base_z_mean_m": 0.7759301762178235,
+          "exec_path_m": 0.32852178933117493,
+          "exec_displacement_xy_m": [
+            0.26698770321591525,
+            -0.10640817741928554
+          ],
+          "forward_progress_m": 0.26698770321591525,
+          "lateral_drift_m": 0.10640817741928554,
+          "side_heading_error_rad": 1.1915398364471428,
+          "exec_heading_offset_rad": -0.3792564903477537,
+          "source_index": 2072,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.004717762562717845,
+              "smoothness": 0.006118332147925134,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.005478328519104228
+            },
+            "objective_after": {
+              "total": 0.0001665878995666647,
+              "smoothness": 0.006181486663879636,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0001232623916798451
+            },
+            "joint_delta_max_rad": 0.0006980712890625046,
+            "root_delta_max_m": 0.18486537486314775,
+            "handoff_q_used": false
+          },
+          "online_condition": {
+            "used": true,
+            "tick": 487,
+            "history_ticks": [
+              467,
+              469,
+              471,
+              472,
+              474,
+              476,
+              478,
+              480,
+              482,
+              483,
+              485,
+              487
+            ],
+            "candidate0_training_support_anchor": true
+          }
+        },
+        {
+          "candidate_index": 1,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.7937227023274243,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.0793722254256073,
+          "base_z_min_m": 0.7753140371327274,
+          "base_z_mean_m": 0.7766479708679151,
+          "exec_path_m": 0.0494897258816043,
+          "exec_displacement_xy_m": [
+            -0.028420866289451778,
+            0.009000106370268632
+          ],
+          "forward_progress_m": -0.028420866289451778,
+          "lateral_drift_m": 0.009000106370268632,
+          "side_heading_error_rad": 1.2641147188147257,
+          "exec_heading_offset_rad": 2.8349110456096223,
+          "source_index": 2072,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0015481027868545216,
+              "smoothness": 0.0044334453877613806,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0017691392152669506
+            },
+            "objective_after": {
+              "total": 7.864192837170844e-05,
+              "smoothness": 0.004480714087972801,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 3.980563234350638e-05
+            },
+            "joint_delta_max_rad": 0.0007226298332214387,
+            "root_delta_max_m": 0.08182651922106736,
+            "handoff_q_used": false
+          }
+        },
+        {
+          "candidate_index": 2,
+          "accepted": true,
+          "directional_semantics_passed": false,
+          "side_on_semantics_passed": false,
+          "score": 0.8664134747327207,
+          "failed_checks": [],
+          "track_err_mean_rad": 0.0866413045375598,
+          "base_z_min_m": 0.7741613852547811,
+          "base_z_mean_m": 0.7754983931455706,
+          "exec_path_m": 0.06730005209653904,
+          "exec_displacement_xy_m": [
+            -0.034386250184043204,
+            0.014724486891360071
+          ],
+          "forward_progress_m": -0.034386250184043204,
+          "lateral_drift_m": 0.014724486891360071,
+          "side_heading_error_rad": 1.1662111368474801,
+          "exec_heading_offset_rad": 2.7370074636423767,
+          "source_index": 2072,
+          "projection": {
+            "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+            "config": {
+              "iterations": 1,
+              "step_size": 0.08,
+              "smooth_weight": 0.01,
+              "handoff_weight": 0.35,
+              "corridor_weight": 0.85,
+              "root_blend": 0.85,
+              "max_joint_step": 0.005
+            },
+            "objective_before": {
+              "total": 0.0008231017049405265,
+              "smoothness": 0.004248532602742267,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 0.0009183722104860045
+            },
+            "objective_after": {
+              "total": 6.04995790311168e-05,
+              "smoothness": 0.004293571050557196,
+              "joint_limit": 0.0,
+              "handoff": 0.0,
+              "corridor": 2.0663374735935105e-05
+            },
+            "joint_delta_max_rad": 0.0008170802116394052,
+            "root_delta_max_m": 0.057829483225941544,
+            "handoff_q_used": false
+          }
+        }
+      ]
+    }
+  ],
+  "execution": {
+    "accepted": true,
+    "failed_checks": [],
+    "no_reset_between_primitives": true,
+    "physics_ticks": 593,
+    "duration_s": 11.86,
+    "keyframes_reached": 10,
+    "keyframes_total_excluding_start": 10,
+    "keyframe_events": [
+      {
+        "keyframe_index": 1,
+        "tick": 142,
+        "planned_xy_m": [
+          0.3318917367827921,
+          0.3367202759007401
+        ],
+        "executed_xy_m": [
+          0.159767039147592,
+          0.20428226801923186
+        ],
+        "position_error_m": 0.21717904472492622,
+        "q_tracking_rms_rad": 0.10897362441251295
+      },
+      {
+        "keyframe_index": 2,
+        "tick": 189,
+        "planned_xy_m": [
+          0.6318917367827921,
+          0.6700536092340742
+        ],
+        "executed_xy_m": [
+          0.4781345498540304,
+          0.5270983574013005
+        ],
+        "position_error_m": 0.20994636591000546,
+        "q_tracking_rms_rad": 0.14245760076468844
+      },
+      {
+        "keyframe_index": 3,
+        "tick": 226,
+        "planned_xy_m": [
+          0.9318917367827921,
+          1.0033869425674082
+        ],
+        "executed_xy_m": [
+          0.7291643958436804,
+          0.9282593242029625
+        ],
+        "position_error_m": 0.21620021694104896,
+        "q_tracking_rms_rad": 0.13893808868294302
+      },
+      {
+        "keyframe_index": 4,
+        "tick": 272,
+        "planned_xy_m": [
+          1.3818917367827923,
+          1.0033869425674082
+        ],
+        "executed_xy_m": [
+          1.1760223691683607,
+          0.9330547070325812
+        ],
+        "position_error_m": 0.21755187858828612,
+        "q_tracking_rms_rad": 0.14552985921511982
+      },
+      {
+        "keyframe_index": 5,
+        "tick": 313,
+        "planned_xy_m": [
+          1.8318917367827925,
+          1.0033869425674082
+        ],
+        "executed_xy_m": [
+          1.6484682640332569,
+          1.1130382326209598
+        ],
+        "position_error_m": 0.21369973272306106,
+        "q_tracking_rms_rad": 0.1669829079575163
+      },
+      {
+        "keyframe_index": 6,
+        "tick": 355,
+        "planned_xy_m": [
+          2.281891736782792,
+          1.0033869425674082
+        ],
+        "executed_xy_m": [
+          2.0728403415103918,
+          0.9363732131948944
+        ],
+        "position_error_m": 0.21952978337744938,
+        "q_tracking_rms_rad": 0.1819319798065296
+      },
+      {
+        "keyframe_index": 7,
+        "tick": 395,
+        "planned_xy_m": [
+          2.731891736782792,
+          1.0033869425674082
+        ],
+        "executed_xy_m": [
+          2.5179321340744747,
+          1.0439359059353368
+        ],
+        "position_error_m": 0.2177680647416298,
+        "q_tracking_rms_rad": 0.1701999537779346
+      },
+      {
+        "keyframe_index": 8,
+        "tick": 443,
+        "planned_xy_m": [
+          3.031891736782792,
+          0.6700536092340741
+        ],
+        "executed_xy_m": [
+          2.8198207570901186,
+          0.7079637211671402
+        ],
+        "position_error_m": 0.2154327668080877,
+        "q_tracking_rms_rad": 0.14917192006189817
+      },
+      {
+        "keyframe_index": 9,
+        "tick": 485,
+        "planned_xy_m": [
+          3.3318917367827923,
+          0.33672027590074005
+        ],
+        "executed_xy_m": [
+          3.290273319919355,
+          0.5470508936546631
+        ],
+        "position_error_m": 0.2144086317921126,
+        "q_tracking_rms_rad": 0.17381696515910972
+      },
+      {
+        "keyframe_index": 10,
+        "tick": 593,
+        "planned_xy_m": [
+          3.631891736782792,
+          0.00338694256740604
+        ],
+        "executed_xy_m": [
+          3.558271836706002,
+          0.21038066053724783
+        ],
+        "position_error_m": 0.21969590111400575,
+        "q_tracking_rms_rad": 0.12422229128158063
+      }
+    ],
+    "terminal_error_m": 0.21969590111400575,
+    "route_deviation_mean_m": 0.07367981052839365,
+    "route_deviation_p95_m": 0.17067709316013346,
+    "route_deviation_max_m": 0.1803539163584443,
+    "track_err_mean_rad": 0.10591790844700048,
+    "base_z_min_m": 0.7323333999658838,
+    "roll_abs_max_deg": 7.68066610765418,
+    "body_route_yaw_abs_p95_deg": 16.76363787419225,
+    "body_route_yaw_abs_max_deg": 26.775074448266995,
+    "side_on_ticks": 0,
+    "side_on_body_yaw_error_p95_deg": 0.0,
+    "side_on_body_yaw_abs_median_deg": 0.0,
+    "obstacle_contact_ticks": 0,
+    "primitive_switches": [
+      {
+        "tick": 0,
+        "from": null,
+        "to": [
+          0,
+          0
+        ],
+        "primitive": "walk_turn",
+        "candidate_index": 1,
+        "target_keyframe": 1,
+        "route_progress_m": 0.0,
+        "selected_start_phase": 6,
+        "phase_handoff": "semantic_transition_prefix",
+        "route_yaw_error_rad": 0.8047317380849446,
+        "alignment_yaw_error_rad": 1.17124302700711,
+        "pre_switch_joint_rms_rad": 0.0,
+        "handoff_blend_ticks": 0
+      },
+      {
+        "tick": 8,
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          1
+        ],
+        "primitive": "walk_nominal",
+        "candidate_index": 0,
+        "target_keyframe": 1,
+        "route_progress_m": 0.0,
+        "selected_start_phase": 6,
+        "phase_handoff": "semantic_transition_prefix_crossfade",
+        "route_yaw_error_rad": -0.11399235582569389,
+        "alignment_yaw_error_rad": 0.25251893309647233,
+        "pre_switch_joint_rms_rad": 0.018056807567093762,
+        "handoff_blend_ticks": 12
+      },
+      {
+        "tick": 142,
+        "from": [
+          0,
+          1
+        ],
+        "to": [
+          1,
+          0
+        ],
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "target_keyframe": 2,
+        "route_progress_m": 0.23486838674436947,
+        "selected_start_phase": 6,
+        "phase_handoff": "semantic_transition_prefix_crossfade",
+        "route_yaw_error_rad": -0.20002330147817604,
+        "alignment_yaw_error_rad": -0.03100577840319918,
+        "pre_switch_joint_rms_rad": 0.022133731215026372,
+        "handoff_blend_ticks": 12
+      },
+      {
+        "tick": 189,
+        "from": [
+          1,
+          0
+        ],
+        "to": [
+          2,
+          0
+        ],
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "target_keyframe": 3,
+        "route_progress_m": 0.687792332653503,
+        "selected_start_phase": 52,
+        "phase_handoff": "same_primitive_nearest_pose",
+        "route_yaw_error_rad": -0.29105705064960885,
+        "alignment_yaw_error_rad": -0.12203952757463199,
+        "pre_switch_joint_rms_rad": 0.0,
+        "handoff_blend_ticks": 0
+      },
+      {
+        "tick": 226,
+        "from": [
+          2,
+          0
+        ],
+        "to": [
+          3,
+          0
+        ],
+        "primitive": "walk_turn",
+        "candidate_index": 0,
+        "target_keyframe": 4,
+        "route_progress_m": 1.1539030445317233,
+        "selected_start_phase": 6,
+        "phase_handoff": "semantic_transition_prefix_crossfade",
+        "route_yaw_error_rad": -0.6549343711843769,
+        "alignment_yaw_error_rad": -0.48591684810940006,
+        "pre_switch_joint_rms_rad": 0.020081948801334112,
+        "handoff_blend_ticks": 12
+      },
+      {
+        "tick": 231,
+        "from": [
+          3,
+          0
+        ],
+        "to": [
+          3,
+          1
+        ],
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "target_keyframe": 4,
+        "route_progress_m": 1.195122903321594,
+        "selected_start_phase": 6,
+        "phase_handoff": "semantic_transition_prefix_crossfade",
+        "route_yaw_error_rad": -0.44354275690755873,
+        "alignment_yaw_error_rad": -0.2745252338325823,
+        "pre_switch_joint_rms_rad": 0.013832079696171293,
+        "handoff_blend_ticks": 12
+      },
+      {
+        "tick": 272,
+        "from": [
+          3,
+          1
+        ],
+        "to": [
+          4,
+          0
+        ],
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "target_keyframe": 5,
+        "route_progress_m": 1.589493037092941,
+        "selected_start_phase": 46,
+        "phase_handoff": "same_primitive_nearest_pose",
+        "route_yaw_error_rad": -0.4729709956693351,
+        "alignment_yaw_error_rad": -0.30395347259435823,
+        "pre_switch_joint_rms_rad": 0.0,
+        "handoff_blend_ticks": 0
+      },
+      {
+        "tick": 313,
+        "from": [
+          4,
+          0
+        ],
+        "to": [
+          5,
+          0
+        ],
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "target_keyframe": 6,
+        "route_progress_m": 2.0619389319578376,
+        "selected_start_phase": 13,
+        "phase_handoff": "same_primitive_nearest_pose",
+        "route_yaw_error_rad": -0.11442721081106999,
+        "alignment_yaw_error_rad": 0.05459031226390687,
+        "pre_switch_joint_rms_rad": 0.0,
+        "handoff_blend_ticks": 0
+      },
+      {
+        "tick": 355,
+        "from": [
+          5,
+          0
+        ],
+        "to": [
+          6,
+          0
+        ],
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "target_keyframe": 7,
+        "route_progress_m": 2.486311009434972,
+        "selected_start_phase": 54,
+        "phase_handoff": "same_primitive_nearest_pose",
+        "route_yaw_error_rad": -0.4309235453908933,
+        "alignment_yaw_error_rad": -0.26190602231591686,
+        "pre_switch_joint_rms_rad": 0.0,
+        "handoff_blend_ticks": 0
+      },
+      {
+        "tick": 395,
+        "from": [
+          6,
+          0
+        ],
+        "to": [
+          7,
+          0
+        ],
+        "primitive": "walk_turn",
+        "candidate_index": 0,
+        "target_keyframe": 8,
+        "route_progress_m": 2.931402801999055,
+        "selected_start_phase": 6,
+        "phase_handoff": "semantic_transition_prefix_crossfade",
+        "route_yaw_error_rad": -0.8568429689319661,
+        "alignment_yaw_error_rad": -0.6878254458569897,
+        "pre_switch_joint_rms_rad": 0.020213849180943145,
+        "handoff_blend_ticks": 12
+      },
+      {
+        "tick": 403,
+        "from": [
+          7,
+          0
+        ],
+        "to": [
+          7,
+          1
+        ],
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "target_keyframe": 8,
+        "route_progress_m": 2.9828878749483785,
+        "selected_start_phase": 6,
+        "phase_handoff": "semantic_transition_prefix_crossfade",
+        "route_yaw_error_rad": -0.4016988186155692,
+        "alignment_yaw_error_rad": -0.2326812955405928,
+        "pre_switch_joint_rms_rad": 0.016045194675438745,
+        "handoff_blend_ticks": 12
+      },
+      {
+        "tick": 443,
+        "from": [
+          7,
+          1
+        ],
+        "to": [
+          8,
+          0
+        ],
+        "primitive": "walk_lateral_reverse",
+        "candidate_index": 0,
+        "target_keyframe": 9,
+        "route_progress_m": 3.4237701693113882,
+        "selected_start_phase": 45,
+        "phase_handoff": "same_primitive_nearest_pose",
+        "route_yaw_error_rad": -0.6363307296638401,
+        "alignment_yaw_error_rad": -0.4673132065888632,
+        "pre_switch_joint_rms_rad": 0.0,
+        "handoff_blend_ticks": 0
+      },
+      {
+        "tick": 485,
+        "from": [
+          8,
+          0
+        ],
+        "to": [
+          9,
+          0
+        ],
+        "primitive": "walk_nominal",
+        "candidate_index": 0,
+        "target_keyframe": 10,
+        "route_progress_m": 3.858091904491646,
+        "selected_start_phase": 6,
+        "phase_handoff": "semantic_transition_prefix_crossfade",
+        "route_yaw_error_rad": -0.13348471406286766,
+        "alignment_yaw_error_rad": 0.24577177628488567,
+        "pre_switch_joint_rms_rad": 0.025482509488621463,
+        "handoff_blend_ticks": 12
+      }
+    ],
+    "primitive_switch_count": 12,
+    "max_pre_switch_joint_rms_rad": 0.025482509488621463,
+    "primitive_ticks": {
+      "crouch": 0,
+      "walk_lateral_reverse": 330,
+      "walk_nominal": 242,
+      "walk_turn": 21
+    },
+    "start_world_xy_m": [
+      0.031891736782792134,
+      0.00338694256740604
+    ],
+    "final_world_xy_m": [
+      3.558271836706002,
+      0.21038066053724783
+    ],
+    "phase_contract": "nearest-pose handoff plus continuous 50 Hz phase; no per-segment phase reset",
+    "render_title": "CENTER BLOCK: ONLINE MANIFOLD ROUTE"
+  },
+  "accepted": true,
+  "failed_checks": []
+}

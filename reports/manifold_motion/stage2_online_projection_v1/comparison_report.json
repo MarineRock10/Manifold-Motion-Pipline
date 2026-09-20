@@ -1,0 +1,46 @@
+{
+  "experiment": "online state/history + optimization-embedded projection",
+  "accepted": true,
+  "scenarios": [
+    {
+      "scenario": "CENTER BLOCK: ONLINE MANIFOLD ROUTE",
+      "accepted": true,
+      "failed_checks": [],
+      "online_iterations": 1,
+      "probe_accepted": true,
+      "keyframes_reached": 10,
+      "obstacle_contact_ticks": 0,
+      "side_on_ticks": 0
+    },
+    {
+      "scenario": "LOW: ONLINE STATE/HISTORY PROJECTED CROUCH",
+      "accepted": true,
+      "failed_checks": [],
+      "online_iterations": 1,
+      "probe_accepted": true,
+      "keyframes_reached": 6,
+      "obstacle_contact_ticks": 0,
+      "side_on_ticks": 0
+    },
+    {
+      "scenario": "1.05 m NARROW: ONLINE STRICT SIDE-ON",
+      "accepted": true,
+      "failed_checks": [],
+      "online_iterations": 1,
+      "probe_accepted": true,
+      "keyframes_reached": 6,
+      "obstacle_contact_ticks": 0,
+      "side_on_ticks": 282
+    },
+    {
+      "scenario": "WIDE: ONLINE STATE/HISTORY NOMINAL WALK",
+      "accepted": true,
+      "failed_checks": [],
+      "online_iterations": 1,
+      "probe_accepted": true,
+      "keyframes_reached": 6,
+      "obstacle_contact_ticks": 0,
+      "side_on_ticks": 0
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+# Stage 2: SEED → SONIC → Dynamic Motion
+
+This is the executable dynamic-data path for the selected BONES-SEED G1 subset. It keeps the three
+signals separate:
+
+- `R_ref`: the 29-joint policy-order reference that frozen SONIC consumes;
+- `R_exec`: the MuJoCo state actually achieved by the robot;
+- `M^E`: a time-aligned safe-corridor ellipsoid sequence plus an egocentric SDF. For SEED it is
+  reverse-synthesized around `R_exec`, explicitly marked as simulation data rather than a
+  sensor-derived map.
+
+The flow model learns `p(R_ref | M^E, z_p, s_t, H_t, c_t)`. `R_exec` is never substituted for
+the generated target; it is retained to test whether the generated reference remains executable.
+
+## Preconditions
+
+The selected archive is already in:
+
+```text
+data/seed_stage2_pilot/
+  seed_stage2_pilot_manifest_v004.csv
+  g1/csv/...
+```
+
+From the WSL checkout, use the installed local SONIC runtime:
+
+```bash
+cd /home/xiyuan/Manifold-Motion-Pipline
+export PYTHONPATH="$HOME/.local/share/sonic-manifold-g1${PYTHONPATH:+:$PYTHONPATH}"
+```
+
+## 1. Replay and gate the source clips
+
+Run a stable, per-primitive pilot selection. It saves both passing and failing records; only
+passing summaries are consumed by the next command.
+
+```bash
+python3 -m manifold_motion.seed_replay \
+  --strata all_fours crouch low_transition walk_lateral_reverse walk_nominal walk_turn \
+  --per-stratum-limit 20 --jobs 4 \
+  --out reports/manifold_motion/seed_replay_stage2_v2
+```
+
+`crawl` is intentionally excluded from the initial run: the first calibrated five crawl clips all
+fell under this frozen SONIC configuration. Revisit it only after adding a controller/reference
+interface that can track that morphology.
+
+Each `summaries/<motion_id>.json` records falls, roll, joint tracking error, foot/hand/non-foot
+contacts, reference joint-range violations, and reference-versus-executed planar-path progress.
+The default gate accepts a locomotion clip only when it makes at least 20% of a reference path of
+0.25 m or longer; a stable robot that remains essentially in place is a failed task completion.
+
+## 2. Build actor-disjoint training windows
+
+```bash
+python3 -m manifold_motion.seed_windows \
+  --replay-root reports/manifold_motion/seed_replay_stage2_v2 \
+  --out reports/manifold_motion/seed_windows_stage2_v2
+```
+
+The default output `seed_stage2_windows.npz` contains 30 Hz windows with a 0.4-second execution
+history and a 1.6-second future horizon:
+
+| key | contents |
+|---|---|
+| `state`, `history` | executed state `s_t, H_t` (policy-order joints, velocity, gravity, local base velocity, contacts) |
+| `primitive` | `z_p` category index |
+| `corridor` | `48 × 7` local safe ellipsoids: centre xyz, body-clearance semi-axes xyz, yaw |
+| `sdf` | `10 × 10 × 8` local signed-free-space grid; positive denotes free corridor interior |
+| `manifold` | legacy flat token retained only for compatibility |
+| `command` | horizon goal derived from `R_ref` for offline supervision |
+| `target_ref` | future SONIC reference to generate, 48 × 38 |
+| `target_exec` | future achieved trajectory for execution evaluation, 48 × 38 |
+
+Splits are actor-disjoint by stable hash, never random windows from the same actor on both sides.
+
+## 3. Train latent Conditional Flow Matching
+
+```bash
+python3 -m manifold_motion.stage2_flow train-ae \
+  --windows reports/manifold_motion/seed_windows_stage2_v2/seed_stage2_windows.npz \
+  --out reports/manifold_motion/stage2_flow_v2 --epochs 100
+
+python3 -m manifold_motion.stage2_flow train-flow \
+  --windows reports/manifold_motion/seed_windows_stage2_v2/seed_stage2_windows.npz \
+  --out reports/manifold_motion/stage2_flow_v2 \
+  --autoencoder reports/manifold_motion/stage2_flow_v2/autoencoder.pt --epochs 200
+```
+
+The VAE first embeds the raw future trajectory; Flow Matching then learns its conditional vector
+field in latent space. The 29 generated joint coordinates use a logit of their normalized MJCF
+range, so every generated `R_ref` is mathematically within the active G1 joint ranges. This is an
+output parameterization, not post-hoc clipping.
+
+## 4. Sample, execute, and select generated references
+
+```bash
+python3 -m manifold_motion.stage2_flow sample \
+  --windows reports/manifold_motion/seed_windows_stage2_v2/seed_stage2_windows.npz \
+  --autoencoder reports/manifold_motion/stage2_flow_v2/autoencoder.pt \
+  --flow reports/manifold_motion/stage2_flow_v2/flow.pt \
+  --split 2 --num-candidates 8 --out reports/manifold_motion/stage2_sample_v2
+
+python3 -m manifold_motion.stage2_select \
+  --sample reports/manifold_motion/stage2_sample_v2/sample.npz \
+  --out reports/manifold_motion/stage2_selection_v2
+
+python3 -m manifold_motion.stage2_validate \
+  --sample reports/manifold_motion/stage2_selection_v2/selected_sample.npz \
+  --out reports/manifold_motion/stage2_validation_v2
+```
+
+`stage2_select` evaluates every stochastic candidate with frozen SONIC/MuJoCo and applies the
+same hard gate as the validator. It selects only from candidates that pass; it then ranks viable
+candidates by tracking, exact mesh-corridor margin, execution progress, and reference smoothness.
+If none pass, it writes the least-bad diagnostic candidate but exits with status 2.
+
+The final validator returns status 0 only for a reference that passes the SONIC/MuJoCo gate. It
+tests G1 mesh samples against the exact input corridor and requires execution progress. A sample
+that stays in joint range but falls, rolls too far, loses support, creates non-foot ground
+contacts, leaves its corridor, or remains essentially in place is a failed dynamic model
+output—not a usable motion.
+
+## 5. Open the MuJoCo GUI
+
+WSL2 with WSLg exposes the native MuJoCo window on Windows. Use an evaluated sample, for example
+the normal-walking independent test:
+
+```bash
+cd /home/xiyuan/Manifold-Motion-Pipline
+export PYTHONPATH="$HOME/.local/share/sonic-manifold-g1:$PWD${PYTHONPATH:+:$PYTHONPATH}"
+python3 -m manifold_motion.stage2_viewer \
+  --sample reports/manifold_motion/stage2_mean_walk80_test2/sample.npz \
+  --executed reports/manifold_motion/stage2_mean_walk80_validation_test2/executed.npz
+```
+
+The robot shown is the actual `q_exec/base_pos/base_quat` replay from SONIC/MuJoCo. Overlays are
+cyan=model `R_ref`, green=held-out SEED reference, orange=actual execution, and translucent
+purple=the conditioned reverse-synthesized corridor. `P` pauses, `N/M` step, `C` toggles the
+corridor, `1/2/3` toggle trails, and `Q` closes the viewer. A rejected sample can be viewed for
+diagnosis but must not be called deployable.
+
+If a Remote Desktop session shows a white MuJoCo window or `WARN: COPY MODE`, render an animated
+GIF instead; this bypasses the remote OpenGL surface entirely:
+
+```bash
+python3 -m manifold_motion.stage2_render \
+  --sample reports/manifold_motion/stage2_mean_walk80_test2/sample.npz \
+  --executed reports/manifold_motion/stage2_mean_walk80_validation_test2/executed.npz \
+  --out /mnt/c/Users/Xiyuan\ Wang/Downloads/DeltaForce-Locker-desktop/stage2_walk_effect.gif \
+  --width 640 --height 360 --fps 20
+```
+
+For a visible training-effect check, compare three executions on the same held-out window:
+
+```powershell
+.\run_stage2_comparison.ps1
+```
+
+The generated `stage2_training_comparison.gif` shows, left to right, the held-out SEED reference,
+the early Flow checkpoint, and the trained conditional walk model. The labels report progress,
+tracking error, and corridor margin.
+
+### Residual Flow around a passing baseline
+
+The deterministic conditional mean is retained as an executable anchor while a residual Flow
+Matching field learns variation around it:
+
+```bash
+python3 -m manifold_motion.stage2_flow train-residual-flow \
+  --windows reports/manifold_motion/seed_windows_walk80_v1/seed_stage2_windows.npz \
+  --mean-model reports/manifold_motion/stage2_mean_walk80_v1/conditional_mean.pt \
+  --out reports/manifold_motion/stage2_residual_flow_walk80_v1 --epochs 80
+
+python3 -m manifold_motion.stage2_flow sample \
+  --windows reports/manifold_motion/seed_windows_walk80_v1/seed_stage2_windows.npz \
+  --sampler residual_flow \
+  --mean-model reports/manifold_motion/stage2_mean_walk80_v1/conditional_mean.pt \
+  --residual-flow reports/manifold_motion/stage2_residual_flow_walk80_v1/residual_flow.pt \
+  --split 2 --index 2 --num-candidates 8 \
+  --out reports/manifold_motion/stage2_residual_walk80_test2
+```
+
+Candidate 0 is the exact mean anchor; subsequent candidates are stochastic residual proposals.
+Run `run_stage2_acceptance.ps1` from PowerShell to reproduce the five-window actor-disjoint
+acceptance report. The current run is 5/5 accepted, with 8 candidates evaluated per window.
+
+For a visual effect comparison that cannot be obscured by similar robot poses, run
+`run_stage2_effect_dashboard.ps1`. It uses the same held-out test window on both sides and shows
+SEED (green), generated reference (cyan), and actual SONIC/MuJoCo execution (orange) in root-frame
+coordinates. Early Flow is rejected at 9.9% progress / corridor 2.365; the selected residual
+candidate passes at 20.1% / corridor 0.982.
+
+## 6. Perception SDF handoff
+
+`manifold_motion.perception_corridor` is the runtime adapter for a real local point cloud:
+
+```bash
+python3 -m manifold_motion.stage2_perception_smoke
+```
+
+It emits the same `corridor [T,7]` and `sdf [10,10,8]` keys expected by Stage 2. The smoke test
+uses a synthetic wall only to verify geometry and serialization. A real obstacle experiment still
+requires time-aligned RGB-D/LiDAR points and a matching MuJoCo obstacle scene; feeding an
+out-of-distribution wall to the flat-ground checkpoint is intentionally rejected by validation.
+
+## Current boundary
+
+This implements the robot-execution and trajectory-generation path, including a geometrically
+consistent reverse corridor/SDF. It does **not** yet make claims about RGB-D/LiDAR obstacle
+navigation: the next integration replaces this reverse constructor with a time-aligned local
+SDF/safe-corridor encoding from the perception and planning stack, preserving the same stored
+`corridor` and `sdf` keys.

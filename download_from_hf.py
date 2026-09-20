@@ -19,10 +19,12 @@ REPO_ID = "nvidia/GEAR-SONIC"
 OUTPUT_DIR = Path(__file__).resolve().parent / "gear_sonic_deploy"
 
 # (filename in the HF repo, destination relative to gear_sonic_deploy/)
-FILES = [
+SONIC_FILES = [
     ("model_encoder.onnx", "policy/release/model_encoder.onnx"),
     ("model_decoder.onnx", "policy/release/model_decoder.onnx"),
     ("observation_config.yaml", "policy/release/observation_config.yaml"),
+]
+PLANNER_FILES = [
     ("planner_sonic.onnx", "planner/target_vel/V2/planner_sonic.onnx"),
 ]
 
@@ -30,6 +32,8 @@ FILES = [
 def main() -> int:
     parser = argparse.ArgumentParser(description="Download the SONIC ONNX assets")
     parser.add_argument("--force", action="store_true", help="re-download even if present")
+    parser.add_argument("--stage2-only", action="store_true",
+                        help="download encoder/decoder/config for Stage-2 replay and skip the large planner")
     args = parser.parse_args()
 
     try:
@@ -38,7 +42,8 @@ def main() -> int:
         print("huggingface_hub is required: python3 -m pip install huggingface_hub")
         return 1
 
-    for remote, local in FILES:
+    files = SONIC_FILES if args.stage2_only else SONIC_FILES + PLANNER_FILES
+    for remote, local in files:
         target = OUTPUT_DIR / local
         if target.exists() and not args.force:
             print(f"[skip] {local} ({target.stat().st_size / 1e6:.1f} MB)")
