@@ -904,8 +904,15 @@ def safe_corridor_from_grid(grid: ProbabilisticSlidingGrid | ProbabilisticSlidin
                             root_pos_world: np.ndarray, root_quat_wxyz: np.ndarray,
                             *, vertical_semi_m: float = 1.20,
                             clearance_m: float = 0.08,
-                            frames: int = 48) -> tuple[np.ndarray, np.ndarray, dict]:
-    """Create a root-local Stage-2 corridor from the probability map and A* route."""
+                            frames: int = 48, horizon_m: float | None = 0.90) -> tuple[np.ndarray, np.ndarray, dict]:
+    """Create a root-local Stage-2 corridor from the probability map and A* route.
+
+    The global A* route is retained by the deploy artifact for map visualisation, but a
+    Stage-2 reference is only one short receding-horizon window.  Truncating here keeps the
+    corridor time span consistent with :func:`_route_command` and with the SEED windows
+    used during training; passing a full multi-metre route to a 1.6-second model is a silent
+    distribution shift and makes it predict an over-long root trajectory.
+    """
     route_world = np.asarray(route_world, dtype=np.float64)
     if route_world.ndim != 2 or route_world.shape[1] not in (2, 3):
         raise ValueError("route_world must be [N,2] or [N,3]")
@@ -914,6 +921,20 @@ def safe_corridor_from_grid(grid: ProbabilisticSlidingGrid | ProbabilisticSlidin
     route_world = _densify(route_world)
     if len(route_world) < 2:
         raise ValueError("route must contain at least two points")
+    global_route_length = float(np.linalg.norm(np.diff(route_world, axis=0), axis=1).sum())
+    if horizon_m is not None:
+        if horizon_m <= 0:
+            raise ValueError("horizon_m must be positive when provided")
+        segment_lengths = np.linalg.norm(np.diff(route_world, axis=0), axis=1)
+        cumulative = np.concatenate([[0.0], np.cumsum(segment_lengths)])
+        target = min(float(horizon_m), float(cumulative[-1]))
+        if target < cumulative[-1] - 1e-9:
+            index = int(np.searchsorted(cumulative, target, side="left"))
+            index = min(max(index, 1), len(route_world) - 1)
+            span = cumulative[index] - cumulative[index - 1]
+            alpha = (target - cumulative[index - 1]) / span if span > 1e-8 else 1.0
+            endpoint = route_world[index - 1] * (1.0 - alpha) + route_world[index] * alpha
+            route_world = np.vstack([route_world[:index], endpoint])
     target = np.linspace(0.0, 1.0, frames)
     source = np.linspace(0.0, 1.0, len(route_world))
     route_world = np.column_stack([np.interp(target, source, route_world[:, axis]) for axis in range(3)])
@@ -949,6 +970,8 @@ def safe_corridor_from_grid(grid: ProbabilisticSlidingGrid | ProbabilisticSlidin
         "coordinate_frame": "corridor root-local; map global metric",
         "route_frames": int(frames),
         "route_length_m": float(np.linalg.norm(np.diff(route_world, axis=0), axis=1).sum()),
+        "global_route_length_m": global_route_length,
+        "receding_horizon_m": float(horizon_m) if horizon_m is not None else None,
         "corridor_semi_min_m": corridor[:, 3:6].min(axis=0).astype(float).tolist(),
         "corridor_semi_mean_m": corridor[:, 3:6].mean(axis=0).astype(float).tolist(),
         "map_origin_world_xy_m": grid.origin_world_xy.astype(float).tolist(),
@@ -1013,7 +1036,7 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
     route_world_xy = route_world_xyz[:, :2]
     command = _route_command(route_world_xyz, planning_root, root_quat_wxyz)
     corridor, sdf, corridor_report = safe_corridor_from_grid(
-        grid, route_world_xyz, planning_root, root_quat_wxyz)
+        grid, route_world_xyz, planning_root, root_quat_wxyz, horizon_m=0.90)
     out.mkdir(parents=True, exist_ok=True)
     grid.save(out / "slam_grid.npz")
     scout_trace = np.asarray(scout_trace, dtype=np.float32)

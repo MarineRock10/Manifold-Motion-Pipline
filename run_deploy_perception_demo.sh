@@ -15,13 +15,13 @@ execution="$stage2_out/executed.npz"
 summary="$stage2_out/route_summary.json"
 set +e
 python3 -m manifold_motion.stage2_route \
-  --windows reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz \
+  --windows reports/manifold_motion/seed_windows_generalization_v2/seed_stage2_windows.npz \
   --router reports/manifold_motion/primitive_router_geometry_v1/router.pt \
   --model 0=reports/manifold_motion/stage2_mean_primitive0_v1/conditional_mean.pt \
-  --model 2=reports/manifold_motion/stage2_mean_primitive2_v1/conditional_mean.pt \
+  --model 2=reports/manifold_motion/stage2_mean_deploy_cpu_v2/primitive2_crouch/conditional_mean.pt \
   --model 3=reports/manifold_motion/stage2_mean_primitive3_v1/conditional_mean.pt \
-  --model 4=reports/manifold_motion/stage2_mean_generalization_v2/primitive4/conditional_mean.pt \
-  --model 5=reports/manifold_motion/stage2_mean_walk80_v1/conditional_mean.pt \
+  --model 4=reports/manifold_motion/stage2_mean_deploy_cpu_v2/primitive4_side/conditional_mean.pt \
+  --model 5=reports/manifold_motion/stage2_mean_deploy_cpu_v2/primitive5_walk/conditional_mean.pt \
   --model 6=reports/manifold_motion/stage2_mean_generalization_v2/primitive6/conditional_mean.pt \
   --condition-npz "$out/condition.npz" \
   --scene data/g1_flat/scene_long_avoidance.xml \

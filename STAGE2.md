@@ -101,6 +101,26 @@ field in latent space. The 29 generated joint coordinates use a logit of their n
 range, so every generated `R_ref` is mathematically within the active G1 joint ranges. This is an
 output parameterization, not post-hoc clipping.
 
+### CPU-safe deploy-condition adaptation
+
+The `deploy` P1 condition is not identical to a held-out SEED window: it contains a local
+time-aligned corridor/SDF from the probabilistic 3-D grid and a short route command. The
+resource-bounded adaptation uses the existing support-preserving 6,508-window generalisation
+archive, a 128/256 MLP, batch 64, CPU execution, and a small root-pose loss weight:
+
+```bash
+./run_stage2_deploy_training.sh
+# optional: STAGE2_EPOCHS=80 STAGE2_ROOT_WEIGHT=2 ./run_stage2_deploy_training.sh
+```
+
+It writes three per-primitive conditional means under
+`reports/manifold_motion/stage2_mean_deploy_cpu_v2/` (crouch, side, nominal walk). The script
+does not mark a checkpoint deployable by training loss; `run_deploy_perception_demo.sh` must run
+the same model through the SONIC/MuJoCo hard gate. The full A* route remains in the perception
+artifact, while Stage-2 receives only a 0.9 m receding-horizon corridor. This alignment is
+important: passing the full multi-metre route to a 1.6-second model causes an out-of-distribution
+root trajectory.
+
 For an execution-aware conditional-mean baseline, `train-mean` also accepts
 `--model-target-field target_exec`. That checkpoint uses the SONIC-achieved window target for
 the mean proposal (with its own target normalizer); it is an ablation for the frozen controller's

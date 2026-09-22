@@ -397,8 +397,26 @@ def train_ae(args: argparse.Namespace) -> int:
     return 0
 
 
+def _trajectory_mean_loss(prediction: torch.Tensor, target: torch.Tensor,
+                          root_weight: float = 1.0) -> torch.Tensor:
+    """MSE with an optional weight on the 9-D root pose channel.
+
+    The first 29 values of each frame are joints and the final 9 are root xyz+
+    rotation-6D.  A plain mean is dominated by joint coordinates, so a deploy
+    model can fit a visually plausible posture while ignoring the commanded
+    displacement.  ``root_weight`` keeps the old objective at 1.0 and lets the
+    resource-bounded deploy adaptation put more emphasis on route progress.
+    """
+    if root_weight <= 0:
+        raise ValueError("root_weight must be positive")
+    error = (prediction - target).reshape(prediction.shape[0], -1, 38)
+    weights = torch.ones((1, 1, 38), device=error.device, dtype=error.dtype)
+    weights[..., 29:] = float(root_weight)
+    return (error.square() * weights).sum() / (weights.sum() * error.shape[0] * error.shape[1])
+
+
 def _evaluate_mean(model: ConditionalTrajectoryMean, data: WindowData, indices: np.ndarray,
-                   device: torch.device, batch_size: int) -> float:
+                   device: torch.device, batch_size: int, root_weight: float = 1.0) -> float:
     if not len(indices):
         return float("nan")
     model.eval()
@@ -408,7 +426,7 @@ def _evaluate_mean(model: ConditionalTrajectoryMean, data: WindowData, indices: 
             batch = indices[start:start + batch_size]
             target = torch.as_tensor(data.target[batch], device=device)
             condition = torch.as_tensor(data.condition[batch], device=device)
-            losses.append(float(torch.mean((model(condition) - target) ** 2).cpu()))
+            losses.append(float(_trajectory_mean_loss(model(condition), target, root_weight).cpu()))
     return float(np.mean(losses))
 
 
@@ -438,13 +456,14 @@ def train_mean(args: argparse.Namespace) -> int:
         for batch in _batches(train, args.batch_size, rng):
             target = torch.as_tensor(data.target[batch], device=device)
             condition = torch.as_tensor(data.condition[batch], device=device)
-            loss = torch.mean((model(condition) - target) ** 2)
+            loss = _trajectory_mean_loss(model(condition), target, args.root_weight)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
             losses.append(float(loss.detach().cpu()))
-        validation_loss = _evaluate_mean(model, data, validation if len(validation) else train, device, args.batch_size)
+        validation_loss = _evaluate_mean(model, data, validation if len(validation) else train,
+                                         device, args.batch_size, args.root_weight)
         row = {"epoch": epoch, "train_loss": float(np.mean(losses)), "validation_trajectory_mse": validation_loss}
         history.append(row)
         print(json.dumps(row), flush=True)
@@ -456,7 +475,8 @@ def train_mean(args: argparse.Namespace) -> int:
                         "target_parameterization": TARGET_PARAMETERIZATION,
                         "joint_lower": data.joint_lower, "joint_upper": data.joint_upper,
                         "primitive_id": int(args.primitive_id),
-                        "windows": str(args.windows), "model_target_field": args.model_target_field},
+                        "windows": str(args.windows), "model_target_field": args.model_target_field,
+                        "root_weight": float(args.root_weight)},
                        args.out / "conditional_mean.pt")
     (args.out / "conditional_mean_history.json").write_text(json.dumps(history, indent=2) + "\n")
     return 0
@@ -912,6 +932,8 @@ def main() -> int:
     mean.add_argument("--model-target-field", choices=("target_ref", "target_exec"),
                       default="target_ref",
                       help="training target; target_exec learns SONIC-achieved references")
+    mean.add_argument("--root-weight", type=float, default=1.0,
+                      help="relative loss weight for per-frame root xyz/rotation (default: 1)")
     mean.set_defaults(handler=train_mean)
 
     residual = sub.add_parser("train-residual-flow",

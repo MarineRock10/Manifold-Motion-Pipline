@@ -19,13 +19,13 @@ $stage2Wsl = "reports/manifold_motion/deploy_sonic_main_route"
 $executionWsl = "$stage2Wsl/executed.npz"
 $summaryWsl = "$stage2Wsl/route_summary.json"
 wsl.exe -d Ubuntu-22.04 --cd $wslRepo -- /usr/bin/env $envArgs /usr/bin/python3 -m manifold_motion.stage2_route `
-  --windows reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz `
+  --windows reports/manifold_motion/seed_windows_generalization_v2/seed_stage2_windows.npz `
   --router reports/manifold_motion/primitive_router_geometry_v1/router.pt `
   --model 0=reports/manifold_motion/stage2_mean_primitive0_v1/conditional_mean.pt `
-  --model 2=reports/manifold_motion/stage2_mean_primitive2_v1/conditional_mean.pt `
+  --model 2=reports/manifold_motion/stage2_mean_deploy_cpu_v2/primitive2_crouch/conditional_mean.pt `
   --model 3=reports/manifold_motion/stage2_mean_primitive3_v1/conditional_mean.pt `
-  --model 4=reports/manifold_motion/stage2_mean_generalization_v2/primitive4/conditional_mean.pt `
-  --model 5=reports/manifold_motion/stage2_mean_walk80_v1/conditional_mean.pt `
+  --model 4=reports/manifold_motion/stage2_mean_deploy_cpu_v2/primitive4_side/conditional_mean.pt `
+  --model 5=reports/manifold_motion/stage2_mean_deploy_cpu_v2/primitive5_walk/conditional_mean.pt `
   --model 6=reports/manifold_motion/stage2_mean_generalization_v2/primitive6/conditional_mean.pt `
   --condition-npz "$outWsl/condition.npz" `
   --scene data/g1_flat/scene_long_avoidance.xml `
