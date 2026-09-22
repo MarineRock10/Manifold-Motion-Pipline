@@ -4,8 +4,9 @@ Research harness for **manifold-conditioned motion generation** on a Unitree G1,
 frozen whole-body controller (NVIDIA GEAR-SONIC ONNX) in MuJoCo.
 
 The idea: an environment constraint is expressed as an **ellipsoid manifold** the body must stay
-inside, and the policy learns what to do about it. Today that is `M → pose` (a single held
-posture, no time dimension); the target is `M → motion`.
+inside, and the policy learns what to do about it. The static `M → pose` stage is retained as
+Stage 1; the current runnable Stage 2 adds `M_e(t) + state/history → motion` with candidate
+screening, projection, and continuous SONIC/MuJoCo execution.
 
 Renamed from `Sonic-Nav`, which described the parent project rather than this one. The repository
 is trimmed to the research-essential subset — `manifold_motion/` plus the SONIC ONNX assets it
@@ -20,6 +21,9 @@ GR00T-WholeBodyControl trees were removed.
 | [`ARCHITECTURE_CURRENT.md`](ARCHITECTURE_CURRENT.md) | **current runnable architecture**: online state/history, Flow candidates, optimization-embedded projection, SONIC/MuJoCo physical gate, and the `center/low/narrow/wide` reproducibility assets |
 | [`PIPELINE.md`](PIPELINE.md) | **what is built**: only Phase 1–3 (`M → pose`, no time dimension) — the three stages, their measured numbers, the bugs that were fixed, what is still unsolved |
 | [`STAGE2.md`](STAGE2.md) | **the dynamic-data implementation**: selected BONES-SEED G1 CSV → frozen SONIC replay/gate → actor-disjoint windows → bounded latent Flow Matching → SONIC validation |
+| [`ROADMAP.md`](ROADMAP.md) | **the current boundary and next algorithmic gates**: what is physically verified, what still uses anchors, and the order of the remaining work |
+| [`STAGE2_DIVERSE_DEMOS.md`](STAGE2_DIVERSE_DEMOS.md) | **additional visual cases**: short-low, left-offset-block, and right-offset-block action changes |
+| [`STAGE2_LONG_SEQUENCES.md`](STAGE2_LONG_SEQUENCES.md) | **long-horizon cases**: repeated manifold changes in one continuous rollout |
 
 ### Stage-2 GUI
 
@@ -34,10 +38,21 @@ residual-Flow gate, run `run_stage2_acceptance.ps1`.
 `run_stage2_residual_comparison.ps1` renders a three-panel GIF with a stochastic residual candidate.
 For the clearest before/after evidence, run `run_stage2_effect_dashboard.ps1`; it plots SEED,
 generated-reference, and actual-execution paths for the same held-out window.
+`run_stage2_no_handcrafted_anchor.sh` runs the raw-anchor ablation (wide/low are expected to
+pass; a narrow side-step rejection is recorded rather than hidden). After generating the
+generalisation archive, `run_stage2_exec_target_ablation.sh` trains execution-target conditional
+means for the frozen SONIC tracking-error ablation.
+For additional environment-to-action visuals, run `run_stage2_diverse_demo.ps1` from PowerShell
+or `./run_stage2_diverse_demo.sh` in WSL. It renders short-low, left-offset-block, and
+right-offset-block scenes with crouch/side/turn route decisions.
+For long-horizon tasks, run `run_stage2_long_sequence_demo.ps1` or
+`./run_stage2_long_sequence_demo.sh`; these keep one MuJoCo state while crossing multiple
+manifold regions.
 
-Start with ARCHITECTURE to see where the project is going and what the interfaces are; PIPELINE
-is the honest account of the static stage; STAGE2 is the runnable dynamic-motion path and its
-current flat-ground boundary.
+Start with `ARCHITECTURE_CURRENT.md` and `STAGE2_STATUS.md` for the current runnable closed loop.
+`ARCHITECTURE.md` and `PIPELINE.md` retain the original design history and static-stage diagnosis;
+they are not the authoritative statement that Stage-2 is absent. `ROADMAP.md` records the
+remaining generalisation work.
 
 ## Layout
 
@@ -94,6 +109,10 @@ Viewer keys and what each number on screen means: [`PIPELINE.md`](PIPELINE.md) �
 | ② clone | pose inside its recorded envelope | 9336/9840 = **94.9%** |
 | ③ in-loop | achieved pose inside the perturbed envelope | success **1.00**, r **0.82** |
 | gate | `verify_sonic` | **6/10** inside, r(sonic) median 0.976 |
+
+The current four-scene online projection regression is recorded in
+`reports/manifold_motion/stage2_online_projection_v1/comparison_report.json` and is separate
+from the older static `verify_sonic` gate above.
 
 ## Known blocker
 

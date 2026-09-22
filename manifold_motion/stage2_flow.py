@@ -159,7 +159,8 @@ class WindowData:
     raw: dict[str, np.ndarray]
 
     @classmethod
-    def load(cls, path: Path, normalizer: Normalizer | None = None) -> "WindowData":
+    def load(cls, path: Path, normalizer: Normalizer | None = None,
+             model_target_field: str = "target_ref") -> "WindowData":
         with np.load(path) as archive:
             required = {"state", "history", "primitive", "manifold", "command", "target_ref", "target_exec", "split"}
             missing = required - set(archive.files)
@@ -167,12 +168,14 @@ class WindowData:
                 raise ValueError(f"{path} is not a Stage-2 window file; missing {sorted(missing)}")
             optional = {key for key in ("corridor", "sdf", "clip_index", "source_origin", "primitive_count") if key in archive.files}
             raw = {key: np.asarray(archive[key]) for key in required | optional}
+        if model_target_field not in {"target_ref", "target_exec"}:
+            raise ValueError(f"model_target_field must be target_ref or target_exec, got {model_target_field}")
         continuous = ("state", "history", "manifold", "command", "target_ref", "target_exec", "corridor", "sdf")
         if not all(np.isfinite(raw[key]).all() for key in continuous if key in raw):
             raise ValueError(f"{path} contains non-finite continuous values")
         train = raw["split"] == 0
         joint_lower, joint_upper = _policy_joint_bounds()
-        model_target = _target_to_model(raw["target_ref"], joint_lower, joint_upper)
+        model_target = _target_to_model(raw[model_target_field], joint_lower, joint_upper)
         environment = _environment_vector(raw)
         normalizer = normalizer or Normalizer.fit(raw, train, model_target=model_target, environment=environment)
         if "primitive_count" in raw:
@@ -414,7 +417,7 @@ def train_mean(args: argparse.Namespace) -> int:
     device = _device(args.device)
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
-    data = WindowData.load(args.windows)
+    data = WindowData.load(args.windows, model_target_field=args.model_target_field)
     train = np.flatnonzero(data.split == 0)
     validation = np.flatnonzero(data.split == 1)
     if args.primitive_id >= 0:
@@ -453,7 +456,8 @@ def train_mean(args: argparse.Namespace) -> int:
                         "target_parameterization": TARGET_PARAMETERIZATION,
                         "joint_lower": data.joint_lower, "joint_upper": data.joint_upper,
                         "primitive_id": int(args.primitive_id),
-                        "windows": str(args.windows)}, args.out / "conditional_mean.pt")
+                        "windows": str(args.windows), "model_target_field": args.model_target_field},
+                       args.out / "conditional_mean.pt")
     (args.out / "conditional_mean_history.json").write_text(json.dumps(history, indent=2) + "\n")
     return 0
 
@@ -899,6 +903,9 @@ def main() -> int:
     _common_training(mean)
     mean.add_argument("--primitive-id", type=int, default=-1,
                       help="optional raw primitive ID; -1 uses all primitives")
+    mean.add_argument("--model-target-field", choices=("target_ref", "target_exec"),
+                      default="target_ref",
+                      help="training target; target_exec learns SONIC-achieved references")
     mean.set_defaults(handler=train_mean)
 
     residual = sub.add_parser("train-residual-flow",

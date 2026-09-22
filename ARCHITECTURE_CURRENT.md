@@ -20,6 +20,11 @@ Stage 1：按自由半轴与路线曲率路由原语
 Stage 2 条件包 Xₜ = (Mₑ, pₜ, sₜ, Hₜ, cₜ)
   sₜ ∈ R⁶⁹；Hₜ ∈ R¹²×⁶⁹
         ↓
+执行后网格拟合机器人自身流形 Mᵣ(t)
+  measured Mᵣ^safe → route-frame transform → crouch/side task Mᵣ^task
+  blue Mₑ / white safe Mᵣ / colored task Mᵣ diagnostic overlay
+  Mᵣ broad phase → exact G1 surface/obstacle narrow phase → hard deployment gate
+        ↓
 Latent Flow Matching + AE
   K 条 R_refᵏ ∈ R⁴⁸×³⁸
         ↓
@@ -31,6 +36,8 @@ optimization-embedded projection
 接触 / 跌倒 / roll / tracking / keyframe / route / body-yaw 硬门
         ↓
 选择可行 R*，连续执行；到每个路段边界读取真实 sₜ/Hₜ 重条件化
+每个 50 Hz tick：Mᵣ^safe → 当前障碍几何 clearance
+  低于阈值立即停止并记录 runtime_self_manifold_clearance_stop
 ```
 
 当前“在线”语义是段边界在线重条件化：先进行一次不渲染 probe rollout，从真实执行结果
@@ -75,6 +82,23 @@ root position 修正用于保持动态目标与路线一致，最终运动仍由
 
 ## 4. Stage 2：动态生成与投影
 
+### 4.1 自身流形闭环
+
+`_robot_self_manifold()` 使用 `ExecutedEnvelopeEstimator` 对每个实际执行状态的 G1
+几何表面拟合半轴，而不是复用一个全局固定椭圆。半轴先在瞬时机身坐标中测量，再根据
+`Mₑ` 的路线 yaw 转到 `[切向, 横向, 竖直]` 路线坐标。原语条件约束为：
+
+- `crouch`：`Mᵣ,z ← min(Mᵣ,z, 0.90 Mₑ,z)`；
+- `walk_lateral_reverse`：`Mᵣ,y ← min(0.72 Mᵣ,y, 0.90 Mₑ,y)`，并保留侧向切向尺度；
+- `walk_nominal/turn`：保持实际 mesh-fit 尺寸。
+
+这两个收缩是姿态/规划流形的显式条件化，但不能把收缩后的形状当成安全包络。因此系统
+同时保留由实际 G1 表面拟合出的 `Mᵣ^safe`。每帧先用 `Mᵣ^safe` 做障碍物盒的快速椭球
+查询，再用全部采样 G1 表面点做精确窄相；最小 clearance 默认必须 ≥ 0.02 m，否则最终
+执行拒绝。输出保存在 `executed.npz` 的 `robot_manifold`、`robot_manifold_safe`、
+`self_manifold_obstacle_clearance_m`，并在 `report.json` 的
+`robot_self_manifold_safety` 中审计。
+
 `RouteFlowSampler.condition()` 先组装 `(Mₑ, p, s, H, c)`，再使用训练 split 的
 normalizer。`sample()` 通过 32 步 latent Flow integration 解码 K 条候选。
 
@@ -85,10 +109,14 @@ normalizer。`sample()` 通过 32 步 latent Flow integration 解码 K 条候选
 J(R) = λ_smooth J_smooth
      + λ_limit  J_limit
      + λ_handoff J_handoff
+     + λ_vel J_velocity
+     + λ_acc J_acceleration
+     + λ_jerk J_jerk
      + λ_corridor J_corridor
 ```
 
-默认只做 1 次投影，最大单关节修正为 0.005 rad，避免 projection 变成隐藏的动作重定向器。
+默认只做 1 次投影，最大单关节修正为 0.005 rad、root 单步修正为 0.05 m，避免
+projection 变成隐藏的动作重定向器。
 每条候选同时保存 raw Flow 和 projected 版本，便于消融比较。
 
 ## 5. 物理门与验收
@@ -117,7 +145,7 @@ J(R) = λ_smooth J_smooth
 复现实验资产纳入 Git LFS：
 
 ```text
-data/g1_flat/                                  # G1 MJCF + meshes + four scenario scenes
+data/g1_flat/                                  # G1 MJCF + meshes + regression/demo scenes
 reports/manifold_motion/seed_windows_corridor_stage2_v2/
   seed_stage2_windows.npz                       # 25 MB, Stage-2 windows
 reports/manifold_motion/stage2_flow_corridor_v1/
@@ -151,3 +179,15 @@ export MUJOCO_GL=egl
 如果模型资产被放在其他位置，可通过命令行显式传入 `--windows`、`--autoencoder`、
 `--flow`；场景必须保持与 `data/g1_flat/` 同一 G1 MJCF/mesh 相对结构。
 
+## Current algorithm boundary (ASCII summary)
+
+The optional rolling interface is `--receding-horizon-ticks N`. It reads the real 69-D state and
+12-frame history and generates a new future reference. Use `--receding-horizon-shadow` until a
+candidate can be physically rolled out from the current non-reset MuJoCo state; shadow mode keeps
+the last verified reference active. The executor logs route-progress error, velocity command, and
+yaw command because the frozen SONIC action head does not directly consume root position.
+
+The projection objective contains joint limits, velocity/acceleration/jerk smoothness, handoff,
+and corridor consistency. Its default maximum correction is 0.005 rad per joint and 0.05 m per
+root step. `stage2_capability.py` is the routing boundary: crawl is unsupported and jump is only
+partial under the frozen controller.

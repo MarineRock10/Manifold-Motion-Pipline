@@ -49,6 +49,7 @@ for report_path in sorted(root.glob("*/report.json")):
         "keyframes_reached": execution["keyframes_reached"],
         "obstacle_contact_ticks": execution["obstacle_contact_ticks"],
         "side_on_ticks": execution["side_on_ticks"],
+        "self_manifold_gate": report["robot_self_manifold_safety"],
     })
 comparison = {"experiment": "online state/history + optimization-embedded projection",
               "accepted": all(row["accepted"] and row["probe_accepted"] for row in rows),

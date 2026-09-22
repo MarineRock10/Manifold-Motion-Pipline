@@ -10,7 +10,26 @@
       "probe_accepted": true,
       "keyframes_reached": 10,
       "obstacle_contact_ticks": 0,
-      "side_on_ticks": 0
+      "side_on_ticks": 0,
+      "self_manifold_gate": {
+        "contract": "measured safe M_r broad phase -> exact G1 surface/obstacle narrow phase",
+        "accepted": true,
+        "required_clearance_m": 0.02,
+        "exact_surface_obstacle_clearance_min_m": 0.1645294725894928,
+        "exact_surface_obstacle_clearance_p05_m": 0.21530522406101227,
+        "ellipsoid_broadphase_clearance_min_m": -0.3388381898403168,
+        "ellipsoid_broadphase_overlap_ticks": 98,
+        "environment_corridor_radius_max": 7.178916931152344,
+        "environment_corridor_radius_p95": 3.1414382457733154,
+        "environment_corridor_over_1_ticks": 221,
+        "task_manifold_aperture_ratio_max": 1.0,
+        "task_manifold_aperture_ratio_p95": 1.0,
+        "task_manifold_aperture_violation_ticks": 0,
+        "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks route-lateral M_r/M_e",
+        "physical_obstacle_count": 3,
+        "mesh_narrowphase_is_hard_gate": true,
+        "ellipsoid_broadphase_is_conservative_query": true
+      }
     },
     {
       "scenario": "LOW: ONLINE STATE/HISTORY PROJECTED CROUCH",
@@ -20,7 +39,26 @@
       "probe_accepted": true,
       "keyframes_reached": 6,
       "obstacle_contact_ticks": 0,
-      "side_on_ticks": 0
+      "side_on_ticks": 0,
+      "self_manifold_gate": {
+        "contract": "measured safe M_r broad phase -> exact G1 surface/obstacle narrow phase",
+        "accepted": true,
+        "required_clearance_m": 0.02,
+        "exact_surface_obstacle_clearance_min_m": 0.0982317179441452,
+        "exact_surface_obstacle_clearance_p05_m": 0.1229047030210495,
+        "ellipsoid_broadphase_clearance_min_m": -0.03997249901294708,
+        "ellipsoid_broadphase_overlap_ticks": 135,
+        "environment_corridor_radius_max": 0.9862291216850281,
+        "environment_corridor_radius_p95": 0.9438552856445312,
+        "environment_corridor_over_1_ticks": 0,
+        "task_manifold_aperture_ratio_max": 1.0,
+        "task_manifold_aperture_ratio_p95": 1.0,
+        "task_manifold_aperture_violation_ticks": 0,
+        "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks route-lateral M_r/M_e",
+        "physical_obstacle_count": 3,
+        "mesh_narrowphase_is_hard_gate": true,
+        "ellipsoid_broadphase_is_conservative_query": true
+      }
     },
     {
       "scenario": "1.05 m NARROW: ONLINE STRICT SIDE-ON",
@@ -30,7 +68,26 @@
       "probe_accepted": true,
       "keyframes_reached": 6,
       "obstacle_contact_ticks": 0,
-      "side_on_ticks": 282
+      "side_on_ticks": 281,
+      "self_manifold_gate": {
+        "contract": "measured safe M_r broad phase -> exact G1 surface/obstacle narrow phase",
+        "accepted": true,
+        "required_clearance_m": 0.02,
+        "exact_surface_obstacle_clearance_min_m": 0.17412686347961426,
+        "exact_surface_obstacle_clearance_p05_m": 0.20883524417877197,
+        "ellipsoid_broadphase_clearance_min_m": -0.03999318182468414,
+        "ellipsoid_broadphase_overlap_ticks": 106,
+        "environment_corridor_radius_max": 1.2708483934402466,
+        "environment_corridor_radius_p95": 1.1284672021865845,
+        "environment_corridor_over_1_ticks": 81,
+        "task_manifold_aperture_ratio_max": 1.0,
+        "task_manifold_aperture_ratio_p95": 1.0,
+        "task_manifold_aperture_violation_ticks": 0,
+        "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks route-lateral M_r/M_e",
+        "physical_obstacle_count": 4,
+        "mesh_narrowphase_is_hard_gate": true,
+        "ellipsoid_broadphase_is_conservative_query": true
+      }
     },
     {
       "scenario": "WIDE: ONLINE STATE/HISTORY NOMINAL WALK",
@@ -40,7 +97,26 @@
       "probe_accepted": true,
       "keyframes_reached": 6,
       "obstacle_contact_ticks": 0,
-      "side_on_ticks": 0
+      "side_on_ticks": 0,
+      "self_manifold_gate": {
+        "contract": "measured safe M_r broad phase -> exact G1 surface/obstacle narrow phase",
+        "accepted": true,
+        "required_clearance_m": 0.02,
+        "exact_surface_obstacle_clearance_min_m": 1.3453131914138794,
+        "exact_surface_obstacle_clearance_p05_m": 1.3598551750183105,
+        "ellipsoid_broadphase_clearance_min_m": 1.1277228593826294,
+        "ellipsoid_broadphase_overlap_ticks": 0,
+        "environment_corridor_radius_max": 0.8040045499801636,
+        "environment_corridor_radius_p95": 0.7762998938560486,
+        "environment_corridor_over_1_ticks": 0,
+        "task_manifold_aperture_ratio_max": 1.0,
+        "task_manifold_aperture_ratio_p95": 1.0,
+        "task_manifold_aperture_violation_ticks": 0,
+        "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks route-lateral M_r/M_e",
+        "physical_obstacle_count": 2,
+        "mesh_narrowphase_is_hard_gate": true,
+        "ellipsoid_broadphase_is_conservative_query": true
+      }
     }
   ]
 }

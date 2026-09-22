@@ -1,5 +1,10 @@
 # 总体架构
 
+> 版本说明（2026-09）：本文是原始设计和 Stage-1 实现的完整推导。仓库当前可运行的
+> Stage-2 闭环（在线 state/history、latent Flow、projection、SONIC 物理门）请以
+> [`ARCHITECTURE_CURRENT.md`](ARCHITECTURE_CURRENT.md) 为准；未完成事项集中在
+> [`ROADMAP.md`](ROADMAP.md)。
+
 > 本文是**唯一**的架构文档：整个系统要做什么、分几层、接口怎么定、哪些是冻结的、
 > 九个阶段各自的验收标准。
 > 配套：[`PIPELINE.md`](PIPELINE.md)（**当前实现**的技术路线与实测数字）。

@@ -13,7 +13,16 @@ __pycache__/
 models/
 
 # Local assets, generated scenes and experiment outputs
-data/
+data/*
+!data/
+data/*
+!data/g1_flat/
+data/g1_flat/*
+!data/g1_flat/scene_manifold_low_short.xml
+!data/g1_flat/scene_manifold_block_left.xml
+!data/g1_flat/scene_manifold_block_right.xml
+!data/g1_flat/scene_manifold_long_combo.xml
+!data/g1_flat/scene_manifold_long_low_cycle.xml
 reports/
 artifacts/
 

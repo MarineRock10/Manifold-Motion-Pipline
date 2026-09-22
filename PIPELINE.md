@@ -1,5 +1,10 @@
 # 当前实现：技术路线与实测
 
+> 说明（2026-09）：本文保留静态 Stage-1 的诊断和实现细节。动态 Stage-2 已经有独立的
+> 可运行闭环，权威入口是 [`STAGE2.md`](STAGE2.md)、[`STAGE2_STATUS.md`](STAGE2_STATUS.md)
+> 和 [`ARCHITECTURE_CURRENT.md`](ARCHITECTURE_CURRENT.md)。不要再根据本文早期的“未实现”
+> 表格判断整个仓库的当前状态；剩余边界见 [`ROADMAP.md`](ROADMAP.md)。
+
 > 本文是**唯一**的实现文档：**已经建成的部分**（对应 ARCHITECTURE §12 的 Phase 1–3）
 > 各自怎么做的、为什么这么做、实测数字、踩过的坑、还没解决的。
 > 所有数字都可用文末命令重跑复现。

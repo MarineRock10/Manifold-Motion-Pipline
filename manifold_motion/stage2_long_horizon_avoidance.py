@@ -489,7 +489,9 @@ def _plan_pixels(points: np.ndarray, rect: tuple[int, int, int, int],
 
 def render(scene_path: Path, data: dict[str, np.ndarray], summary: dict,
            keyframes: np.ndarray, route: np.ndarray, corridor: np.ndarray,
-           boxes: list[Box2D], planner: PlannerConfig, out: Path, fps: float) -> None:
+           boxes: list[Box2D], planner: PlannerConfig, out: Path, fps: float,
+           self_manifold: np.ndarray | None = None,
+           safe_manifold: np.ndarray | None = None) -> None:
     # The bundled G1 XML has a 640-pixel offscreen framebuffer.
     width, scene_height, plan_height, header = 640, 430, 245, 105
     env = G1FlatEnv(scene_path)
@@ -527,7 +529,18 @@ def render(scene_path: Path, data: dict[str, np.ndarray], summary: dict,
             for point in data["base_pos"][max(0, tick - 250):tick + 1:4]:
                 _add_sphere(mjscene, point, 0.015, (1.0, 0.45, 0.08, 0.88))
             route_index = int(np.argmin(np.linalg.norm(route - data["base_pos"][tick, :2], axis=1)))
-            _add_ellipsoid(mjscene, corridor[route_index], (0.72, 0.28, 1.0, 0.055))
+            _add_ellipsoid(mjscene, corridor[route_index], (0.18, 0.58, 1.0, 0.065))
+            if safe_manifold is not None:
+                _add_ellipsoid(mjscene, safe_manifold[tick], (0.85, 0.95, 1.0, 0.12))
+            if self_manifold is not None:
+                primitive_id = int(data["active_primitive"][tick])
+                self_color = {
+                    2: (1.0, 0.42, 0.12, 0.22),   # crouch: orange, lower z
+                    4: (0.15, 1.0, 0.55, 0.24),   # side: green, narrower y
+                    5: (1.0, 0.82, 0.10, 0.18),   # nominal: yellow
+                    6: (0.78, 0.35, 1.0, 0.20),   # turn: violet
+                }.get(primitive_id, (1.0, 0.82, 0.10, 0.18))
+                _add_ellipsoid(mjscene, self_manifold[tick], self_color)
             rendered = Image.fromarray(np.asarray(renderer.render()), mode="RGB")
 
             canvas = Image.new("RGB", (width, header + scene_height + plan_height), (11, 15, 22))
@@ -544,8 +557,17 @@ def render(scene_path: Path, data: dict[str, np.ndarray], summary: dict,
                       fill=(245, 247, 250))
             draw.text((16, 43), f"active primitive: {active}    target keyframe: {target}/{len(keyframes)-1}",
                       font=body_font, fill=(105, 222, 255))
-            draw.text((16, 70), "single MuJoCo rollout | keyframe-gated switching | NO RESET",
-                      font=small_font, fill=(105, 238, 135))
+            if self_manifold is not None:
+                self_semi = self_manifold[tick, 3:6]
+                draw.text((16, 67),
+                          "blue=M_e   white=M_r^safe   colored=M_r^task",
+                          font=small_font, fill=(255, 220, 130))
+                draw.text((16, 86),
+                          f"task semi=({self_semi[0]:.2f},{self_semi[1]:.2f},{self_semi[2]:.2f}) m | NO RESET",
+                          font=small_font, fill=(105, 238, 135))
+            else:
+                draw.text((16, 70), "single MuJoCo rollout | keyframe-gated switching | NO RESET",
+                          font=small_font, fill=(105, 238, 135))
 
             plan_top = header + scene_height
             draw.rectangle((0, plan_top, width, plan_top + plan_height), fill=(15, 21, 30))

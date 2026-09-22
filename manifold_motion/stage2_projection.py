@@ -26,10 +26,14 @@ class ProjectionConfig:
     iterations: int = 1
     step_size: float = 0.08
     smooth_weight: float = 0.01
+    velocity_weight: float = 0.002
+    acceleration_weight: float = 0.01
+    jerk_weight: float = 0.004
     handoff_weight: float = 0.35
     corridor_weight: float = 0.85
     root_blend: float = 0.85
     max_joint_step: float = 0.005
+    max_root_step_m: float = 0.05
 
 
 @lru_cache(maxsize=1)
@@ -45,15 +49,22 @@ def _objective(q: np.ndarray, root: np.ndarray, corridor: np.ndarray,
                lower: np.ndarray, upper: np.ndarray,
                original_q0: np.ndarray, config: ProjectionConfig) -> dict[str, float]:
     d2 = q[:-2] - 2.0 * q[1:-1] + q[2:] if len(q) > 2 else np.zeros((0, q.shape[1]))
+    d1 = q[1:] - q[:-1] if len(q) > 1 else np.zeros((0, q.shape[1]))
+    d3 = (q[:-3] - 3.0 * q[1:-2] + 3.0 * q[2:-1] - q[3:]
+          if len(q) > 3 else np.zeros((0, q.shape[1])))
     smooth = float(np.mean(d2 * d2)) if d2.size else 0.0
+    velocity = float(np.mean(d1 * d1)) if d1.size else 0.0
+    jerk = float(np.mean(d3 * d3)) if d3.size else 0.0
     violation = np.maximum(lower[None] - q, 0.0) + np.maximum(q - upper[None], 0.0)
     limit = float(np.mean(violation * violation))
     handoff = float(np.mean((q[0] - original_q0) ** 2))
     target = np.asarray(corridor[:len(root), :3], dtype=np.float64)
     corridor_error = float(np.mean((root - target) ** 2)) if len(root) else 0.0
-    total = (config.smooth_weight * smooth + 10.0 * limit
+    total = (config.smooth_weight * smooth + config.velocity_weight * velocity
+             + config.acceleration_weight * smooth + config.jerk_weight * jerk + 10.0 * limit
              + config.handoff_weight * handoff + config.corridor_weight * corridor_error)
     return {"total": total, "smoothness": smooth, "joint_limit": limit,
+            "velocity": velocity, "acceleration": smooth, "jerk": jerk,
             "handoff": handoff, "corridor": corridor_error}
 
 
@@ -73,9 +84,15 @@ def project_reference(trajectory: np.ndarray, corridor: np.ndarray,
         raise ValueError(f"projection expects [T,38], got {value.shape}")
     if corridor.ndim != 2 or corridor.shape[1] != 7 or len(corridor) != len(value):
         raise ValueError(f"projection corridor must be [{len(value)},7], got {corridor.shape}")
-    if config.iterations < 0 or config.step_size <= 0 or config.max_joint_step <= 0:
+    if (config.iterations < 0 or config.step_size <= 0 or config.max_joint_step <= 0
+            or config.max_root_step_m <= 0):
         raise ValueError("projection iterations/step sizes must be positive")
     lower, upper = _policy_joint_bounds()
+    # Keep a small numerical interior margin.  Exact float32 values at an MJCF boundary can
+    # round outside after the policy-order -> hardware-order conversion and create a false
+    # joint-limit failure even though the bounded-logit decoder was mathematically valid.
+    lower = lower.astype(np.float64) + 1e-4
+    upper = upper.astype(np.float64) - 1e-4
     q_original = value[:, :29].copy()
     q = q_original.copy()
     root_original = value[:, 29:32].copy()
@@ -88,7 +105,19 @@ def project_reference(trajectory: np.ndarray, corridor: np.ndarray,
     for _ in range(int(config.iterations)):
         if len(q) > 2:
             d2 = q[:-2] - 2.0 * q[1:-1] + q[2:]
-            q[1:-1] -= config.step_size * config.smooth_weight * 2.0 * d2
+            q[1:-1] -= config.step_size * (config.smooth_weight + config.acceleration_weight) * 2.0 * d2
+        if len(q) > 1 and config.velocity_weight > 0:
+            d1 = q[1:] - q[:-1]
+            correction = config.step_size * config.velocity_weight * 2.0 * d1
+            q[:-1] += correction
+            q[1:] -= correction
+        if len(q) > 3 and config.jerk_weight > 0:
+            d3 = q[:-3] - 3.0 * q[1:-2] + 3.0 * q[2:-1] - q[3:]
+            correction = config.step_size * config.jerk_weight * 2.0 * d3
+            q[:-3] -= correction
+            q[1:-2] += 3.0 * correction
+            q[2:-1] -= 3.0 * correction
+            q[3:] += correction
         q = np.clip(q, lower[None], upper[None])
         # Keep each projected frame close to the decoded Flow proposal.  This makes the layer
         # a feasibility correction rather than a hidden motion retargeter.
@@ -96,7 +125,9 @@ def project_reference(trajectory: np.ndarray, corridor: np.ndarray,
         q[0] = (1.0 - config.handoff_weight) * q_original[0] + config.handoff_weight * original_q0
         q[0] = np.clip(q[0], lower, upper)
         target = corridor[:, :3]
-        root = (1.0 - config.root_blend) * root_original + config.root_blend * target
+        delta = config.root_blend * (target - root_original)
+        delta = np.clip(delta, -config.max_root_step_m, config.max_root_step_m)
+        root = root_original + delta
     after = _objective(q, root, corridor, lower, upper, original_q0, config)
     projected = value.copy()
     projected[:, :29] = q
@@ -108,6 +139,7 @@ def project_reference(trajectory: np.ndarray, corridor: np.ndarray,
         "objective_after": after,
         "joint_delta_max_rad": float(np.max(np.abs(q - q_original))),
         "root_delta_max_m": float(np.max(np.abs(root - root_original))),
+        "root_step_limit_m": float(config.max_root_step_m),
         "handoff_q_used": bool(handoff_q is not None),
     }
     return projected.astype(np.float32), report

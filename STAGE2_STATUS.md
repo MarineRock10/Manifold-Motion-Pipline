@@ -267,3 +267,28 @@ GIF 为各场景目录中的 `manifold_adaptive.gif`。由于当前 pilot Flow �
 和在线侧向状态上的覆盖仍然稀疏，每个在线条件集合明确保留一个训练支持锚点候选，其他
 候选才是实时 state/history 条件生成；锚点与在线候选共同经过同一物理筛选，报告中以
 `candidate0_training_support_anchor` 标注，不能误解为所有候选都已完成分布外泛化。
+
+## 后续实现状态（跳过真实感知 P1）
+
+- P0 文档口径已统一：`ARCHITECTURE_CURRENT.md` / 本文描述当前 Stage-2，早期静态设计文档
+  保留历史并链接到 `ROADMAP.md`。
+- P2 动态数据扩展：`stage2_generalization.py` 已生成 6,508 窗口的 training-only 增强档案，
+  保留 220/195 个原始 validation/test 窗口，并写入 transition/environment 审计字段。
+- P3 无手工 anchor：wide 与 low 场景已分别通过 6/6 关键帧、0 接触；narrow 的侧向
+  `walk_lateral_reverse` 候选在无 raw exemplar 时全部通过物理门但方向为后退，因此被
+  方向门拒绝，不能用放宽门限伪装成泛化。`--disable-learned-anchor`/纯随机 Flow 是
+  明确的失败诊断，用来暴露 pilot 数据的侧向过渡覆盖缺口，不是部署模式。
+- P4 滚动时域：`stage2_receding_shadow_wide_v1` 每 50 tick 生成 11 次真实 state/history
+  条件候选，shadow 模式连续执行通过（6/6、0 接触）；直接 commit 模式会因候选未做当前
+  状态物理 gate 而退化，默认不提交。这明确了下一步需要在线短 rollout 筛选，而不是继续
+  缩小阈值。
+- P5 root progress/yaw：执行器现在记录路线进度误差、速度命令和航向命令；SONIC 仍不
+  直接跟踪 root position，这些字段是控制器微调/替换时的冻结接口。
+- P6 projection：新增速度、加速度、jerk 项以及 root 单步位移限制；每条候选仍保存
+  raw/projected 审计，MuJoCo 连续回放仍是最终权威。
+- P7 能力边界：`stage2_capability_manifest_v1.json` 明确 crawl=unsupported、jump=partial，
+  自动路由只开放已通过冻结控制器门的原语。
+- SONIC 跟踪误差对照：`stage2_flow train-mean` 已支持
+  `--model-target-field target_exec`，并在 6,508 窗口上训练了 p4/p5 的执行目标均值
+  checkpoint。它可作为控制器误差消融；窄通道的 p4 方向门仍拒绝后退候选，说明仅换
+  target 字段不能替代侧向动作数据/控制器能力。
