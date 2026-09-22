@@ -823,6 +823,30 @@ def _densify(route_world_xy: np.ndarray, spacing_m: float = 0.08) -> np.ndarray:
     return np.concatenate(pieces) if pieces else route.copy()
 
 
+def _route_command(route_world_xyz: np.ndarray, root_pos_world: np.ndarray,
+                   root_quat_wxyz: np.ndarray, horizon_m: float = 0.90) -> np.ndarray:
+    """Encode a short local route target using the Stage-2 3+6 command contract."""
+    route = np.asarray(route_world_xyz, dtype=np.float64)
+    root = np.asarray(root_pos_world, dtype=np.float64)
+    if len(route) < 2:
+        raise ValueError("route must contain at least two points for a command")
+    segment = np.linalg.norm(np.diff(route[:, :2], axis=0), axis=1)
+    cumulative = np.concatenate([[0.0], np.cumsum(segment)])
+    target = min(float(horizon_m), float(cumulative[-1]))
+    index = min(max(int(np.searchsorted(cumulative, target, side="left")), 1), len(route) - 1)
+    span = cumulative[index] - cumulative[index - 1]
+    alpha = (target - cumulative[index - 1]) / span if span > 1e-8 else 1.0
+    point = route[index - 1] * (1.0 - alpha) + route[index] * alpha
+    rotation = C.quat_to_matrix(np.asarray(root_quat_wxyz, dtype=np.float64))
+    delta_local = (point - root) @ rotation
+    tangent = route[index, :2] - route[index - 1, :2]
+    yaw = math.atan2(float(tangent[1]), float(tangent[0]))
+    root_forward = C.quat_rotate(np.asarray(root_quat_wxyz, dtype=np.float64), np.array([1.0, 0.0, 0.0]))
+    yaw -= math.atan2(float(root_forward[1]), float(root_forward[0]))
+    c, s = math.cos(yaw), math.sin(yaw)
+    return np.concatenate([delta_local, np.array([c, -s, s, c, 0.0, 0.0])]).astype(np.float32)
+
+
 def _axis_free_half_extent(grid: ProbabilisticSlidingGrid | ProbabilisticSlidingVoxelGrid, center: np.ndarray,
                            direction: np.ndarray, max_distance_m: float,
                            clearance_m: float) -> float:
@@ -868,7 +892,12 @@ def _vertical_free_half_extent(grid: ProbabilisticSlidingVoxelGrid, center_xy: n
                 free = (step - 1) * grid.config.resolution_m - clearance_m
                 break
         limits.append(max(grid.config.min_corridor_semi_m, free))
-    return min(limits)
+    # The Stage-2 corridor uses a symmetric root-local ellipsoid whose vertical axis is the
+    # robot envelope/ceiling clearance.  The floor is not an overhead constraint: using the
+    # lower root-to-floor distance here would shrink every flat-ground corridor to ~0.68 m and
+    # make the semantic router classify ordinary walking as crouching.  Foot support remains a
+    # separate SONIC/MuJoCo contact and self-manifold check.
+    return limits[1]
 
 
 def safe_corridor_from_grid(grid: ProbabilisticSlidingGrid | ProbabilisticSlidingVoxelGrid, route_world: np.ndarray,
@@ -964,7 +993,7 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
                       "obstacle_return_names": sorted(set(scan.geom_names))})
         route_world_xyz = voxel_astar(grid, pose, goal_world_xyz, body_radius_m=0.40,
                                       body_half_height_m=0.78, clearance_m=0.10,
-                                      allow_unknown=True)
+                                      allow_unknown=True, vertical_weight=3.0)
         if timestamp + 1 < max(2, demo_pose_count) and len(route_world_xyz) > 1:
             step_lengths = np.linalg.norm(np.diff(route_world_xyz, axis=0), axis=1)
             next_index = int(np.searchsorted(np.cumsum(step_lengths), 0.45, side="left") + 1)
@@ -972,14 +1001,23 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
             pose[:3] = route_world_xyz[next_index]
             scout_trace.append(pose[:2].copy())
     assert route_world_xyz is not None
+    # The scout poses above are only a simulated radar/SLAM observation stream.  They must not
+    # silently become the execution origin: main's SONIC rollout still starts at root_pos_world.
+    # Replan once from that live root against the accumulated global map, then express the
+    # corridor in the same root-local frame consumed by Stage 2.
+    planning_root = initial_root.copy()
+    route_world_xyz = voxel_astar(
+        grid, planning_root, goal_world_xyz, body_radius_m=0.40,
+        body_half_height_m=0.78, clearance_m=0.10, allow_unknown=True,
+        vertical_weight=3.0)
     route_world_xy = route_world_xyz[:, :2]
-    planning_root = pose.copy()
+    command = _route_command(route_world_xyz, planning_root, root_quat_wxyz)
     corridor, sdf, corridor_report = safe_corridor_from_grid(
         grid, route_world_xyz, planning_root, root_quat_wxyz)
     out.mkdir(parents=True, exist_ok=True)
     grid.save(out / "slam_grid.npz")
     scout_trace = np.asarray(scout_trace, dtype=np.float32)
-    np.savez_compressed(out / "condition.npz", corridor=corridor, sdf=sdf,
+    np.savez_compressed(out / "condition.npz", corridor=corridor, sdf=sdf, command=command,
                         route_world_xy=route_world_xy, route_world_xyz=route_world_xyz,
                         root_pos_world=planning_root,
                         root_quat_wxyz=np.asarray(root_quat_wxyz),
@@ -992,10 +1030,13 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
     render_grid_png(grid, route_world_xy, initial_root[:2], goal, out / "slam_grid_route.png",
                     trace_world_xy=scout_trace)
     render_voxel_slices_png(grid, out / "slam_voxel_slices.png")
+    scout_length = float(np.linalg.norm(np.diff(scout_trace, axis=0), axis=1).sum())
     full_trace = np.vstack([scout_trace, route_world_xy])
     direct = max(float(np.linalg.norm(goal - initial_root[:2])), 1e-6)
-    full_route_length = float(np.linalg.norm(np.diff(full_trace, axis=0), axis=1).sum())
+    # Scout and execution route are two phases; do not count the artificial jump from the last
+    # scout pose back to the live root when reporting total travelled distance.
     route_length = float(np.linalg.norm(np.diff(route_world_xy, axis=0), axis=1).sum())
+    full_route_length = scout_length + route_length
     direction = (goal - initial_root[:2]) / direct
     route_offset = full_trace - initial_root[None, :2]
     lateral = np.abs(route_offset[:, 0] * direction[1] - route_offset[:, 1] * direction[0])
@@ -1009,7 +1050,11 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
         "voxel_volume_is_3d": bool(grid.probability().ndim == 3 and len(grid.shape_zyx) == 3),
         "astar_detours_around_block": bool(float(lateral.max()) > 0.70 and full_route_length > direct + 0.20),
         "stage2_condition_valid": bool(condition_health["valid"]),
-        "ellipsoid_vertical_axis_from_map": bool(float(corridor[:, 5].min()) < 1.20 - 1e-3),
+        # Flat ground has no overhead restriction, so the vertical semi-axis may remain at the
+        # configured 1.20 m ceiling.  Any observed low ceiling still contracts it below that
+        # value; in both cases the emitted axis must be finite and above the interface minimum.
+        "ellipsoid_vertical_axis_from_map": bool(np.isfinite(corridor[:, 5]).all() and
+                                                   corridor[:, 5].min() >= grid.config.min_corridor_semi_m),
     }
     summary = {
         "accepted": bool(all(checks.values())),
@@ -1037,8 +1082,11 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
                   "start_world_xy_m": planning_root[:2].astype(float).tolist(),
                   "initial_start_world_xy_m": initial_root[:2].astype(float).tolist(),
                   "goal_world_xy_m": goal.astype(float).tolist(),
+                  "command_local_9d": command.astype(float).tolist(),
+                  "command_horizon_m": 0.90,
                   "direct_distance_m": direct,
                   "route_length_m": route_length,
+                  "scout_length_m": scout_length,
                   "full_scout_plus_route_length_m": full_route_length,
                   "scout_trace_world_xy_m": scout_trace.astype(float).tolist(),
                   "max_lateral_detour_m": float(lateral.max()),

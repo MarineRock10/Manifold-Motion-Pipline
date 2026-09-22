@@ -1,8 +1,8 @@
 # Deploy branch: simulated radar → SLAM grid → A* → safe corridor
 
 `deploy` adds only the P1 perception contract needed before connecting a real radar/LiDAR and
-SLAM pose source.  Its output is the same root-local `condition.npz` (`corridor[T,7]` and
-`sdf[10,10,8]`) consumed by the unchanged main-branch semantic router, Stage-2 model, hard
+SLAM pose source.  Its output is the same root-local `condition.npz` (`corridor[T,7]`,
+`sdf[10,10,8]`, and a short local `command[9]`) consumed by the unchanged main-branch semantic router, Stage-2 model, hard
 gate, SONIC controller and MuJoCo executor.  It does not introduce a second controller or
 replace the main motion-generation chain.
 
@@ -68,7 +68,7 @@ The output directory contains:
 | `summary.json` | radar returns, sliding-window origins, A* route, corridor widths and provenance |
 | `slam_grid.npz` | final 3-D `[z,y,x]` probability/log-odds volume and global XYZ origin |
 | `radar_returns.npz` | all simulated world-frame returns and ray origins |
-| `condition.npz` | `corridor`, `sdf`, route and map probability; Stage-2-compatible |
+| `condition.npz` | `corridor`, `sdf`, short local `command[9]`, route and map probability; Stage-2-compatible |
 | `slam_grid_route.png` | headless evidence image: red occupied cells, gray unknown, yellow A* route |
 | `slam_voxel_slices.png` | three horizontal z slices of the 3-D volume |
 | `deploy_sonic_mujoco_comprehensive.gif` | 20 FPS integrated animation: physical SONIC/MuJoCo execution beside the deploy 3-D grid, A* route, voxel slices and ellipsoid corridor |

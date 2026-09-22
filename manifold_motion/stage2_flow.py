@@ -746,14 +746,16 @@ def sample(args: argparse.Namespace) -> int:
         if conditioned_primitive != expected_primitive:
             raise ValueError(f"conditional-mean checkpoint is restricted to primitive-id {expected_primitive}, "
                              f"but the conditioned primitive-id is {conditioned_primitive}")
-    # A perception producer can override only the environment tensors while reusing the held-out
-    # state/history/command.  This preserves the learned condition layout and keeps the resulting
-    # sample traceable to the same SEED window.
+    # A perception producer can override corridor/SDF and an optional short local command while
+    # reusing the current state/history.  This preserves the learned condition layout and keeps
+    # the resulting sample traceable to the same SEED window.
     condition_overrides: dict[str, np.ndarray] = {}
     if args.condition_npz is not None:
         with np.load(args.condition_npz) as condition_archive:
-            for key in ("corridor", "sdf"):
+            for key in ("corridor", "sdf", "command"):
                 if key not in condition_archive.files:
+                    if key == "command":
+                        continue
                     raise ValueError(f"{args.condition_npz} must contain '{key}'")
                 value = np.asarray(condition_archive[key], dtype=np.float32)
                 if key not in data.raw or value.shape != data.raw[key][index].shape:
@@ -778,7 +780,9 @@ def sample(args: argparse.Namespace) -> int:
             normalizer.state(data.raw["history"][index:index + 1]).reshape(1, -1).astype(np.float32),
             one_hot,
             normalizer.manifold(environment).astype(np.float32),
-            normalizer.command(data.raw["command"][index:index + 1]).astype(np.float32),
+            normalizer.command(np.asarray(
+                condition_overrides.get("command", data.raw["command"][index:index + 1])
+            ).reshape(1, -1)).astype(np.float32),
         ], axis=1)
     else:
         condition_row = data.condition[index:index + 1]
@@ -852,6 +856,8 @@ def sample(args: argparse.Namespace) -> int:
     for key in ("corridor", "sdf"):
         if key in data.raw:
             sample_arrays[f"condition_{key}"] = condition_overrides.get(key, data.raw[key][index])
+    if "command" in condition_overrides:
+        sample_arrays["condition_command"] = condition_overrides["command"]
     # A sample must be traceable back through its window to the accepted SEED replay record.
     # ``clip_index`` resolves through window metadata's clips list; ``source_origin`` is the
     # 30 Hz origin in that record.  Neither is part of the learned condition.

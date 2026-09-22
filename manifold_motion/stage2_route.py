@@ -48,7 +48,7 @@ def main() -> int:
     parser.add_argument("--split", type=int, choices=(0, 1, 2), default=2)
     parser.add_argument("--index", type=int, default=0)
     parser.add_argument("--condition-npz", type=Path, default=None,
-                        help="online perception condition.npz; replaces only corridor/SDF for this window")
+                        help="online perception condition.npz; replaces corridor/SDF and optional local command")
     parser.add_argument("--scene", type=Path, default=None,
                         help="optional MuJoCo scene containing the perceived obstacles for the final hard gate")
     parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/stage2_routed"))
@@ -66,8 +66,10 @@ def main() -> int:
     condition_provenance = "stored_window"
     if args.condition_npz is not None:
         with np.load(args.condition_npz) as condition_archive:
-            for key in ("corridor", "sdf"):
+            for key in ("corridor", "sdf", "command"):
                 if key not in condition_archive.files:
+                    if key == "command":
+                        continue
                     parser.error(f"{args.condition_npz} must contain '{key}'")
                 value = np.asarray(condition_archive[key], dtype=np.float32)
                 if value.shape != raw[key][source_index].shape:
@@ -81,7 +83,27 @@ def main() -> int:
         probabilities = torch.softmax(router(torch.as_tensor(normalized)), dim=1)[0].numpy()
     active = np.asarray(checkpoint["active_primitive_ids"], dtype=np.int64)
     order = np.argsort(probabilities)[::-1]
-    route_id = int(active[order[0]])
+    router_id = int(active[order[0]])
+    route_id = router_id
+    selection_policy = "trained_router"
+    # A perception corridor can be outside the reverse-SEED router distribution.  In that
+    # case a raw softmax may call any small vertical semi-axis a crouch even when the actual
+    # obstacle is a side wall.  Keep main's primitive checkpoints and SONIC path unchanged,
+    # but apply a conservative geometry prior at this deployment boundary.
+    if args.condition_npz is not None:
+        with np.load(args.condition_npz) as condition_archive:
+            perception_corridor = np.asarray(condition_archive["corridor"], dtype=np.float32)
+        vertical_min = float(np.quantile(perception_corridor[:, 5], 0.10))
+        lateral_min = float(np.quantile(perception_corridor[:, 4], 0.10))
+        if vertical_min < 0.90:
+            preferred = 2  # genuine low/overhead clearance -> crouch
+        elif lateral_min < 0.65:
+            preferred = 4  # flat but narrow side aperture -> lateral gait
+        else:
+            preferred = 5  # open corridor -> nominal walk
+        if preferred in model_map:
+            route_id = preferred
+            selection_policy = "perception_geometry_guard"
     if route_id not in model_map:
         parser.error(f"router chose {PRIMITIVE_NAMES[route_id]}, but no verified --model was supplied for it")
     args.out.mkdir(parents=True, exist_ok=True)
@@ -104,6 +126,7 @@ def main() -> int:
     route_report = {"source_index": source_index, "split": args.split,
                     "source_primitive": PRIMITIVE_NAMES[int(raw["primitive"][source_index])],
                     "routed_primitive": PRIMITIVE_NAMES[route_id], "routed_primitive_id": route_id,
+                    "router_proposal": PRIMITIVE_NAMES[router_id], "selection_policy": selection_policy,
                     "router_confidence": float(probabilities[order[0]]),
                     "probabilities": [{"primitive": PRIMITIVE_NAMES[int(active[i])],
                                        "probability": float(probabilities[i])} for i in order],
