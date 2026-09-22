@@ -987,7 +987,9 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
                                      root_quat_wxyz: np.ndarray, goal_world_xy: np.ndarray,
                                      *, out: Path, radar_config: RadarConfig = RadarConfig(),
                                      grid_config: SlidingGridConfig = SlidingGridConfig(),
-                                     demo_pose_count: int = 5) -> dict:
+                                     demo_pose_count: int = 5,
+                                     planner_body_radius_m: float = 0.46,
+                                     planner_clearance_m: float = 0.12) -> dict:
     """Run a repeatable radar/SLAM/A*/corridor demo and save deploy-ready artifacts."""
     radar = SimulatedRadar(scene, radar_config)
     root_pos = np.asarray(root_pos_world, dtype=np.float64)
@@ -1014,9 +1016,11 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
                       "grid_origin_world_xy_m": grid.origin_world_xy.astype(float).tolist(),
                       "grid_origin_world_xyz_m": grid.origin_world_xyz.astype(float).tolist(),
                       "obstacle_return_names": sorted(set(scan.geom_names))})
-        route_world_xyz = voxel_astar(grid, pose, goal_world_xyz, body_radius_m=0.40,
-                                      body_half_height_m=0.78, clearance_m=0.10,
-                                      allow_unknown=True, vertical_weight=3.0)
+        route_world_xyz = voxel_astar(
+            grid, pose, goal_world_xyz, body_radius_m=0.40,
+            body_half_height_m=0.78, clearance_m=0.10,
+            allow_unknown=True, vertical_weight=3.0)
+        route_world_xyz[:, 2] = root_pos[2]
         if timestamp + 1 < max(2, demo_pose_count) and len(route_world_xyz) > 1:
             step_lengths = np.linalg.norm(np.diff(route_world_xyz, axis=0), axis=1)
             next_index = int(np.searchsorted(np.cumsum(step_lengths), 0.45, side="left") + 1)
@@ -1033,6 +1037,25 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
         grid, planning_root, goal_world_xyz, body_radius_m=0.40,
         body_half_height_m=0.78, clearance_m=0.10, allow_unknown=True,
         vertical_weight=3.0)
+    route_world_xyz[:, 2] = planning_root[2]
+    # Keep the map-derived lower/upper detour, then move only the detour portion outward by
+    # the additional execution-envelope margin.  The start/end remain anchored to the live
+    # root/goal, while the route no longer grazes a wall when the G1 mesh is wider than the
+    # pilot planner footprint.
+    extra_margin = max(0.0, float(planner_body_radius_m + planner_clearance_m - 0.50))
+    if extra_margin > 1.0e-6:
+        route_xy = route_world_xyz[:, :2].astype(np.float64)
+        direct = goal - planning_root[:2]
+        direct_norm = max(float(np.linalg.norm(direct)), 1.0e-8)
+        tangent = direct / direct_norm
+        normal = np.array([-tangent[1], tangent[0]], dtype=np.float64)
+        lateral = (route_xy - planning_root[:2][None, :]) @ normal
+        sign = float(np.sign(lateral[np.argmax(np.abs(lateral))]))
+        if abs(sign) > 0.5:
+            ramp = np.clip(np.abs(lateral) / 0.80, 0.0, 1.0)
+            route_world_xyz[:, :2] = route_xy + sign * extra_margin * ramp[:, None] * normal[None, :]
+            route_world_xyz[0, :2] = planning_root[:2]
+            route_world_xyz[-1, :2] = goal
     route_world_xy = route_world_xyz[:, :2]
     command = _route_command(route_world_xyz, planning_root, root_quat_wxyz)
     corridor, sdf, corridor_report = safe_corridor_from_grid(
@@ -1117,7 +1140,9 @@ def build_simulated_deploy_condition(scene: Path, root_pos_world: np.ndarray,
                   "route_world_xyz_m": route_world_xyz.astype(float).tolist(),
                   "z_range_m": [float(route_world_xyz[:, 2].min()),
                                 float(route_world_xyz[:, 2].max())]},
-        "safe_corridor": {**corridor_report, "condition_health": condition_health},
+        "safe_corridor": {**corridor_report, "condition_health": condition_health,
+                           "planner_body_radius_m": float(planner_body_radius_m),
+                           "planner_clearance_m": float(planner_clearance_m)},
         "artifacts": {"condition": str(out / "condition.npz"),
                        "slam_grid": str(out / "slam_grid.npz"),
                        "radar_returns": str(out / "radar_returns.npz"),
@@ -1136,12 +1161,20 @@ def main() -> int:
     parser.add_argument("--goal", type=float, nargs=2, default=(3.60, 0.0), metavar=("X", "Y"))
     parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/deploy_perception_demo"))
     parser.add_argument("--demo-pose-count", type=int, default=5)
+    parser.add_argument("--planner-body-radius-m", type=float, default=0.46,
+                        help="voxel-A* body footprint inflation used before Stage 2")
+    parser.add_argument("--planner-clearance-m", type=float, default=0.12,
+                        help="voxel-A* extra clearance used before Stage 2")
     parser.add_argument("--seed", type=int, default=20260922)
     args = parser.parse_args()
+    if args.planner_body_radius_m <= 0.0 or args.planner_clearance_m < 0.0:
+        parser.error("planner body radius must be positive and clearance non-negative")
     radar_config = RadarConfig(seed=args.seed)
     summary = build_simulated_deploy_condition(
         args.scene, np.asarray(args.root_pos), np.asarray(args.root_quat), np.asarray(args.goal),
-        out=args.out, radar_config=radar_config, demo_pose_count=args.demo_pose_count)
+        out=args.out, radar_config=radar_config, demo_pose_count=args.demo_pose_count,
+        planner_body_radius_m=args.planner_body_radius_m,
+        planner_clearance_m=args.planner_clearance_m)
     print(json.dumps(summary, indent=2))
     return 0 if summary["accepted"] else 2
 

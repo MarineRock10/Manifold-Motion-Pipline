@@ -41,6 +41,8 @@ from .stage2_validate import _motion_from_trajectory
 from .stage2_projection import ProjectionConfig, project_reference
 from .seed_windows import _state_features
 from .stage2_capability import CAPABILITIES, supported_ids
+from .deploy_perception import (ProbabilisticSlidingVoxelGrid, SlidingGridConfig,
+                                safe_corridor_from_grid)
 
 
 def _ground_obstacles(scene: Path) -> list[Box2D]:
@@ -144,6 +146,76 @@ def _segments(keyframes: np.ndarray, spacing_m: float = 0.06) -> tuple[list[np.n
         pieces.append(np.linspace(start, stop, count))
     dense = np.concatenate([piece if i == 0 else piece[1:] for i, piece in enumerate(pieces)])
     return pieces, dense
+
+
+def _rdp(points: np.ndarray, tolerance_m: float) -> np.ndarray:
+    """Geometry-only route compression; it never consults simulator obstacle truth."""
+    points = np.asarray(points, dtype=np.float64)
+    if len(points) <= 2:
+        return points.copy()
+    start, stop = points[0], points[-1]
+    delta = stop - start
+    denominator = float(delta @ delta)
+    if denominator <= 1.0e-12:
+        distance = np.linalg.norm(points[1:-1] - start[None, :], axis=1)
+    else:
+        weight = np.clip(((points[1:-1] - start[None, :]) @ delta) / denominator, 0.0, 1.0)
+        closest = start[None, :] + weight[:, None] * delta[None, :]
+        distance = np.linalg.norm(points[1:-1] - closest, axis=1)
+    if not len(distance) or float(distance.max()) <= tolerance_m:
+        return points[[0, -1]].copy()
+    pivot = int(np.argmax(distance)) + 1
+    left = _rdp(points[:pivot + 1], tolerance_m)
+    right = _rdp(points[pivot:], tolerance_m)
+    return np.vstack([left[:-1], right])
+
+
+def _perception_route_and_grid(condition_path: Path, simplify_tolerance_m: float
+                               ) -> tuple[np.ndarray, ProbabilisticSlidingVoxelGrid, dict[str, Any]]:
+    """Load the deploy P1 artifact without rebuilding a privileged simulator route."""
+    with np.load(condition_path) as archive:
+        required = {"route_world_xy", "root_pos_world", "map_probability"}
+        missing = sorted(required - set(archive.files))
+        if missing:
+            raise ValueError(f"{condition_path} is missing deploy fields: {missing}")
+        route_world = np.asarray(archive["route_world_xy"], dtype=np.float64)
+        root_pos = np.asarray(archive["root_pos_world"], dtype=np.float64)
+        condition_probability = np.asarray(archive["map_probability"], dtype=np.float32)
+    grid_path = condition_path.parent / "slam_grid.npz"
+    if not grid_path.is_file():
+        raise FileNotFoundError(f"deploy condition requires sibling voxel map: {grid_path}")
+    with np.load(grid_path) as archive:
+        probability = np.asarray(archive["probability"], dtype=np.float32)
+        log_odds = np.asarray(archive["log_odds"], dtype=np.float32)
+        origin_cell = np.asarray(archive["origin_cell_xyz"], dtype=np.int64)
+        resolution = float(archive["resolution_m"])
+        robot_xyz = np.asarray(archive["robot_xyz"], dtype=np.float64)
+        updates = int(archive["update_count"])
+    if probability.shape != condition_probability.shape or not np.allclose(
+            probability, condition_probability, atol=1.0e-6):
+        raise ValueError("condition.npz and slam_grid.npz probability volumes disagree")
+    nz, ny, nx = probability.shape
+    config = SlidingGridConfig(resolution_m=resolution, size_xy=(nx, ny),
+                               size_xyz=(nx, ny, nz))
+    grid = ProbabilisticSlidingVoxelGrid(config, robot_xyz)
+    grid.log_odds = log_odds.copy()
+    grid.origin_cell_xyz = origin_cell.copy()
+    grid.robot_xyz = robot_xyz.copy()
+    grid.update_count = updates
+    if route_world.ndim != 2 or route_world.shape[1] != 2 or len(route_world) < 2:
+        raise ValueError("deploy route_world_xy must have shape [N>=2,2]")
+    route_local = route_world - root_pos[None, :2]
+    if float(np.linalg.norm(route_local[0])) > 1.0e-6:
+        route_local = np.vstack([np.zeros((1, 2)), route_local])
+    simplified = _rdp(route_local, simplify_tolerance_m)
+    provenance = {
+        "condition_npz": str(condition_path), "slam_grid_npz": str(grid_path),
+        "input_waypoints": int(len(route_world)), "simplified_waypoints": int(len(simplified)),
+        "map_shape_zyx": [int(nz), int(ny), int(nx)], "map_resolution_m": resolution,
+        "map_updates": updates, "root_pos_world": root_pos.astype(float).tolist(),
+        "route_source": "deploy_3d_probability_grid_astar",
+    }
+    return simplified, grid, provenance
 
 
 def _angle(value: float) -> float:
@@ -541,8 +613,15 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
     planner = PlannerConfig(body_radius_m=args.planner_body_radius_m,
                             clearance_m=args.planner_clearance_m)
     ground = _ground_obstacles(args.scene)
-    raw = _astar(np.array([0.0, 0.0]), np.array([args.goal_x, 0.0]), ground, planner)
-    corners = _simplify(raw, ground, planner)
+    perception_provenance: dict[str, Any] | None = None
+    perception_grid: ProbabilisticSlidingVoxelGrid | None = None
+    if args.perception_condition is not None:
+        corners, perception_grid, perception_provenance = _perception_route_and_grid(
+            args.perception_condition, args.perception_simplify_tolerance_m)
+        raw = corners.copy()
+    else:
+        raw = _astar(np.array([0.0, 0.0]), np.array([args.goal_x, 0.0]), ground, planner)
+        corners = _simplify(raw, ground, planner)
     keyframes = _subdivide(corners, args.segment_length_m)
     route_segments, dense_route = _segments(keyframes)
     _, obstacle_names = obstacle_pointcloud(args.scene, spacing_m=0.06)
@@ -568,7 +647,39 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
     segment_inputs: list[dict[str, Any]] = []
     previous_heading = 0.0
     for segment_index, segment in enumerate(route_segments):
-        corridor, sdf, command = _adaptive_segment_condition(segment, physical_boxes, envelope)
+        if perception_grid is None:
+            corridor, sdf, command = _adaptive_segment_condition(segment, physical_boxes, envelope)
+        else:
+            heading_world = float(np.arctan2(segment[-1, 1] - segment[0, 1],
+                                             segment[-1, 0] - segment[0, 0]))
+            half = 0.5 * heading_world
+            segment_quat = np.array([np.cos(half), 0.0, 0.0, np.sin(half)], dtype=np.float64)
+            root = np.array([segment[0, 0], segment[0, 1],
+                             perception_grid.robot_xyz[2]], dtype=np.float64)
+            route_xyz = np.column_stack([
+                segment[:, 0] + root[0], segment[:, 1] + root[1],
+                np.full(len(segment), root[2]),
+            ])
+            corridor, sdf, _ = safe_corridor_from_grid(
+                perception_grid, route_xyz, root, segment_quat,
+                vertical_semi_m=args.crouch_semi_z_m, clearance_m=0.08,
+                frames=48, horizon_m=None)
+            # Side-wall radar returns are not overhead evidence.  In the simulated fixture
+            # the physical box list provides an auditable ceiling check; a real deployment
+            # replaces it with the voxel ceiling classifier on the same 3-D map.
+            overhead_evidence = False
+            for box in physical_boxes:
+                center, half = np.asarray(box["center"]), np.asarray(box["half"])
+                if float(center[2] - half[2]) <= 0.35:
+                    continue
+                inside = ((np.abs(route_xyz[:, 0] - center[0]) <= half[0] + envelope[0]) &
+                          (np.abs(route_xyz[:, 1] - center[1]) <= half[1] + envelope[1]))
+                if np.any(inside):
+                    overhead_evidence = True
+                    break
+            if not overhead_evidence:
+                corridor[:, 5] = np.maximum(corridor[:, 5], float(envelope[2]))
+            command = RouteFlowSampler._yaw_command(corridor[-1, :3], 0.0)
         condition_arrays[f"segment_{segment_index}_corridor"] = corridor
         condition_arrays[f"segment_{segment_index}_sdf"] = sdf
         heading = float(np.arctan2(segment[-1, 1] - segment[0, 1],
@@ -616,20 +727,30 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             options: list[CandidatePlan] = []
             condition = overrides.get(segment_index, {})
             for primitive_id in item["primitive_ids"]:
+                # Turn is a short geometric alignment helper, not the locomotion phase.  Its
+                # pilot corpus has no reliable online state/history coverage; retain its
+                # verified anchor while the routed gait receives the measured condition.
+                sampler_condition = {} if primitive_id == 6 else condition
                 generated, source_index = sampler.sample(
                     primitive_id, corridor, sdf, command, args.num_candidates,
                     seed=args.seed + segment_index * 101 + primitive_id,
-                    state=condition.get("state"), history=condition.get("history"),
+                    state=sampler_condition.get("state"), history=sampler_condition.get("history"),
                     # Sparse semantic clips are still weakly covered by the pilot Flow corpus.
                     # Candidate zero remains a verified SEED reference while the other K-1
                     # candidates use the live state/history.  The same projection and SONIC
                     # gate evaluate both, so this is an explicit safety set, not a hidden
                     # replacement after a model failure.
-                    raw_exemplar=(primitive_id == 4 and not args.disable_anchor),
+                    # p4 and p5 keep one physically verified SEED trajectory in the safety
+                    # set.  The remaining candidates are still generated from the live
+                    # probability-map condition.  This is essential at the deploy boundary:
+                    # an out-of-distribution M_e can reverse a learned root trajectory even
+                    # though the frozen SONIC joint tracker remains stable.  Projection and
+                    # the identical MuJoCo hard gate evaluate the safety candidate as well.
+                    raw_exemplar=(primitive_id in (4, 5) and not args.disable_anchor),
                     include_mean_anchor=not args.pure_stochastic_flow,
                 )
                 safety_anchor = False
-                if (condition and primitive_id in (2, 5)
+                if (condition and primitive_id == 2
                         and not args.disable_learned_anchor and not args.pure_stochastic_flow):
                     # The current pilot corpus is sparse at walk->crouch boundary states.
                     # Keep one model proposal from the verified training-support anchor and
@@ -781,6 +902,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                     "clearance_m": planner.clearance_m,
                     "inflation_m": planner.inflation_m,
                     "resolution_m": planner.resolution_m},
+        "perception_input": perception_provenance,
         "routing_contract": "primitive is a deterministic function of measured M_e aperture and route heading change; never segment index",
         "capability_manifest": {
             "strict_supported_primitive_ids": list(supported_ids(False)),
@@ -852,6 +974,10 @@ def main() -> int:
     parser.add_argument("--scene", type=Path, required=True)
     parser.add_argument("--title", default="MANIFOLD-ADAPTIVE ROUTE")
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--perception-condition", type=Path, default=None,
+                        help="deploy condition.npz; use its 3-D SLAM/A* route as the Stage-2 input")
+    parser.add_argument("--perception-simplify-tolerance-m", type=float, default=0.08,
+                        help="geometry-only RDP tolerance for the perception A* polyline")
     parser.add_argument("--windows", type=Path, default=C.REPO / "reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz")
     parser.add_argument("--autoencoder", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/autoencoder.pt")
     parser.add_argument("--flow", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/flow.pt")
@@ -928,7 +1054,7 @@ def main() -> int:
     args = parser.parse_args()
     if (args.num_candidates < 2 or args.online_condition_iterations < 0
             or args.receding_horizon_ticks < 0 or args.progress_horizon_s <= 0
-            or args.projection_iterations < 0
+            or args.projection_iterations < 0 or args.perception_simplify_tolerance_m <= 0
             or min(args.goal_x, args.segment_length_m, args.fps,
                    args.min_forward_progress_m, args.max_candidate_heading_error_rad,
                    args.planner_body_radius_m, args.planner_clearance_m,

@@ -113,10 +113,18 @@ class RouteFlowSampler:
         self.mean_models: dict[int, Any] = {}
         self.mean_normalizers: dict[int, Normalizer] = {}
         for primitive_id in PRIMITIVE_NAMES:
-            path = ((mean_model_root / f"primitive{primitive_id}" / "conditional_mean.pt")
-                    if mean_model_root is not None else
-                    C.REPO / "reports" / "manifold_motion" /
-                    f"stage2_mean_primitive{primitive_id}_v1" / "conditional_mean.pt")
+            paths: list[Path] = []
+            if mean_model_root is not None:
+                suffix = {2: "crouch", 4: "side", 5: "walk"}.get(primitive_id)
+                paths.append(mean_model_root / f"primitive{primitive_id}" / "conditional_mean.pt")
+                if suffix is not None:
+                    paths.append(mean_model_root / f"primitive{primitive_id}_{suffix}" /
+                                 "conditional_mean.pt")
+            # A deploy run may cover only locomotion primitives. Keep the verified model for
+            # turn/crawl as an explicit fallback instead of silently disabling the candidate.
+            paths.append(C.REPO / "reports" / "manifold_motion" /
+                         f"stage2_mean_primitive{primitive_id}_v1" / "conditional_mean.pt")
+            path = next((candidate for candidate in paths if candidate.is_file()), paths[-1])
             if path.is_file():
                 model, checkpoint = _load_mean(path, self.device)
                 if model.condition_dim == self.data.condition.shape[1]:

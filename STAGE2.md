@@ -121,6 +121,28 @@ artifact, while Stage-2 receives only a 0.9 m receding-horizon corridor. This al
 important: passing the full multi-metre route to a 1.6-second model causes an out-of-distribution
 root trajectory.
 
+### P1 deploy condition into the continuous main chain
+
+`run_deploy_perception_demo.ps1` (or `.sh` inside WSL) is the end-to-end acceptance command. It
+first builds the simulated radar -> probabilistic 3-D sliding voxel grid -> A* route and saves
+`condition.npz`, `slam_grid.npz`, and the two map PNGs. It then passes that condition into
+`stage2_manifold_adaptive`, not into the old isolated one-window replay. The continuous executor
+keeps primitive switching, measured state/history, optimization-embedded projection, SONIC, the
+50 Hz MuJoCo rollout, and the self-manifold hard gate in the main chain.
+
+The deploy route uses the 3-D map for occupancy and vertical M_e evidence, a flat-ground XY
+projection for this fixture, and an explicit detour margin. A crouch is enabled only when an
+auditable overhead obstacle is present; side-wall returns cannot falsely trigger a low posture.
+The accepted run uses `online-condition-iterations=1`; the turn helper keeps its verified phase
+because the pilot corpus has no reliable online turn history. `receding-horizon-ticks=0` is
+intentional until the turn/side online candidates are retrained.
+
+The current CPU-safe acceptance result is 11/11 keyframes, zero obstacle contacts, zero runtime
+self-manifold stops, minimum exact surface clearance 0.223 m, terminal error 0.218 m, route
+deviation P95 0.120 m, and body-route yaw P95 15.1 degrees. The MuJoCo replay is
+`artifacts/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif`; the corresponding
+report is `stage2_continuous_report.json`.
+
 For an execution-aware conditional-mean baseline, `train-mean` also accepts
 `--model-target-field target_exec`. That checkpoint uses the SONIC-achieved window target for
 the mean proposal (with its own target normalizer); it is an ablation for the frozen controller's
