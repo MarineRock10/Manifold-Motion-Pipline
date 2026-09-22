@@ -1,9 +1,11 @@
 # Deploy branch: simulated radar → SLAM grid → A* → safe corridor
 
 `deploy` adds the perception-side contract needed before connecting a real radar/LiDAR and
-SLAM pose source.  It is intentionally independent of the SONIC weights: the output is the
-same root-local `condition.npz` (`corridor[T,7]` and `sdf[10,10,8]`) already consumed by
-Stage 2.
+SLAM pose source.  Its output is the same root-local `condition.npz` (`corridor[T,7]` and
+`sdf[10,10,8]`) consumed by the main-branch Stage 2 model.  The integrated demo now feeds
+that condition into Stage-2 sampling and replays the result through the frozen SONIC/MuJoCo
+executor; the robot panel in the GIF is therefore a physical replay, not a manually moved
+kinematic root.
 
 ## Pipeline
 
@@ -70,7 +72,13 @@ The output directory contains:
 | `condition.npz` | `corridor`, `sdf`, route and map probability; Stage-2-compatible |
 | `slam_grid_route.png` | headless evidence image: red occupied cells, gray unknown, yellow A* route |
 | `slam_voxel_slices.png` | three horizontal z slices of the 3-D volume |
-| `deploy_perception_comprehensive.gif` | smooth 20 FPS integrated animation of MuJoCo G1, radar returns, voxel slices, 3-D A* and ellipsoid corridor |
+| `deploy_sonic_mujoco_comprehensive.gif` | 20 FPS integrated animation: physical SONIC/MuJoCo execution beside the deploy 3-D grid, A* route, voxel slices and ellipsoid corridor |
+
+The GIF header reports `PASS` only when the normal Stage-2 safety/progress gate passes.  A
+`DIAGNOSTIC: route gate not passed` header is an honest result: it still shows the real
+executed state, while `stage2_execution_summary.json` records the failed checks (for example,
+insufficient progress or corridor violation).  It must not be replaced by a kinematic root
+trajectory.
 
 The acceptance signal is `summary.json:accepted == true`, nonzero radar returns containing
 `obstacle_center_block`, and a route whose lateral excursion is larger than the straight-line
@@ -87,6 +95,15 @@ python3 -m manifold_motion.stage2_flow sample \
   --sampler conditional_mean \
   --mean-model reports/manifold_motion/stage2_mean_walk80_v1/conditional_mean.pt \
   --out reports/manifold_motion/deploy_perception_stage2_sample
+
+python3 -m manifold_motion.render_deploy_sonic_gif \
+  --sample reports/manifold_motion/deploy_perception_stage2_sample/sample.npz \
+  --condition reports/manifold_motion/deploy_perception_demo/condition.npz \
+  --scene data/g1_flat/scene_long_avoidance.xml \
+  --executed reports/manifold_motion/deploy_sonic_stage2_validation/executed.npz \
+  --summary reports/manifold_motion/deploy_sonic_stage2_validation/summary.json \
+  --out reports/manifold_motion/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif \
+  --width 520 --height 390 --fps 20 --distance 2.7
 ```
 
 The optional `stage2_route` wrapper can then perform primitive routing and the existing SONIC
