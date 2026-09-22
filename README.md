@@ -49,6 +49,15 @@ For long-horizon tasks, run `run_stage2_long_sequence_demo.ps1` or
 `./run_stage2_long_sequence_demo.sh`; these keep one MuJoCo state while crossing multiple
 manifold regions.
 
+### Deploy perception demo
+
+The `deploy` branch adds a reproducible perception loop: MuJoCo radar returns are fused into a
+global-coordinate 3-D probabilistic voxel grid, then body-inflated 3-D voxel A* and a root-local
+3-D ellipsoidal safe corridor produce the Stage-2-compatible `condition.npz`. Run
+`run_deploy_perception_demo.ps1` (or `./run_deploy_perception_demo.sh` in WSL) and inspect
+`artifacts/deploy_perception_demo/slam_grid_route.png`. Coordinate contracts and the real-sensor
+replacement points are documented in [`DEPLOY_PERCEPTION.md`](DEPLOY_PERCEPTION.md).
+
 Start with `ARCHITECTURE_CURRENT.md` and `STAGE2_STATUS.md` for the current runnable closed loop.
 `ARCHITECTURE.md` and `PIPELINE.md` retain the original design history and static-stage diagnosis;
 they are not the authoritative statement that Stage-2 is absent. `ROADMAP.md` records the
