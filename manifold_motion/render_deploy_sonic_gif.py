@@ -1,10 +1,12 @@
 """Render deploy perception + main-branch SONIC execution in one headless GIF.
 
-The deploy branch supplies the 3-D probabilistic grid, A* route and ellipsoid
-condition.  The actual robot panel is *not* kinematic: it replays the generated
-Stage-2 reference through the frozen SONIC controller and MuJoCo, then renders
-the logged ``q_exec``/``base_pos`` state.  This makes a failed route-following
-model visible instead of hiding it with a manually translated root pose.
+The deploy branch supplies only the P1 perception condition: a 3-D probabilistic
+grid, A* route and ellipsoid corridor.  The downstream chain remains the main
+branch semantic primitive router, Stage-2 generator, hard gate, frozen SONIC
+controller and MuJoCo.  The actual robot panel is *not* kinematic: it replays
+the selected reference and renders the logged ``q_exec``/``base_pos`` state.
+This makes a failed route-following model visible instead of hiding it with a
+manually translated root pose.
 """
 
 from __future__ import annotations
@@ -279,7 +281,7 @@ def render(args: argparse.Namespace) -> Path:
             draw.rectangle((0, 0, panel_w * 2, 28), fill=(13, 18, 26))
             accepted = bool(summary.get("accepted", False))
             status = "PASS" if accepted else "DIAGNOSTIC: route gate not passed"
-            draw.text((12, 7), f"deploy condition -> Stage-2 Flow -> SONIC -> MuJoCo | {status} | t={tick / args.control_hz:.2f}s",
+            draw.text((12, 7), f"deploy P1 condition -> main router -> Stage-2 -> SONIC -> MuJoCo | {status} | t={tick / args.control_hz:.2f}s",
                        fill=TEXT)
             frames.append(frame)
     finally:

@@ -56,7 +56,9 @@ global-coordinate 3-D probabilistic voxel grid, then body-inflated 3-D voxel A* 
 3-D ellipsoidal safe corridor produce the Stage-2-compatible `condition.npz`. Run
 `run_deploy_perception_demo.ps1` (or `./run_deploy_perception_demo.sh` in WSL) and inspect
 `artifacts/deploy_perception_demo/slam_grid_route.png`. Coordinate contracts and the real-sensor
-replacement points are documented in [`DEPLOY_PERCEPTION.md`](DEPLOY_PERCEPTION.md).
+replacement points are documented in [`DEPLOY_PERCEPTION.md`](DEPLOY_PERCEPTION.md). The deploy
+output is only the P1 condition input; the same main-branch primitive router, Stage-2 generator,
+SONIC hard gate and MuJoCo executor run after it.
 
 Start with `ARCHITECTURE_CURRENT.md` and `STAGE2_STATUS.md` for the current runnable closed loop.
 `ARCHITECTURE.md` and `PIPELINE.md` retain the original design history and static-stage diagnosis;

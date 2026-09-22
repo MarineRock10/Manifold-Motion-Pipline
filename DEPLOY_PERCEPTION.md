@@ -1,11 +1,10 @@
 # Deploy branch: simulated radar → SLAM grid → A* → safe corridor
 
-`deploy` adds the perception-side contract needed before connecting a real radar/LiDAR and
+`deploy` adds only the P1 perception contract needed before connecting a real radar/LiDAR and
 SLAM pose source.  Its output is the same root-local `condition.npz` (`corridor[T,7]` and
-`sdf[10,10,8]`) consumed by the main-branch Stage 2 model.  The integrated demo now feeds
-that condition into Stage-2 sampling and replays the result through the frozen SONIC/MuJoCo
-executor; the robot panel in the GIF is therefore a physical replay, not a manually moved
-kinematic root.
+`sdf[10,10,8]`) consumed by the unchanged main-branch semantic router, Stage-2 model, hard
+gate, SONIC controller and MuJoCo executor.  It does not introduce a second controller or
+replace the main motion-generation chain.
 
 ## Pipeline
 
@@ -76,7 +75,7 @@ The output directory contains:
 
 The GIF header reports `PASS` only when the normal Stage-2 safety/progress gate passes.  A
 `DIAGNOSTIC: route gate not passed` header is an honest result: it still shows the real
-executed state, while `stage2_execution_summary.json` records the failed checks (for example,
+executed state, while `stage2_route_summary.json` records the selected primitive and failed checks (for example,
 insufficient progress or corridor violation).  It must not be replaced by a kinematic root
 trajectory.
 
@@ -86,22 +85,30 @@ route in `scene_long_avoidance.xml`.
 
 ## Hand-off to Stage 2
 
-The existing sampler accepts the condition without changing the training checkpoint:
+The unchanged main semantic router accepts the perception condition without changing its
+training checkpoints:
 
 ```bash
-python3 -m manifold_motion.stage2_flow sample \
-  --windows reports/manifold_motion/seed_windows_walk80_v1/seed_stage2_windows.npz \
+python3 -m manifold_motion.stage2_route \
+  --windows reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz \
+  --router reports/manifold_motion/primitive_router_geometry_v1/router.pt \
+  --model 0=reports/manifold_motion/stage2_mean_primitive0_v1/conditional_mean.pt \
+  --model 2=reports/manifold_motion/stage2_mean_primitive2_v1/conditional_mean.pt \
+  --model 3=reports/manifold_motion/stage2_mean_primitive3_v1/conditional_mean.pt \
+  --model 4=reports/manifold_motion/stage2_mean_generalization_v2/primitive4/conditional_mean.pt \
+  --model 5=reports/manifold_motion/stage2_mean_walk80_v1/conditional_mean.pt \
+  --model 6=reports/manifold_motion/stage2_mean_generalization_v2/primitive6/conditional_mean.pt \
   --condition-npz reports/manifold_motion/deploy_perception_demo/condition.npz \
-  --sampler conditional_mean \
-  --mean-model reports/manifold_motion/stage2_mean_walk80_v1/conditional_mean.pt \
-  --out reports/manifold_motion/deploy_perception_stage2_sample
+  --scene data/g1_flat/scene_long_avoidance.xml \
+  --split 2 --index 0 --out reports/manifold_motion/deploy_sonic_main_route
 
 python3 -m manifold_motion.render_deploy_sonic_gif \
-  --sample reports/manifold_motion/deploy_perception_stage2_sample/sample.npz \
+  --sample reports/manifold_motion/deploy_sonic_main_route/sample.npz \
   --condition reports/manifold_motion/deploy_perception_demo/condition.npz \
   --scene data/g1_flat/scene_long_avoidance.xml \
-  --executed reports/manifold_motion/deploy_sonic_stage2_validation/executed.npz \
-  --summary reports/manifold_motion/deploy_sonic_stage2_validation/summary.json \
+  --executed reports/manifold_motion/deploy_sonic_main_route/executed.npz \
+  --summary reports/manifold_motion/deploy_sonic_main_route/route_summary.json \
+  --reuse-executed \
   --out reports/manifold_motion/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif \
   --width 520 --height 390 --fps 20 --distance 2.7
 ```
