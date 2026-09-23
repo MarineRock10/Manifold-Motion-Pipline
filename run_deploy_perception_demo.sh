@@ -18,6 +18,7 @@ python3 -m manifold_motion.stage2_manifold_adaptive \
   --windows reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz \
   --side-gait-mode diagonal --num-candidates 2 \
   --online-condition-iterations 1 --receding-horizon-ticks 0 \
+  --online-perception --online-perception-scan-ticks 20 \
   --max-ticks 2600 --planner-body-radius-m 0.40 --planner-clearance-m 0.10 \
   --device cpu --fps 20
 python3 -m manifold_motion.render_synced_deploy_gif \
@@ -27,6 +28,7 @@ python3 -m manifold_motion.render_synced_deploy_gif \
   --slam-grid "$out/slam_grid.npz" \
   --radar-returns "$out/radar_returns.npz" \
   --segment-conditions "$stage2_out/segment_conditions.npz" \
+  --online-perception "$stage2_out/online_perception.npz" \
   --report "$stage2_out/report.json" \
   --out "$out/deploy_mujoco_slam_synced.gif" \
   --fps 20 --warmup-hold 5

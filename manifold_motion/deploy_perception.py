@@ -710,12 +710,16 @@ def grid_astar(grid: ProbabilisticSlidingGrid | ProbabilisticSlidingVoxelGrid, s
 def voxel_astar(grid: ProbabilisticSlidingVoxelGrid, start_world_xyz: np.ndarray,
                 goal_world_xyz: np.ndarray, *, body_radius_m: float = 0.40,
                 body_half_height_m: float = 0.78, clearance_m: float = 0.10,
-                allow_unknown: bool = True, vertical_weight: float = 1.8) -> np.ndarray:
+                allow_unknown: bool = True, vertical_weight: float = 1.8,
+                preferred_world_xy: np.ndarray | None = None,
+                preference_weight: float = 0.0) -> np.ndarray:
     """A* directly over the 3-D voxel volume.
 
     The footprint is conservatively inflated in XY and the body half-height is inflated in Z.
     Six axis moves plus 20 diagonals are allowed; vertical motion costs more than horizontal
-    motion so a flat route is preferred whenever it is collision-free.
+    motion so a flat route is preferred whenever it is collision-free.  Online replanning may
+    additionally provide the previous safe route as a soft hysteresis prior.  This prevents a
+    symmetric obstacle from making the local planner alternate between left and right detours.
     """
     start_xyz = np.asarray(start_world_xyz, dtype=np.float64)
     goal_xyz = np.asarray(goal_world_xyz, dtype=np.float64)
@@ -783,6 +787,17 @@ def voxel_astar(grid: ProbabilisticSlidingVoxelGrid, start_world_xyz: np.ndarray
                 step = math.sqrt(dx * dx + dy * dy + (vertical_weight * dz) ** 2)
                 neighbors.append((dx, dy, dz, step))
     probability = grid.probability()
+    preference = None
+    if preferred_world_xy is not None and preference_weight > 0.0:
+        preferred = np.asarray(preferred_world_xy, dtype=np.float64)
+        if preferred.ndim != 2 or preferred.shape[1] != 2 or not len(preferred):
+            raise ValueError("preferred_world_xy must be a non-empty [N,2] route")
+        xs = grid.origin_world_xyz[0] + (np.arange(nx, dtype=np.float64) + 0.5) * grid.config.resolution_m
+        ys = grid.origin_world_xyz[1] + (np.arange(ny, dtype=np.float64) + 0.5) * grid.config.resolution_m
+        mesh_x, mesh_y = np.meshgrid(xs, ys)
+        cells_xy = np.column_stack([mesh_x.ravel(), mesh_y.ravel()])
+        preference = np.sqrt(np.min(np.sum(
+            (cells_xy[:, None, :] - preferred[None, :, :]) ** 2, axis=2), axis=1)).reshape(ny, nx)
     frontier = [(0.0, start)]
     cost = {start: 0.0}
     came_from: dict[tuple[int, int, int], tuple[int, int, int]] = {}
@@ -796,7 +811,9 @@ def voxel_astar(grid: ProbabilisticSlidingVoxelGrid, start_world_xyz: np.ndarray
                 continue
             uncertainty = 0.35 if unknown[nxt[2], nxt[1], nxt[0]] else 0.0
             risk = 0.50 * float(probability[nxt[2], nxt[1], nxt[0]])
-            new_cost = cost[current] + step + uncertainty + risk
+            hysteresis = (float(preference[nxt[1], nxt[0]]) * float(preference_weight)
+                          if preference is not None else 0.0)
+            new_cost = cost[current] + step + uncertainty + risk + hysteresis
             if new_cost < cost.get(nxt, np.inf):
                 cost[nxt] = new_cost
                 heuristic = math.sqrt((goal[0] - nxt[0]) ** 2 +

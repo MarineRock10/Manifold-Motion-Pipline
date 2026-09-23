@@ -43,6 +43,7 @@ from .seed_windows import _state_features
 from .stage2_capability import CAPABILITIES, supported_ids
 from .deploy_perception import (ProbabilisticSlidingVoxelGrid, SlidingGridConfig,
                                 safe_corridor_from_grid)
+from .online_perception import OnlinePerceptionNavigator
 
 
 def _ground_obstacles(scene: Path) -> list[Box2D]:
@@ -857,22 +858,48 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                       "anchor_disabled": bool(args.disable_anchor),
                       "commit": not args.receding_horizon_shadow}
 
+    def new_online_perception() -> OnlinePerceptionNavigator | None:
+        if not args.online_perception:
+            return None
+        seed_grid = None
+        if args.online_perception_seed_map is not None:
+            seed_grid = args.online_perception_seed_map
+        elif args.perception_condition is not None:
+            candidate = args.perception_condition.parent / "slam_grid.npz"
+            if candidate.is_file():
+                seed_grid = candidate
+        return OnlinePerceptionNavigator(
+            args.scene, seed_grid=seed_grid,
+            scan_ticks=args.online_perception_scan_ticks,
+            lookahead_m=args.online_perception_lookahead_m,
+            body_radius_m=args.planner_body_radius_m,
+            clearance_m=args.planner_clearance_m,
+            route_preference_weight=args.online_perception_route_preference_weight,
+            seed=args.seed + 7103,
+        )
+
     probe_execution: dict[str, Any] | None = None
     online_overrides: dict[int, dict[str, Any]] = {}
     for online_iteration in range(args.online_condition_iterations):
+        probe_perception = new_online_perception()
         probe_data, probe_execution = execute_plan(
             args.scene, keyframes, dense_route, plan_options, args,
             replan_callback=(receding_replan if args.receding_horizon_ticks > 0 else None),
+            perception_callback=probe_perception,
         )
         online_overrides = _online_condition_overrides(probe_data, probe_execution, len(segment_inputs))
         plan_options, evidence = build_plan_options(online_overrides)
         if online_iteration + 1 < args.online_condition_iterations:
             # The next loop iteration probes the newly reconditioned candidates.
             continue
+    final_perception = new_online_perception()
     data, execution = execute_plan(
         args.scene, keyframes, dense_route, plan_options, args,
         replan_callback=(receding_replan if args.receding_horizon_ticks > 0 else None),
+        perception_callback=final_perception,
     )
+    if final_perception is not None:
+        final_perception.save(args.out / "online_perception.npz")
     execution["render_title"] = args.title
     origin = np.asarray(execution["start_world_xy_m"])
     world_keyframes, world_route = keyframes + origin, dense_route + origin
@@ -928,6 +955,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                          for k, v in online_overrides.items()},
             "probe_execution": probe_execution,
         },
+        "online_perception": (
+            final_perception.summary() if final_perception is not None else {"enabled": False}
+        ),
         "optimization_embedded_projection": {
             "contract": "projected-gradient feasibility layer between Flow decode and SONIC gate",
             "config": projection_config.__dict__,
@@ -978,6 +1008,15 @@ def main() -> int:
                         help="deploy condition.npz; use its 3-D SLAM/A* route as the Stage-2 input")
     parser.add_argument("--perception-simplify-tolerance-m", type=float, default=0.08,
                         help="geometry-only RDP tolerance for the perception A* polyline")
+    parser.add_argument("--online-perception", action="store_true",
+                        help="receive simulated radar during motion and use live 3-D A* yaw")
+    parser.add_argument("--online-perception-seed-map", type=Path, default=None,
+                        help="optional slam_grid.npz used before live updates; defaults beside condition.npz")
+    parser.add_argument("--online-perception-scan-ticks", type=int, default=20,
+                        help="radar/SLAM/A* update period at the 50 Hz control rate")
+    parser.add_argument("--online-perception-lookahead-m", type=float, default=0.45)
+    parser.add_argument("--online-perception-route-preference-weight", type=float, default=2.0,
+                        help="soft hysteresis toward the last accepted global route")
     parser.add_argument("--windows", type=Path, default=C.REPO / "reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz")
     parser.add_argument("--autoencoder", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/autoencoder.pt")
     parser.add_argument("--flow", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/flow.pt")
@@ -1054,8 +1093,11 @@ def main() -> int:
     args = parser.parse_args()
     if (args.num_candidates < 2 or args.online_condition_iterations < 0
             or args.receding_horizon_ticks < 0 or args.progress_horizon_s <= 0
+            or args.online_perception_scan_ticks <= 0
             or args.projection_iterations < 0 or args.perception_simplify_tolerance_m <= 0
             or min(args.goal_x, args.segment_length_m, args.fps,
+                   args.online_perception_lookahead_m,
+                   args.online_perception_route_preference_weight,
                    args.min_forward_progress_m, args.max_candidate_heading_error_rad,
                    args.planner_body_radius_m, args.planner_clearance_m,
                    args.projection_step_size, args.projection_smooth_weight,

@@ -341,7 +341,8 @@ def _calibrate_envelope() -> np.ndarray:
 
 def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                  plan_options: list[list[CandidatePlan]], args: argparse.Namespace,
-                 replan_callback: Any | None = None) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+                 replan_callback: Any | None = None,
+                 perception_callback: Any | None = None) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     env = G1FlatEnv(scene)
     controller = SonicController()
     contacts = _ContactMonitor(env.model)
@@ -385,6 +386,8 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     runtime_safety_stop = False
     runtime_safety_stop_tick: int | None = None
     runtime_safety_stop_clearance: float | None = None
+    online_perception_failure: dict[str, Any] | None = None
+    online_perception_updates: list[dict[str, Any]] = []
     target_index = 1
     recent_features: list[np.ndarray] = []
     for tick in range(args.max_ticks):
@@ -410,13 +413,41 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         else:
             recent_features.append(current_feature.copy())
             recent_features = recent_features[-12:]
+        online_navigation: dict[str, Any] = {}
+        if perception_callback is not None:
+            online_navigation = dict(perception_callback(
+                int(tick), state, np.asarray(world_route[-1], dtype=np.float64),
+                np.asarray(world_route, dtype=np.float64)) or {})
+            if bool(online_navigation.get("updated", False)):
+                online_perception_updates.append({
+                    key: value for key, value in online_navigation.items()
+                    if key not in {"route_world_xyz", "radar_points_world"}
+                })
+            if bool(online_navigation.get("hard_stop", False)):
+                online_perception_failure = {
+                    "tick": int(tick),
+                    "failure": str(online_navigation.get("failure", "unknown online perception failure")),
+                }
+                break
         route_progress_m, _ = _route_progress(position, world_route)
         while target_index < len(world_keyframes):
             error = float(np.linalg.norm(world_keyframes[target_index] - position))
-            if error > args.keyframe_tolerance_m: break
+            target_progress_gate, _ = _route_progress(
+                world_keyframes[target_index], world_route)
+            # A live local A* route can move an intermediate waypoint laterally while retaining
+            # monotonic progress toward the same goal.  Do not wait forever for an obsolete
+            # offline waypoint after the robot has already passed its route station.  The final
+            # goal remains a strict Euclidean position gate.
+            progress_passed = bool(
+                perception_callback is not None
+                and target_index < len(world_keyframes) - 1
+                and route_progress_m >= target_progress_gate
+            )
+            if error > args.keyframe_tolerance_m and not progress_passed: break
             reached.append({"keyframe_index": target_index, "tick": tick,
                             "planned_xy_m": world_keyframes[target_index].tolist(),
                             "executed_xy_m": position.tolist(), "position_error_m": error,
+                            "reached_by": ("online_route_progress" if progress_passed else "position"),
                             "q_tracking_rms_rad": (float(np.sqrt(np.mean((previous_q - state["q_hw"][C.MUJOCO_TO_ISAACLAB]) ** 2)))
                                                     if previous_q is not None else 0.0)})
             target_index += 1
@@ -424,6 +455,8 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         segment = min(target_index - 1, len(plan_options) - 1)
         delta = world_keyframes[target_index] - position
         desired_yaw = float(np.arctan2(delta[1], delta[0]))
+        if "desired_yaw_rad" in online_navigation:
+            desired_yaw = float(online_navigation["desired_yaw_rad"])
         target_progress, _ = _route_progress(world_keyframes[target_index], world_route)
         progress_error = float(target_progress - route_progress_m)
         progress_horizon_s = max(float(getattr(args, "progress_horizon_s", 1.6)), 0.1)
@@ -592,6 +625,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     side_yaw_error = np.abs(np.degrees(np.abs(data["body_route_yaw_error"][side_mask]) - np.pi / 2.0)) if np.any(side_mask) else np.zeros(1)
     terminal_error = float(np.linalg.norm(positions[-1] - world_keyframes[-1]))
     failures = []
+    if online_perception_failure is not None: failures.append("online_perception_failure")
     if target_index < len(world_keyframes): failures.append("goal_or_keyframe_not_reached")
     if runtime_safety_stop: failures.append("runtime_self_manifold_clearance_stop")
     if bool(data["obstacle_contact"].any()): failures.append("scene_obstacle_contact")
@@ -633,6 +667,13 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "runtime_self_manifold_safety_stop": bool(runtime_safety_stop),
         "runtime_self_manifold_safety_stop_tick": runtime_safety_stop_tick,
         "runtime_self_manifold_safety_stop_clearance_m": runtime_safety_stop_clearance,
+        "online_perception_enabled": bool(perception_callback is not None),
+        "online_perception_updates": online_perception_updates,
+        "online_perception_failure": online_perception_failure,
+        "online_perception_contract": (
+            "live radar -> sliding voxel map -> local 3-D A* lookahead yaw override"
+            if perception_callback is not None else "disabled"
+        ),
         "primitive_switch_count": int(max(0, len(switches) - 1)), "max_pre_switch_joint_rms_rad": switch_rms,
         "primitive_ticks": {name: int(np.sum(data["active_primitive_name"] == name)) for name in PRIMITIVE_NAMES.values()},
         "start_world_xy_m": origin.tolist(), "final_world_xy_m": positions[-1].tolist(),

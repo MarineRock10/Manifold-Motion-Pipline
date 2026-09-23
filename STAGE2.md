@@ -142,11 +142,31 @@ self-manifold stops, minimum exact surface clearance 0.223 m, terminal error 0.2
 deviation P95 0.120 m, and body-route yaw P95 15.1 degrees. The official replay is now a
 synchronized split-screen GIF: left is the accepted MuJoCo G1 rollout, while right is the same
 tick's executed trace, active primitive, measured `M_r^safe`, world-frame `M_e`, radar returns,
-and 3-D probability slices. Its first 5 map frames replay the 5 radar updates; during Stage-2
-the P1 map is explicitly frozen, so the visualization does not imply unimplemented online SLAM.
+and 3-D probability slices. Its first 5 map frames replay the P1 scout updates. During Stage-2,
+the simulated radar continues at 2.5 Hz (`--online-perception-scan-ticks 20`): each scan updates
+the global sliding voxel grid, reruns local 3-D A*, and directly overrides the route lookahead yaw.
+The current accepted online run adds 19 live scans (5 initial + 19 online = 24 map updates).
+Intermediate legacy keyframes are progress-gated after a replan, while the terminal goal remains
+a strict Euclidean position gate. `online_perception.npz` stores every map snapshot, route, radar
+return batch, pose, and update tick used by the synchronized renderer.
 The output is `artifacts/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif` (the
 uncomposed MuJoCo-only file remains `manifold_adaptive.gif`); the corresponding report is
 `stage2_continuous_report.json`.
+
+### What remains after online perception
+
+The accepted online loop currently uses the new local A* route to control route yaw, while the
+physically screened primitive clips still come from the initial P1 route decomposition. The next
+algorithmic milestone is therefore online semantic replanning: rebuild the current `M_e` horizon,
+reroute the primitive token when its aperture class changes, generate/project candidates from the
+actual 69-D state/history, and commit a replacement only after a short-horizon MuJoCo safety gate.
+After that, replace full-grid A* with incremental ESDF + D* Lite/LPA* (the current safe CPU demo
+runs radar/SLAM/A* at 2.5 Hz), replace ground-truth MuJoCo odometry with timestamped SLAM poses,
+and fine-tune SONIC on root-velocity/turn/side/crouch transition data before hardware deployment.
+
+Six accepted long-horizon examples are collected by `run_stage2_long_gallery.ps1` (or `.sh`) in
+`reports/manifold_motion/stage2_long_sequence_gallery_v1/`: wide nominal walking, long crouch,
+long side gait, online center-block avoidance, crouch-walk-crouch, and crouch-to-side gait.
 
 For an execution-aware conditional-mean baseline, `train-mean` also accepts
 `--model-target-field target_exec`. That checkpoint uses the SONIC-achieved window target for

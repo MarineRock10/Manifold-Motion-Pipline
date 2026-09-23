@@ -272,6 +272,16 @@ def render(args: argparse.Namespace) -> Path:
         radar = {key: np.asarray(archive[key]) for key in archive.files}
     with np.load(args.executed) as archive:
         executed = {key: np.asarray(archive[key]) for key in archive.files}
+    online: dict[str, np.ndarray] | None = None
+    if args.online_perception is not None:
+        with np.load(args.online_perception) as archive:
+            online = {key: np.asarray(archive[key]) for key in archive.files}
+        required_online = {"probability", "map_origin_world_xyz", "update_ticks",
+                           "route_world_xyz", "route_offsets", "radar_points_world",
+                           "radar_offsets", "initial_map_updates"}
+        if not required_online.issubset(online):
+            raise ValueError(
+                f"online perception archive is missing {sorted(required_online - set(online))}")
     if not {"base_pos", "active_primitive_name", "robot_manifold_safe"}.issubset(executed):
         raise ValueError("executed.npz is missing synchronized pose/primitive/manifold fields")
 
@@ -336,11 +346,35 @@ def render(args: argparse.Namespace) -> Path:
             frames.append(frame)
 
     for source_frame, tick in zip(source_frames, source_ticks):
+        live_probability = final_probability
+        live_origin = final_origin
+        live_route = route_xy
+        live_radar = radar_points
+        live_updates = int(np.asarray(slam.get("update_count", 5)).item())
+        live_label = "Stage-2 rollout  (P1 map frozen after 5 updates)"
+        if online is not None:
+            update_ticks = np.asarray(online["update_ticks"], dtype=np.int64)
+            update_index = int(np.searchsorted(update_ticks, int(tick), side="right") - 1)
+            if update_index >= 0:
+                live_probability = np.asarray(online["probability"][update_index], dtype=np.float32)
+                live_origin = np.asarray(online["map_origin_world_xyz"][update_index], dtype=np.float64)
+                route_offsets = np.asarray(online["route_offsets"], dtype=np.int64)
+                route_start, route_stop = int(route_offsets[update_index]), int(route_offsets[update_index + 1])
+                live_route = np.asarray(online["route_world_xyz"][route_start:route_stop, :2])
+                radar_offsets = np.asarray(online["radar_offsets"], dtype=np.int64)
+                radar_stop = int(radar_offsets[update_index + 1])
+                live_radar = np.concatenate(
+                    [radar_points, np.asarray(online["radar_points_world"][:radar_stop])], axis=0)
+                initial_updates = int(np.asarray(online["initial_map_updates"]).item())
+                live_updates = initial_updates + update_index + 1
+                live_label = (
+                    f"Stage-2 LIVE radar/SLAM  update {update_index + 1}/{len(update_ticks)}  "
+                    f"(total={live_updates})"
+                )
         right = Image.new("RGB", (right_width, height), PANEL)
-        _draw_map_panel(right, final_probability, final_origin, config, xlim, ylim, route_xy,
-                         environment_corridor, trace, radar_points, executed, int(tick),
-                         "Stage-2 rollout  (P1 map frozen after 5 updates)", accepted,
-                         int(np.asarray(slam.get("update_count", 5)).item()))
+        _draw_map_panel(right, live_probability, live_origin, config, xlim, ylim, live_route,
+                         environment_corridor, trace, live_radar, executed, int(tick),
+                         live_label, accepted, live_updates)
         frame = Image.new("RGB", canvas_size, BACKGROUND)
         frame.paste(source_frame.resize((width, height), getattr(Image, "Resampling", Image).LANCZOS), (0, 0))
         frame.paste(right, (width, 0))
@@ -367,6 +401,8 @@ def main() -> int:
     parser.add_argument("--slam-grid", type=Path, required=True)
     parser.add_argument("--radar-returns", type=Path, required=True)
     parser.add_argument("--segment-conditions", type=Path, default=None)
+    parser.add_argument("--online-perception", type=Path, default=None,
+                        help="optional online_perception.npz for live map frames and local routes")
     parser.add_argument("--report", type=Path, default=None)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--fps", type=float, default=20.0)
