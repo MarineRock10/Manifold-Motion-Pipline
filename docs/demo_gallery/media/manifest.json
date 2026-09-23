@@ -103,6 +103,108 @@
       ],
       "sha256": "786977ce74cf622d75a7f6ab5a2547521011ee0fdaa97187ff46395839bf4c1d",
       "bytes": 4642543
+    },
+    {
+      "id": "manifold_behavior_matrix",
+      "title": "Primitive matrix: wide / low / narrow / side",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_manifold_behavior_v1/manifold_behavior.gif",
+      "purpose": "paired environment-manifold routing and same-reference counterfactual evidence",
+      "max_width": 620,
+      "stride": 2,
+      "preview": "docs/demo_gallery/media/manifold_behavior_matrix.gif",
+      "frames_source": 80,
+      "frames_preview": 40,
+      "size": [
+        620,
+        269
+      ],
+      "sha256": "8d98f1a33fca8d0a0830fa87b5b31ba2c241f4b9ca8f377bbf8bf899bdc20518",
+      "bytes": 2783989
+    },
+    {
+      "id": "flow_route_avoidance",
+      "title": "Flow candidates on a blocked route",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_flow_route_avoidance_v1/flow_route_avoidance.gif",
+      "purpose": "multiple conditional motion candidates screened against the MuJoCo route",
+      "max_width": 520,
+      "stride": 5,
+      "preview": "docs/demo_gallery/media/flow_route_avoidance.gif",
+      "frames_source": 306,
+      "frames_preview": 62,
+      "size": [
+        520,
+        634
+      ],
+      "sha256": "6007c290e3f1fb7b42f19e318720446b393341a9156a8e34c5069e8928adf4bb",
+      "bytes": 12627073
+    },
+    {
+      "id": "crouch_transition",
+      "title": "Transition \u2192 crouch without state reset",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_sequence_transition_crouch_v2/sequence.gif",
+      "purpose": "longer temporal transition with bridge frames and continuous MuJoCo state",
+      "max_width": 520,
+      "stride": 5,
+      "preview": "docs/demo_gallery/media/crouch_transition.gif",
+      "frames_source": 178,
+      "frames_preview": 36,
+      "size": [
+        512,
+        384
+      ],
+      "sha256": "aa9c4546fd4df4a45b078b0cdeb18893d104108762087c35588a1b79fcbd8d4d",
+      "bytes": 2041864
+    },
+    {
+      "id": "jump_and_land",
+      "title": "Generated jump and verified landing",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_jump_high_actor_test_scan_v1/index_0/physical_validation/jump.gif",
+      "purpose": "distinct high-amplitude primitive with airborne and landing checks",
+      "max_width": 520,
+      "stride": 2,
+      "preview": "docs/demo_gallery/media/jump_and_land.gif",
+      "frames_source": 80,
+      "frames_preview": 40,
+      "size": [
+        512,
+        384
+      ],
+      "sha256": "1b6eaf4fda7f7d85b24a4c9eff73d048b9da80091a4ba05dd0371cb58e3ba549",
+      "bytes": 2364423
+    },
+    {
+      "id": "long_side_gait",
+      "title": "Long narrow passage: side gait",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_long_sequence_gallery_v1/narrow_long/manifold_adaptive.gif",
+      "purpose": "extended side-on execution through a narrow environment manifold",
+      "max_width": 480,
+      "stride": 8,
+      "preview": "docs/demo_gallery/media/long_side_gait.gif",
+      "frames_source": 227,
+      "frames_preview": 29,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "a8950fad51c614f72e3691164efa250e7f6e3cf2a39bb25c4681da1eb920a75e",
+      "bytes": 4755208
+    },
+    {
+      "id": "long_low_gait",
+      "title": "Long low corridor: crouch gait",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_long_sequence_gallery_v1/low_long/manifold_adaptive.gif",
+      "purpose": "long-horizon low-clearance execution with measured self-manifold gating",
+      "max_width": 480,
+      "stride": 9,
+      "preview": "docs/demo_gallery/media/long_low_gait.gif",
+      "frames_source": 259,
+      "frames_preview": 29,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "f040ad08b87a9e3f9623bc9bd4f6db1ac6335d15823c0408aaa3ab45b185a43e",
+      "bytes": 4561470
     }
   ]
 }

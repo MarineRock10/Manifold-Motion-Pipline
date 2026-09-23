@@ -53,16 +53,41 @@ hard-coded route-segment token.
 The local lateral aperture requests side gait before the constrained region and returns to nominal
 walking after clearance recovers.
 
-## Official ORCS native baseline
+## Primitive behavior matrix
 
-[Download the bounded ORCS-Grail native MuJoCo rollout](docs/demo_gallery/media/orcs_grail_native.mp4)
+![Primitive behavior matrix](docs/demo_gallery/media/manifold_behavior_matrix.gif)
 
-This 120-frame clip is produced by the official `Orcs-PerLoco-Grail-AdaptSonic` release in its
-own MJLab/PyTorch environment, with the released frozen SONIC base and LoRA adapters. It is a
-terrain-only reference: the released policy observes 187 downward height rays, so it is not a
-fair side-wall or low-ceiling baseline for this 3-D manifold pipeline. The exact checkpoint SHA,
-observation contract and compatibility decision are recorded in
-[`ORCS_CONTROLLER_INTEGRATION.md`](ORCS_CONTROLLER_INTEGRATION.md).
+The same routing contract is shown for wide, low, narrow and obstacle-curved scenes. The selected
+primitive changes with the measured aperture and route curvature, not with a segment index.
+
+## Flow candidates on a blocked route
+
+![Flow route avoidance](docs/demo_gallery/media/flow_route_avoidance.gif)
+
+Multiple conditional references are generated for each route segment and screened by the exact
+SONIC/MuJoCo gate before one candidate is committed.
+
+## Transition into crouch without reset
+
+![Transition into crouch](docs/demo_gallery/media/crouch_transition.gif)
+
+The bridge is evaluated in one continuous simulator state; the transition is not a concatenation
+of separately reset clips.
+
+## Jump and landing
+
+![Jump and landing](docs/demo_gallery/media/jump_and_land.gif)
+
+This accepted high-amplitude primitive records airborne ticks and a verified landing while keeping
+non-foot floor contacts and obstacle contacts at zero.
+
+## Long side and low-clearance sequences
+
+![Long side gait](docs/demo_gallery/media/long_side_gait.gif)
+![Long low gait](docs/demo_gallery/media/long_low_gait.gif)
+
+These are longer no-reset sequences for side-on and crouch gait. The measured self-manifold gate
+remains active throughout the constrained intervals.
 
 ## Reproduce the previews
 

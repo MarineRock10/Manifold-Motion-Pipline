@@ -24,8 +24,7 @@
     "A0": {"tier": "diagnostic", "description": "Ours-4 without self-manifold gate"},
     "A1": {"tier": "diagnostic", "description": "Ours-4 without root/history"},
     "A2": {"tier": "diagnostic", "description": "route token instead of measured M_e"},
-    "A3": {"tier": "diagnostic", "description": "zero/random adapter residual"},
-    "ORCS-Grail": {"tier": "diagnostic", "description": "official ORCS PerLoco-Grail checkpoint in its native observation contract"}
+    "A3": {"tier": "diagnostic", "description": "zero/random condition residual"}
   },
   "scenario_variants": [
     {"id": "open-center", "family": "open", "split": "test"},

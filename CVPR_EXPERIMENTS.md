@@ -15,8 +15,8 @@ whole-body controller. It is a simulation plan, not a claim of CVPR acceptance.
    gate produces safe semantic switches without a root-position teleport.
 4. The measured self-manifold gate predicts collision/near-collision failures better than a
    pelvis-only corridor check.
-5. A frozen SONIC base with a zero-initialized condition adapter is a safer adaptation path than
-   replacing the base controller or training a controller from scratch.
+5. A measured self-manifold gate and state/history-conditioned candidate screen reduce unsafe
+   switches compared with a pelvis-only or open-loop reference check.
 
 ## Scenarios
 
@@ -55,12 +55,10 @@ termination thresholds.
 | A0 | Ours-4 without self-manifold gate | tests real-deployment safety layer |
 | A1 | Ours-4 without current root/history | tests the root-position/history hypothesis |
 | A2 | Ours-4 with route-segment token instead of measured `M_e` | tests environment causality |
-| A3 | Ours-4 with random/zero adapter residual | ORCS-style adaptation sanity check |
-| A4 | tabula-rasa MLP controller (same critic/observation budget) | controller capacity baseline |
-
+| A3 | Ours-4 with random/zero condition residual | condition-adapter sanity check |
 The primary paper comparison should be B2, Ours-2, Ours-3 and Ours-4. B0/B1/A0/A2 are
-diagnostic ablations; A4 is only meaningful if a reproducible from-scratch controller is
-available.
+diagnostic ablations. A tabula-rasa controller is intentionally deferred until a matched
+controller training budget and stable SONIC replacement interface exist.
 
 ## Metrics
 
@@ -137,9 +135,9 @@ PYTHONPATH=. python3 -m manifold_motion.stage2_transition_gate \
   --out reports/manifold_motion/seed_transition_stage2_v1/physical_gate.json
 ```
 
-Only after the simulation table is stable should the real SLAM ingress and SONIC/ORCS adapter be
-turned on. A public ORCS checkpoint is a task-specific PyTorch/rsl_rl model, not a drop-in ONNX
-replacement; the adapter experiment must therefore report base parity at zero residual first.
+Only after the simulation table is stable should the real SLAM ingress and any SONIC adaptation be
+turned on. The current paper claim is about the manifold-conditioned routing/gating chain, not a
+replacement controller.
 
 ## Pilot sanity checks (not final paper statistics)
 
@@ -151,9 +149,9 @@ replacement; the adapter experiment must therefore report base parity at zero re
   and has 27.1 ms median incremental latency after initialization versus 2.14 s for full voxel A*.
 - The transition supplement contains 192 clips; a representative MuJoCo gate accepts 12/12
   (`walk <-> turn/side/crouch`, two per direction).
-- The condition adapter preserves frozen SONIC exactly at zero residual. On the 24-clip pilot,
-  the best supervised warm-start reduces held-out action MSE from 0.5753 to 0.5493. This result is
-  only a pipeline check; the paper must report multi-seed PPO/distillation and closed-loop metrics.
+- The latest side-on pilot re-runs wide/low/narrow/center with zero obstacle contacts, 6/6 or
+  10/10 keyframes, and measured aperture-driven primitive changes. The separate dynamic pilot
+  reports 23.16 ms median incremental planning versus 2009.36 ms full voxel A*.
 
 ## CVPR-level evaluation governance
 
@@ -184,16 +182,6 @@ appropriate, bootstrap 95% confidence intervals, paired method-minus-B2 effects 
 counts. Control the four declared primary metric families with Holm-Bonferroni; do not present
 single-seed GIFs as quantitative evidence.
 
-## ORCS baseline policy
-
-The official `Orcs-PerLoco-Grail-AdaptSonic` release is included as `ORCS-Grail`, in its pinned
-PyTorch/MJLab observation contract. It is a fair baseline on curb/terrain scenes that its 17x11
-downward height scan can observe. It is marked not-applicable—not failed—on side-wall and
-low-ceiling tests, because the released policy has no observation of those obstacles. Any variant
-whose augmentation is replaced by the proposed 3-D manifold encoding is a newly trained method,
-not the public checkpoint. The measured compatibility contract and checkpoint audit are in
-`ORCS_CONTROLLER_INTEGRATION.md`.
-
 ## Required qualitative evidence
 
 The project page/GitHub gallery must contain, for both representative success and failure cases:
@@ -213,7 +201,7 @@ metrics remain downloadable artifacts. Preview generation never changes acceptan
 ## Reviewer-facing completeness checklist
 
 - Compare against route-only, offline-primitive, online-without-history and no-self-manifold
-  baselines; include the native ORCS terrain expert where its sensor contract applies.
+  baselines; keep the SONIC controller fixed across all primary comparisons.
 - Separate perception, planning, generation and controller latency, and report P50/P95 plus GPU
   memory on the named hardware.
 - Report training compute, evaluation compute, parameter counts and checkpoint-selection rule.

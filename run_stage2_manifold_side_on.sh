@@ -3,7 +3,10 @@ set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo"
-export PYTHONPATH="${repo}:/home/xiyuan/.local/share/sonic-manifold-g1"
+# Keep the repo first, but do not prepend the legacy SONIC wheel tree here:
+# that tree bundles a source-shaped NumPy directory which shadows the active
+# WSL/venv packages. The ONNX assets are resolved from manifold_motion.constants.
+export PYTHONPATH="${repo}${PYTHONPATH:+:${PYTHONPATH}}"
 export MUJOCO_GL=egl
 
 root="reports/manifold_motion/stage2_manifold_side_on_v3"

@@ -13,7 +13,7 @@ def _tiny_config(source: Path, destination: Path) -> None:
     config["methods"] = {
         "B2": config["methods"]["B2"],
         "Ours-2": config["methods"]["Ours-2"],
-        "ORCS-Grail": config["methods"]["ORCS-Grail"],
+        "Ours-4": config["methods"]["Ours-4"],
     }
     config["scenario_variants"] = [config["scenario_variants"][0]]
     config["robustness_scenario_ids"] = ["open-center"]
@@ -32,8 +32,8 @@ def test_plan_is_deterministic_and_audit_rejects_missing_rows(tmp_path: Path) ->
     manifest1 = build_plan(config_path, first)
     manifest2 = build_plan(config_path, second)
     assert first.read_bytes() == second.read_bytes()
-    assert manifest1["trial_count"] == 5
-    assert manifest1["trial_count_by_tier"] == {"diagnostic": 1, "primary": 4}
+    assert manifest1["trial_count"] == 6
+    assert manifest1["trial_count_by_tier"] == {"primary": 6}
     assert manifest1["config_sha256"] == manifest2["config_sha256"]
 
     rows = [json.loads(line) for line in first.read_text().splitlines()]
@@ -60,7 +60,7 @@ def test_plan_is_deterministic_and_audit_rejects_missing_rows(tmp_path: Path) ->
     results.write_text(json.dumps(result) + "\n", encoding="utf-8")
     report = audit(first, results, config_path)
     assert not report["accepted"]
-    assert report["missing_count"] == 4
+    assert report["missing_count"] == 5
 
 
 if __name__ == "__main__":

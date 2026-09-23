@@ -26,7 +26,7 @@ GR00T-WholeBodyControl trees were removed.
 | [`STAGE2_LONG_SEQUENCES.md`](STAGE2_LONG_SEQUENCES.md) | **long-horizon cases**: repeated manifold changes in one continuous rollout |
 | [`DEMO_GALLERY.md`](DEMO_GALLERY.md) | **GitHub visual gallery**: online SLAM, dynamic obstacles, long-horizon compound tasks, counterfactual and side-on passage |
 | [`CVPR_EXPERIMENTS.md`](CVPR_EXPERIMENTS.md) | **paper experiment protocol**: hypotheses, paired baselines, ablations, robustness, statistics and artifact policy |
-| [`ORCS_CONTROLLER_INTEGRATION.md`](ORCS_CONTROLLER_INTEGRATION.md) | **official ORCS checkpoint audit**: what can run directly, what is incompatible, and the fair baseline protocol |
+| [`CVPR_PILOT_RESULTS.md`](CVPR_PILOT_RESULTS.md) | **latest pilot evidence**: re-run side/low/center fixtures and dynamic replanning timing |
 
 ### Stage-2 GUI
 
@@ -51,6 +51,33 @@ right-offset-block scenes with crouch/side/turn route decisions.
 For long-horizon tasks, run `run_stage2_long_sequence_demo.ps1` or
 `./run_stage2_long_sequence_demo.sh`; these keep one MuJoCo state while crossing multiple
 manifold regions.
+
+### Visual results (accepted MuJoCo + SONIC simulations)
+
+These compact previews are checked into the repository so they render directly below this README
+on GitHub. They are generated only from accepted reports; the full-resolution clips and metrics
+remain in the reproducibility artifacts.
+
+<p>
+  <img src="docs/demo_gallery/media/online_closed_loop.gif" width="360" alt="Online 3-D SLAM to environment manifold to SONIC" />
+  <img src="docs/demo_gallery/media/moving_obstacle_replanning.gif" width="260" alt="Incremental replanning around a moving obstacle" />
+</p>
+<p>
+  <img src="docs/demo_gallery/media/manifold_behavior_matrix.gif" width="480" alt="Primitive matrix for wide, low and narrow manifolds" />
+  <img src="docs/demo_gallery/media/wide_vs_low_counterfactual.gif" width="360" alt="Counterfactual wide versus low corridor" />
+</p>
+<p>
+  <img src="docs/demo_gallery/media/flow_route_avoidance.gif" width="360" alt="Flow candidates screened on a blocked route" />
+  <img src="docs/demo_gallery/media/crouch_transition.gif" width="300" alt="Transition into crouch without reset" />
+</p>
+<p>
+  <img src="docs/demo_gallery/media/jump_and_land.gif" width="300" alt="Jump and verified landing" />
+  <img src="docs/demo_gallery/media/long_side_gait.gif" width="360" alt="Long side gait through a narrow passage" />
+  <img src="docs/demo_gallery/media/long_low_gait.gif" width="360" alt="Long crouch gait through a low corridor" />
+</p>
+
+See [`DEMO_GALLERY.md`](DEMO_GALLERY.md) for the complete list, scenario descriptions and
+reproduction command. The quantitative pilot log is [`CVPR_PILOT_RESULTS.md`](CVPR_PILOT_RESULTS.md).
 
 ### Deploy perception demo
 
