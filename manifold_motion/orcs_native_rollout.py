@@ -16,12 +16,46 @@ import numpy as np
 import torch
 
 
+def _focus_offscreen_camera(render_env) -> None:
+    """Center the camera on G1 instead of the terrain-world origin."""
+    renderer = getattr(render_env, "_offline_renderer", None)
+    scene = getattr(render_env, "scene", None)
+    if renderer is None or scene is None or not getattr(scene, "entities", None):
+        return
+    try:
+        import mujoco
+
+        camera = renderer._cam
+        camera.type = mujoco.mjtCamera.mjCAMERA_FREE.value
+        camera.trackbodyid = -1
+        camera.distance = 3.2
+        camera.elevation = -12.0
+        camera.azimuth = 135.0
+    except (AttributeError, StopIteration, TypeError, ValueError):
+        # Rendering is still useful with mjlab's task camera if a future ORCS
+        # release changes the private scene/renderer shape.
+        return
+
+
+def _update_camera_lookat(render_env) -> None:
+    renderer = getattr(render_env, "_offline_renderer", None)
+    sim = getattr(render_env, "sim", None)
+    if renderer is None or sim is None:
+        return
+    try:
+        root = sim.data.qpos[0, :3].detach().cpu().numpy()
+        renderer._cam.lookat[:] = root
+    except (AttributeError, IndexError, TypeError, ValueError):
+        return
+
+
 def _headless_run(viewer) -> None:
     env = viewer.env
     # ``run_play`` exposes an RslRlVecEnvWrapper, which intentionally omits
     # ``render``.  Its ``unwrapped`` ManagerBasedRlEnv retains the renderer
     # used by mjlab's VideoRecorder.
     render_env = getattr(env, "unwrapped", env)
+    _focus_offscreen_camera(render_env)
     observations = env.get_observations()
     frames: list[np.ndarray] = []
     steps = int(getattr(viewer, "_orcs_rollout_steps", 200))
@@ -40,6 +74,7 @@ def _headless_run(viewer) -> None:
             truncated = torch.zeros_like(done, dtype=torch.bool)
         else:
             raise RuntimeError(f"unexpected env.step return length: {len(step_result)}")
+        _update_camera_lookat(render_env)
         frame = render_env.render()
         if frame is not None:
             frame = np.asarray(frame)
