@@ -27,8 +27,8 @@ wsl.exe -d Ubuntu-22.04 --cd $wslRepo -- /usr/bin/env $envArgs /usr/bin/python3 
   --device cpu --fps 20
 if ($LASTEXITCODE -ne 0) { throw "Continuous deploy Stage-2 physical gate failed with exit code $LASTEXITCODE" }
 # Compose the accepted MuJoCo frames with the same-tick P1 probability map, executed trace,
-# active primitive, and measured self-manifold. The first five map frames replay the radar
-# updates; Stage-2 then runs on the resulting frozen P1 map.
+# active primitive, and measured self-manifold. After the initial P1 warm-up scans, Stage-2
+# continues ingesting radar frames and updating the sliding map/route throughout execution.
 wsl.exe -d Ubuntu-22.04 --cd $wslRepo -- /usr/bin/env $envArgs /usr/bin/python3 -m manifold_motion.render_synced_deploy_gif `
   --mujoco-gif "$stage2Wsl/manifold_adaptive.gif" `
   --executed "$stage2Wsl/executed.npz" `

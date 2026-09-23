@@ -384,3 +384,81 @@ For the current accepted fixtures, the measured route-frame means are approximat
 
 These values are generated frame-by-frame, not a fixed calibration ellipse. They are simulation
 fixture measurements until the real point-cloud perception adapter is connected.
+
+## Online semantic rerouting and incremental planning
+
+The deploy chain now updates more than route yaw. Every live sensor update produces
+`route -> M_e(48x7) + SDF -> debounced primitive_id`. If that primitive differs from the
+currently executing gait, Stage 2 decodes and projects live-condition candidates. A switch is
+committed only after a short shadow rollout cloned from the current MuJoCo `qpos/qvel/mocap`
+and the current ten-frame SONIC history passes fall, roll, tracking, contact and exact
+self-manifold-clearance gates.
+
+The ground-bound route layer uses an XY body-height projection of the full 3-D map. The map and
+vertical corridor remain 3-D; the route planner is incremental truncated ESDF + D* Lite in global
+grid coordinates. Reports include `planning_ms`, `expanded_vertices`, `changed_cost_cells`,
+`online_semantic_updates` and `online_semantic_switch_count`.
+
+```bash
+PYTHONPATH=. python3 tests/test_incremental_planner.py
+PYTHONPATH=. python3 -m manifold_motion.incremental_dynamic_benchmark \
+  --out reports/manifold_motion/incremental_dynamic_benchmark
+```
+
+The accepted moving-obstacle benchmark covers obstacle appearance, crossing and disappearance.
+Its JSON compares incremental latency with the previous full voxel A* and its GIF displays both
+the previous and updated routes.
+
+## Real SLAM/time/extrinsic ingress
+
+`manifold_motion.real_slam.TimeSynchronizedSlamAdapter` buffers timestamped `world_T_base`
+poses, interpolates at the sensor header timestamp, applies calibrated `base_T_sensor`, rejects
+stale/high-covariance packets, and emits the existing world-frame `RadarScan` contract. The
+transport-independent unit test is:
+
+```bash
+PYTHONPATH=. python3 tests/test_real_slam.py
+```
+
+`configs/real_slam_example.json` defines frames, time limits and the 4x4 extrinsic. An optional
+ROS2 transport is provided in `manifold_motion.ros2_slam_bridge`; the default topics are
+`/slam/odometry` (`nav_msgs/Odometry`) and `/radar/points`
+(`sensor_msgs/PointCloud2`). The current WSL acceptance uses simulated radar and ground-truth
+odometry; a real sensor has not been claimed as tested until those topics and the calibrated
+extrinsic are supplied on the target machine.
+
+## Transition supplement and SONIC adapter boundary
+
+The transition builder creates explicit actor/clip-provenance windows for `walk <-> turn`,
+`walk <-> side` and `walk <-> crouch`:
+
+```bash
+PYTHONPATH=. python3 -m manifold_motion.stage2_transition_dataset \
+  --windows reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz \
+  --out reports/manifold_motion/seed_transition_stage2_v1/transitions.npz
+PYTHONPATH=. python3 -m manifold_motion.stage2_transition_gate \
+  --transitions reports/manifold_motion/seed_transition_stage2_v1/transitions.npz \
+  --out reports/manifold_motion/seed_transition_stage2_v1/physical_gate.json
+```
+
+`manifold_motion.sonic_adapter` follows the reusable ORCS rule: frozen SONIC base,
+zero-initialized low-rank residual, and a separate augmentation stream containing environment,
+command and state/history. The zero adapter is bit-exact with the base by test. ORCS release
+checkpoints remain task-specific PyTorch/rsl_rl weights and are not substituted for the current
+ONNX files without conversion and parity verification.
+
+The resource-bounded warm-start can be reproduced with:
+
+```bash
+SONIC_ADAPTER_THREADS=4 SONIC_ADAPTER_TRANSITIONS=24 \
+  SONIC_ADAPTER_EPOCHS=10 ./run_sonic_adapter_warmstart.sh
+```
+
+The 24 selected clips are stratified by transition type and original source split. The current
+pilot contains 960 train, 240 validation and 720 held-out test action rows. The zero residual has
+exact base parity (`max_abs=0.0`); the best validation checkpoint reduces held-out action MSE from
+0.5753 to 0.5493. This is a supervised initialization only. It is not enabled in the deployment
+controller until privileged PPO/distillation and the complete MuJoCo acceptance matrix pass.
+
+The simulation paper protocol, baselines, ablations and statistics are specified in
+`CVPR_EXPERIMENTS.md` and `configs/cvpr_simulation_protocol.json`.

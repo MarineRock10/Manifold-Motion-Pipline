@@ -858,6 +858,81 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                       "anchor_disabled": bool(args.disable_anchor),
                       "commit": not args.receding_horizon_shadow}
 
+    def semantic_replan(segment: int, primitive_id: int, corridor: np.ndarray,
+                        sdf: np.ndarray, state: np.ndarray, history: np.ndarray,
+                        current_q: np.ndarray, tick: int):
+        """Generate live-M_e proposals; execute_plan performs the current-state shadow gate."""
+        if primitive_id not in (2, 4, 5):
+            return [], {"reason": "unsupported_online_primitive", "primitive_id": primitive_id}
+        command = RouteFlowSampler._yaw_command(corridor[-1, :3], 0.0)
+        generated, source_index = sampler.sample(
+            primitive_id, corridor, sdf, command, max(2, args.num_candidates),
+            seed=args.seed + 1_700_003 + tick * 7 + primitive_id,
+            state=state, history=history,
+            raw_exemplar=(primitive_id in (4, 5) and not args.disable_anchor),
+            include_mean_anchor=not args.pure_stochastic_flow,
+        )
+        if (primitive_id == 2 and not args.disable_learned_anchor
+                and not args.pure_stochastic_flow):
+            anchor, _ = sampler.sample(
+                primitive_id, corridor, sdf, command, 1,
+                seed=args.seed + 1_700_003 + tick * 7 + primitive_id,
+                include_mean_anchor=True,
+            )
+            generated[0] = anchor[0]
+        ranked: list[tuple[float, CandidatePlan]] = []
+        candidate_rows = []
+        for candidate_index, trajectory in enumerate(generated):
+            projected, projection = project_reference(
+                trajectory, corridor, projection_config, handoff_q=current_q)
+            continuity = float(np.sqrt(np.mean((projected[0, :29] - current_q) ** 2)))
+            displacement = projected[-1, 29:31] - projected[0, 29:31]
+            expected_progress = (float(abs(displacement[1])) if primitive_id == 4
+                                 else float(displacement[0]))
+            direction_penalty = max(0.0, args.min_forward_progress_m - expected_progress)
+            # Candidate zero is the previously full-clip-screened safety anchor for p4/p5
+            # (and learned support anchor for p2). A 24-tick shadow gate proves immediate
+            # stability but not a full gait loop; bias toward the anchor unless continuity is
+            # dramatically worse, preventing a short-horizon-stable stochastic clip from
+            # stalling indefinitely after commit.
+            safety_anchor = bool(candidate_index == 0 and not args.pure_stochastic_flow
+                                 and (primitive_id != 2 or not args.disable_learned_anchor))
+            score = continuity + 0.35 * direction_penalty - (0.15 if safety_anchor else 0.0)
+            heading_offset = float(np.arctan2(displacement[1], displacement[0]))
+            screen_summary = {
+                "accepted": True, "online_semantic_proposal": True,
+                "candidate_index": int(candidate_index), "source_index": int(source_index),
+                "continuity_rms_rad": continuity,
+                "predicted_route_progress_m": expected_progress,
+                "safety_anchor": safety_anchor,
+                "exec_heading_offset_rad": heading_offset,
+                "side_on_semantics_passed": bool(primitive_id == 4
+                                                  and args.side_gait_mode == "side_on"),
+                "projection": projection,
+            }
+            plan = CandidatePlan(
+                segment, primitive_id, PRIMITIVE_NAMES[primitive_id], candidate_index,
+                projected,
+                _motion_from_trajectory(projected, args.out / "online_semantic_candidate.npz",
+                                        30.0, 50.0),
+                screen_summary,
+            )
+            ranked.append((score, plan))
+            candidate_rows.append({
+                "candidate_index": int(candidate_index), "continuity_rms_rad": continuity,
+                "predicted_route_progress_m": expected_progress, "rank_score": score,
+                "safety_anchor": safety_anchor,
+                "projection_objective_before": projection["objective_before"]["total"],
+                "projection_objective_after": projection["objective_after"]["total"],
+            })
+        ranked.sort(key=lambda item: item[0])
+        return [item[1] for item in ranked], {
+            "reason": "live_M_e_primitive_mismatch",
+            "primitive": PRIMITIVE_NAMES[primitive_id], "candidate_count": len(ranked),
+            "source_index": int(source_index), "candidates": candidate_rows,
+            "safety_contract": "all ranked proposals require current-state MuJoCo shadow acceptance",
+        }
+
     def new_online_perception() -> OnlinePerceptionNavigator | None:
         if not args.online_perception:
             return None
@@ -875,6 +950,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             body_radius_m=args.planner_body_radius_m,
             clearance_m=args.planner_clearance_m,
             route_preference_weight=args.online_perception_route_preference_weight,
+            crouch_semi_z_m=args.crouch_semi_z_m,
+            side_semi_y_m=args.side_semi_y_m,
+            decision_confirm_updates=int(getattr(args, "online_primitive_confirm_updates", 2)),
             seed=args.seed + 7103,
         )
 
@@ -886,6 +964,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             args.scene, keyframes, dense_route, plan_options, args,
             replan_callback=(receding_replan if args.receding_horizon_ticks > 0 else None),
             perception_callback=probe_perception,
+            semantic_replan_callback=(semantic_replan
+                                      if getattr(args, "online_primitive_reroute", False) else None),
         )
         online_overrides = _online_condition_overrides(probe_data, probe_execution, len(segment_inputs))
         plan_options, evidence = build_plan_options(online_overrides)
@@ -897,6 +977,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         args.scene, keyframes, dense_route, plan_options, args,
         replan_callback=(receding_replan if args.receding_horizon_ticks > 0 else None),
         perception_callback=final_perception,
+        semantic_replan_callback=(semantic_replan
+                                  if getattr(args, "online_primitive_reroute", False) else None),
     )
     if final_perception is not None:
         final_perception.save(args.out / "online_perception.npz")
@@ -1017,6 +1099,12 @@ def main() -> int:
     parser.add_argument("--online-perception-lookahead-m", type=float, default=0.45)
     parser.add_argument("--online-perception-route-preference-weight", type=float, default=2.0,
                         help="soft hysteresis toward the last accepted global route")
+    parser.add_argument("--disable-online-primitive-reroute", action="store_true",
+                        help="ablation: keep online route yaw but do not let live M_e switch primitives")
+    parser.add_argument("--online-primitive-confirm-updates", type=int, default=2,
+                        help="consecutive radar updates required before committing an M_e class")
+    parser.add_argument("--online-shadow-ticks", type=int, default=24,
+                        help="current-state MuJoCo ticks used to gate a semantic switch")
     parser.add_argument("--windows", type=Path, default=C.REPO / "reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz")
     parser.add_argument("--autoencoder", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/autoencoder.pt")
     parser.add_argument("--flow", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/flow.pt")
@@ -1091,9 +1179,12 @@ def main() -> int:
     parser.add_argument("--fps", type=float, default=20.0)
     parser.add_argument("--skip-render", action="store_true")
     args = parser.parse_args()
+    args.online_primitive_reroute = bool(
+        args.online_perception and not args.disable_online_primitive_reroute)
     if (args.num_candidates < 2 or args.online_condition_iterations < 0
             or args.receding_horizon_ticks < 0 or args.progress_horizon_s <= 0
             or args.online_perception_scan_ticks <= 0
+            or args.online_primitive_confirm_updates <= 0 or args.online_shadow_ticks <= 0
             or args.projection_iterations < 0 or args.perception_simplify_tolerance_m <= 0
             or min(args.goal_x, args.segment_length_m, args.fps,
                    args.online_perception_lookahead_m,

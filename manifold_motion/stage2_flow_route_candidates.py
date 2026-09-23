@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -317,6 +318,103 @@ def _handoff_phase(motion: Any, previous_q: np.ndarray | None, default: int = 6,
     return int(np.argmin(error))
 
 
+def _clone_sonic_controller(controller: SonicController) -> SonicController:
+    """Clone mutable SONIC history while sharing immutable ONNX Runtime sessions."""
+    clone = SonicController.__new__(SonicController)
+    for name in ("encoder", "decoder", "enc_layout", "dec_layout", "mode_id", "required",
+                 "enc_dim", "dec_dim"):
+        setattr(clone, name, getattr(controller, name))
+    clone.enc_in = controller.enc_in.copy()
+    clone.dec_in = controller.dec_in.copy()
+    clone.history = deque(({
+        key: value.copy() for key, value in row.items()
+    } for row in controller.history), maxlen=10)
+    clone.last_action = controller.last_action.copy()
+    clone.delta_heading = (None if controller.delta_heading is None
+                           else controller.delta_heading.copy())
+    return clone
+
+
+def _shadow_screen_current_state(scene: Path, env: G1FlatEnv, controller: SonicController,
+                                 plan: CandidatePlan, previous_q: np.ndarray | None,
+                                 args: argparse.Namespace) -> dict[str, Any]:
+    """Short current-state MuJoCo rollout used before an online semantic switch.
+
+    This is deliberately different from the offline reset screen: qpos/qvel, mocap state and
+    the ten-frame SONIC decoder history are copied from the live executor.  The shadow never
+    mutates the live world.
+    """
+    shadow = G1FlatEnv(scene)
+    if shadow.model.nq != env.model.nq or shadow.model.nv != env.model.nv:
+        return {"accepted": False, "failed_checks": ["shadow_model_shape_mismatch"]}
+    shadow.data.qpos[:] = env.data.qpos
+    shadow.data.qvel[:] = env.data.qvel
+    if shadow.data.act.size == env.data.act.size:
+        shadow.data.act[:] = env.data.act
+    if shadow.data.mocap_pos.shape == env.data.mocap_pos.shape:
+        shadow.data.mocap_pos[:] = env.data.mocap_pos
+        shadow.data.mocap_quat[:] = env.data.mocap_quat
+    shadow.data.time = env.data.time
+    shadow.time = env.time
+    shadow.q_des = env.q_des.copy()
+    mujoco.mj_forward(shadow.model, shadow.data)
+    shadow_controller = _clone_sonic_controller(controller)
+    contacts = _ContactMonitor(shadow.model)
+    phase = min(6, plan.motion.T - 1)
+    q_previous = (shadow.state()["q_hw"][C.MUJOCO_TO_ISAACLAB]
+                  if previous_q is None else np.asarray(previous_q, dtype=np.float64))
+    ticks = int(getattr(args, "online_shadow_ticks", 24))
+    blend_ticks = max(1, int(getattr(args, "handoff_blend_ticks", 12)))
+    root_z, roll_deg, tracking, clearances = [], [], [], []
+    obstacle_contact = False
+    nonfoot_contact = False
+    for step in range(ticks):
+        state = shadow.state()
+        reference, phase = _rolling_reference(
+            plan.motion, phase, _yaw(state["base_quat"]), horizon=50)
+        weights = np.clip((step + np.arange(1, reference.T + 1)) / blend_ticks,
+                          0.0, 1.0)[:, None]
+        reference.joint_pos = (1.0 - weights) * q_previous[None, :] + weights * reference.joint_pos
+        reference.joint_vel = weights * reference.joint_vel
+        shadow_controller.append_state(
+            state["q_hw"], state["dq_hw"], state["base_quat"], state["base_ang_vel"])
+        _, target, _ = shadow_controller.act(reference, state["base_quat"])
+        shadow.set_target(target); shadow.step()
+        executed = shadow.state()
+        _, _, nonfoot, obstacle = contacts.flags(shadow.data)
+        boxes = _runtime_obstacle_boxes(shadow.model, shadow.data)
+        clearance = _runtime_surface_clearance(body_points(shadow.model, shadow.data), boxes)
+        root_z.append(float(executed["base_pos"][2]))
+        roll_deg.append(float(np.abs(_roll_degrees(executed["base_quat"][None, :]))[0]))
+        tracking.append(float(np.sqrt(np.mean((reference.joint_pos[0]
+                                                - executed["q_hw"][C.MUJOCO_TO_ISAACLAB]) ** 2))))
+        clearances.append(float(clearance))
+        obstacle_contact |= bool(obstacle)
+        nonfoot_contact |= bool(nonfoot)
+    threshold = float(getattr(args, "self_manifold_clearance_m", 0.02))
+    failures = []
+    if min(root_z) < float(getattr(args, "fall_height_m", 0.30)):
+        failures.append("shadow_fall_height")
+    if max(roll_deg) > float(getattr(args, "max_roll_deg", 45.0)):
+        failures.append("shadow_roll_limit")
+    if float(np.mean(tracking)) > float(getattr(args, "max_tracking_error_rad", 0.35)):
+        failures.append("shadow_tracking_error")
+    if obstacle_contact:
+        failures.append("shadow_obstacle_contact")
+    if nonfoot_contact:
+        failures.append("shadow_nonfoot_floor_contact")
+    if min(clearances) < threshold:
+        failures.append("shadow_self_manifold_clearance")
+    return {
+        "accepted": not failures, "failed_checks": failures, "ticks": ticks,
+        "base_z_min_m": min(root_z), "roll_abs_max_deg": max(roll_deg),
+        "track_err_mean_rad": float(np.mean(tracking)),
+        "self_manifold_clearance_min_m": min(clearances),
+        "obstacle_contact": obstacle_contact, "nonfoot_floor_contact": nonfoot_contact,
+        "contract": "cloned current qpos/qvel/mocap + cloned 10-frame SONIC history",
+    }
+
+
 def _calibrate_envelope() -> np.ndarray:
     estimator = ExecutedEnvelopeEstimator()
     paths = [
@@ -342,7 +440,9 @@ def _calibrate_envelope() -> np.ndarray:
 def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                  plan_options: list[list[CandidatePlan]], args: argparse.Namespace,
                  replan_callback: Any | None = None,
-                 perception_callback: Any | None = None) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+                 perception_callback: Any | None = None,
+                 semantic_replan_callback: Any | None = None
+                 ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     env = G1FlatEnv(scene)
     controller = SonicController()
     contacts = _ContactMonitor(env.model)
@@ -388,6 +488,9 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     runtime_safety_stop_clearance: float | None = None
     online_perception_failure: dict[str, Any] | None = None
     online_perception_updates: list[dict[str, Any]] = []
+    online_semantic_updates: list[dict[str, Any]] = []
+    online_semantic_choice: dict[int, int] = {}
+    last_semantic_request: tuple[int, int, int] | None = None
     target_index = 1
     recent_features: list[np.ndarray] = []
     for tick in range(args.max_ticks):
@@ -421,7 +524,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             if bool(online_navigation.get("updated", False)):
                 online_perception_updates.append({
                     key: value for key, value in online_navigation.items()
-                    if key not in {"route_world_xyz", "radar_points_world"}
+                    if key not in {"route_world_xyz", "radar_points_world", "corridor", "sdf"}
                 })
             if bool(online_navigation.get("hard_stop", False)):
                 online_perception_failure = {
@@ -453,6 +556,65 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             target_index += 1
         if target_index >= len(world_keyframes): break
         segment = min(target_index - 1, len(plan_options) - 1)
+        # A new online M_e may contradict the primitive chosen from the initial map. Generate
+        # candidates from the live corridor/state/history, then gate each one in a cloned
+        # current-state MuJoCo world before changing the reference used by the live controller.
+        if (semantic_replan_callback is not None
+                and bool(online_navigation.get("updated", False))
+                and "primitive_id" in online_navigation
+                and "corridor" in online_navigation and "sdf" in online_navigation):
+            requested_id = int(online_navigation["primitive_id"])
+            current_option_index = online_semantic_choice.get(segment, len(plan_options[segment]) - 1)
+            current_id = int(plan_options[segment][current_option_index].primitive_id)
+            request_key = (int(online_navigation.get("online_update_count", 0)),
+                           int(segment), requested_id)
+            if requested_id != current_id and request_key != last_semantic_request:
+                last_semantic_request = request_key
+                proposals, semantic_report = semantic_replan_callback(
+                    segment, requested_id,
+                    np.asarray(online_navigation["corridor"], dtype=np.float32),
+                    np.asarray(online_navigation["sdf"], dtype=np.float32),
+                    current_feature.copy(), np.asarray(recent_features, dtype=np.float32),
+                    state["q_hw"][C.MUJOCO_TO_ISAACLAB].copy(), tick,
+                )
+                if proposals is None:
+                    proposals = []
+                if isinstance(proposals, CandidatePlan):
+                    proposals = [proposals]
+                shadow_rows = []
+                accepted_plan = None
+                for proposal in proposals:
+                    shadow = _shadow_screen_current_state(
+                        scene, env, controller, proposal, previous_q, args)
+                    shadow_rows.append({"candidate_index": proposal.candidate_index, **shadow})
+                    if shadow["accepted"] and accepted_plan is None:
+                        accepted_plan = proposal
+                committed = accepted_plan is not None
+                previous_id = current_id
+                if committed:
+                    # Keep the nominal fallback. The preferred semantic slot is index 0 unless
+                    # index 0 is the geometric turn helper, in which case it is index 1.
+                    preferred_index = next((index for index, option in enumerate(plan_options[segment])
+                                            if option.primitive_id == requested_id), None)
+                    if preferred_index is None:
+                        preferred_index = 1 if plan_options[segment][0].primitive_id == 6 else 0
+                        plan_options[segment].insert(preferred_index, accepted_plan)
+                        phases[segment].insert(preferred_index, min(6, accepted_plan.motion.T - 1))
+                    else:
+                        plan_options[segment][preferred_index] = accepted_plan
+                        phases[segment][preferred_index] = min(6, accepted_plan.motion.T - 1)
+                    online_semantic_choice[segment] = int(preferred_index)
+                    # Force the normal semantic handoff branch below to apply preview-space
+                    # crossfade even though the list index itself did not change.
+                    active = None
+                online_semantic_updates.append({
+                    "tick": int(tick), "segment": int(segment),
+                    "from_primitive_id": previous_id, "requested_primitive_id": requested_id,
+                    "committed": bool(committed), "preferred_option_index": (
+                        int(preferred_index) if committed else None),
+                    "shadow_candidates": shadow_rows,
+                    **(semantic_report or {}),
+                })
         delta = world_keyframes[target_index] - position
         desired_yaw = float(np.arctan2(delta[1], delta[0]))
         if "desired_yaw_rad" in online_navigation:
@@ -465,7 +627,8 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         # A generated gait need not move along its pelvis forward axis.  Infer the body yaw
         # that makes the selected locomotion displacement align with the route, then use the
         # turn helper only until that measured body-yaw target is reached.
-        base_plan = plan_options[segment][-1]
+        semantic_option_index = online_semantic_choice.get(segment, len(plan_options[segment]) - 1)
+        base_plan = plan_options[segment][semantic_option_index]
         base_heading_offset = (0.0 if base_plan.primitive_id == 6 else
                                float(base_plan.screen_summary.get("exec_heading_offset_rad", 0.0)))
         side_yaw_offset = float(getattr(args, "side_body_yaw_offset_rad", 0.0))
@@ -476,9 +639,13 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         option_index = 0
         if len(plan_options[segment]) > 1:
             if getattr(args, "manifold_adaptive", False):
-                # Option zero is a transient turn helper; the last option is always the
-                # primitive selected from M_e.  Switching depends only on measured yaw error.
-                option_index = 0 if abs(alignment_yaw_error) > args.turn_threshold_rad else len(plan_options[segment]) - 1
+                # A real turn helper is primitive 6 at option zero. Online M_e choices may add
+                # another preferred slot while retaining nominal fallback; never mistake that
+                # semantic slot for a turn helper merely because its index is zero.
+                has_turn_helper = plan_options[segment][0].primitive_id == 6
+                option_index = (0 if has_turn_helper
+                                and abs(alignment_yaw_error) > args.turn_threshold_rad
+                                else semantic_option_index)
             elif segment_ticks[segment] >= args.action_hold_ticks:
                 option_index = 1
         plan = plan_options[segment][option_index]
@@ -669,9 +836,13 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "runtime_self_manifold_safety_stop_clearance_m": runtime_safety_stop_clearance,
         "online_perception_enabled": bool(perception_callback is not None),
         "online_perception_updates": online_perception_updates,
+        "online_semantic_updates": online_semantic_updates,
+        "online_semantic_switch_count": int(sum(bool(row.get("committed"))
+                                                  for row in online_semantic_updates)),
         "online_perception_failure": online_perception_failure,
         "online_perception_contract": (
-            "live radar -> sliding voxel map -> local 3-D A* lookahead yaw override"
+            "live radar -> 3-D sliding map -> incremental ESDF/D* Lite -> M_e -> "
+            "current-state shadow-gated primitive switch and lookahead yaw"
             if perception_callback is not None else "disabled"
         ),
         "primitive_switch_count": int(max(0, len(switches) - 1)), "max_pre_switch_joint_rms_rad": switch_rms,

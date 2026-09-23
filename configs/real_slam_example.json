@@ -1,0 +1,18 @@
+{
+  "base_T_sensor": [
+    [1.0, 0.0, 0.0, 0.20],
+    [0.0, 1.0, 0.0, 0.00],
+    [0.0, 0.0, 1.0, 0.22],
+    [0.0, 0.0, 0.0, 1.00]
+  ],
+  "sync": {
+    "max_pose_gap_s": 0.10,
+    "max_extrapolation_s": 0.025,
+    "sensor_time_offset_s": 0.0,
+    "max_position_covariance_trace": 0.20,
+    "pose_buffer_size": 512,
+    "world_frame": "map",
+    "base_frame": "base_link",
+    "sensor_frame": "radar_link"
+  }
+}

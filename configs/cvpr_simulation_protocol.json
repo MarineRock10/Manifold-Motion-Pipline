@@ -1,0 +1,23 @@
+{
+  "control_hz": 50,
+  "radar_hz": 2.5,
+  "voxel_resolution_m": 0.08,
+  "voxel_shape_xyz": [128, 128, 32],
+  "seeds": 32,
+  "held_out_geometry_seeds": 8,
+  "bootstrap_resamples": 10000,
+  "methods": ["B0", "B1", "B2", "B3", "Ours-1", "Ours-2", "Ours-3", "Ours-4", "A0", "A1", "A2", "A3"],
+  "noise": {
+    "radar_range_std_m": [0.0, 0.008, 0.02],
+    "radar_dropout": [0.0, 0.03, 0.10],
+    "slam_timestamp_skew_s": [0.0, 0.01, 0.03],
+    "base_sensor_translation_error_m": [0.0, 0.01, 0.03],
+    "base_sensor_rotation_error_deg": [0.0, 1.0, 3.0]
+  },
+  "hard_gate": {
+    "max_roll_deg": 45.0,
+    "max_tracking_error_rad": 0.35,
+    "min_self_manifold_clearance_m": 0.02,
+    "max_terminal_keyframe_error_m": 0.22
+  }
+}
