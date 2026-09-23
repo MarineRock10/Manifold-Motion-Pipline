@@ -1,23 +1,87 @@
 {
+  "schema": "manifold-motion.cvpr-simulation.v2",
   "control_hz": 50,
   "radar_hz": 2.5,
   "voxel_resolution_m": 0.08,
   "voxel_shape_xyz": [128, 128, 32],
-  "seeds": 32,
+  "training_seeds": [20260923, 20260924, 20260925, 20260926, 20260927],
+  "evaluation_seed_start": 31000,
+  "evaluation_seeds_primary": 32,
+  "evaluation_seeds_diagnostic": 8,
   "held_out_geometry_seeds": 8,
   "bootstrap_resamples": 10000,
-  "methods": ["B0", "B1", "B2", "B3", "Ours-1", "Ours-2", "Ours-3", "Ours-4", "A0", "A1", "A2", "A3"],
-  "noise": {
-    "radar_range_std_m": [0.0, 0.008, 0.02],
-    "radar_dropout": [0.0, 0.03, 0.10],
-    "slam_timestamp_skew_s": [0.0, 0.01, 0.03],
-    "base_sensor_translation_error_m": [0.0, 0.01, 0.03],
-    "base_sensor_rotation_error_deg": [0.0, 1.0, 3.0]
+  "paired_baseline": "B2",
+  "primary_methods": ["B2", "Ours-2", "Ours-3", "Ours-4"],
+  "methods": {
+    "B0": {"tier": "diagnostic", "description": "nominal SONIC + straight route"},
+    "B1": {"tier": "diagnostic", "description": "full voxel A* + nominal primitive"},
+    "B2": {"tier": "primary", "description": "full voxel A* + offline primitive"},
+    "B3": {"tier": "diagnostic", "description": "full voxel A* + online M_e, no history"},
+    "Ours-1": {"tier": "diagnostic", "description": "incremental ESDF/D* Lite + online M_e"},
+    "Ours-2": {"tier": "primary", "description": "Ours-1 + feasibility projection"},
+    "Ours-3": {"tier": "primary", "description": "Ours-2 + history/shadow gate/hysteresis"},
+    "Ours-4": {"tier": "primary", "description": "Ours-3 + state/history Flow candidate"},
+    "A0": {"tier": "diagnostic", "description": "Ours-4 without self-manifold gate"},
+    "A1": {"tier": "diagnostic", "description": "Ours-4 without root/history"},
+    "A2": {"tier": "diagnostic", "description": "route token instead of measured M_e"},
+    "A3": {"tier": "diagnostic", "description": "zero/random adapter residual"},
+    "ORCS-Grail": {"tier": "diagnostic", "description": "official ORCS PerLoco-Grail checkpoint in its native observation contract"}
   },
+  "scenario_variants": [
+    {"id": "open-center", "family": "open", "split": "test"},
+    {"id": "open-wide", "family": "open", "split": "test"},
+    {"id": "narrow-095-left", "family": "static_narrow", "width_m": 0.95, "side": "left", "split": "test"},
+    {"id": "narrow-095-right", "family": "static_narrow", "width_m": 0.95, "side": "right", "split": "test"},
+    {"id": "narrow-085-left", "family": "static_narrow", "width_m": 0.85, "side": "left", "split": "test"},
+    {"id": "narrow-085-right", "family": "static_narrow", "width_m": 0.85, "side": "right", "split": "test"},
+    {"id": "narrow-075-left", "family": "static_narrow", "width_m": 0.75, "side": "left", "split": "stress"},
+    {"id": "narrow-075-right", "family": "static_narrow", "width_m": 0.75, "side": "right", "split": "stress"},
+    {"id": "low-120", "family": "static_low", "height_m": 1.20, "split": "test"},
+    {"id": "low-110", "family": "static_low", "height_m": 1.10, "split": "test"},
+    {"id": "low-100", "family": "static_low", "height_m": 1.00, "split": "test"},
+    {"id": "low-090", "family": "static_low", "height_m": 0.90, "split": "stress"},
+    {"id": "compound-side-low-turn", "family": "compound", "split": "test"},
+    {"id": "compound-low-side-wide", "family": "compound", "split": "test"},
+    {"id": "compound-repeated-low", "family": "compound", "split": "test"},
+    {"id": "dynamic-crossing-block", "family": "dynamic", "split": "test"},
+    {"id": "dynamic-appear-disappear", "family": "dynamic", "split": "test"},
+    {"id": "dynamic-moving-wall", "family": "dynamic", "split": "test"},
+    {"id": "dynamic-route-reopen", "family": "dynamic", "split": "test"},
+    {"id": "heldout-box-layout", "family": "generalization", "split": "heldout"},
+    {"id": "heldout-corridor-length", "family": "generalization", "split": "heldout"},
+    {"id": "heldout-aperture-composition", "family": "generalization", "split": "heldout"}
+  ],
+  "robustness_conditions": [
+    {"id": "nominal", "radar_range_std_m": 0.0, "radar_dropout": 0.0, "slam_timestamp_skew_s": 0.0, "extrinsic_translation_error_m": 0.0, "extrinsic_rotation_error_deg": 0.0},
+    {"id": "radar-noise-8mm", "radar_range_std_m": 0.008},
+    {"id": "radar-noise-20mm", "radar_range_std_m": 0.02},
+    {"id": "radar-dropout-10pct", "radar_dropout": 0.10},
+    {"id": "slam-skew-30ms", "slam_timestamp_skew_s": 0.03},
+    {"id": "extrinsic-translation-3cm", "extrinsic_translation_error_m": 0.03},
+    {"id": "extrinsic-rotation-3deg", "extrinsic_rotation_error_deg": 3.0}
+  ],
+  "robustness_scenario_ids": [
+    "open-center", "narrow-085-left", "low-100",
+    "compound-side-low-turn", "dynamic-crossing-block"
+  ],
   "hard_gate": {
     "max_roll_deg": 45.0,
     "max_tracking_error_rad": 0.35,
     "min_self_manifold_clearance_m": 0.02,
     "max_terminal_keyframe_error_m": 0.22
+  },
+  "required_result_fields": [
+    "run_id", "method", "scenario", "seed", "success", "collision",
+    "min_clearance_m", "terminal_error_m", "route_deviation_p95_m",
+    "planning_median_ms", "planning_p95_ms", "semantic_switches",
+    "false_switches", "failure_type"
+  ],
+  "statistics": {
+    "confidence": 0.95,
+    "familywise_primary_metrics": ["success", "collision", "min_clearance_m", "planning_p95_ms"],
+    "multiple_comparison_control": "Holm-Bonferroni",
+    "report_effect_sizes": true,
+    "paired_by": ["scenario", "robustness", "seed"],
+    "no_seed_exclusion_after_execution": true
   }
 }

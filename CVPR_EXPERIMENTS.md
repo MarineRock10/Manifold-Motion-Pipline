@@ -154,3 +154,73 @@ replacement; the adapter experiment must therefore report base parity at zero re
 - The condition adapter preserves frozen SONIC exactly at zero residual. On the 24-clip pilot,
   the best supervised warm-start reduces held-out action MSE from 0.5753 to 0.5493. This result is
   only a pipeline check; the paper must report multi-seed PPO/distillation and closed-loop metrics.
+
+## CVPR-level evaluation governance
+
+The paper table is generated from a frozen plan, not from whichever runs happened to succeed.
+Before the first full sweep:
+
+1. Freeze `configs/cvpr_simulation_protocol.json`, the code commit, five independent training
+   seeds, all evaluation seeds, scene parameters and every hard threshold.
+2. Generate `benchmark_plan.jsonl`. Its SHA-256 and commit become part of the artifact manifest.
+3. Run paired methods from the same simulator initial state and sensor-noise stream. A failed or
+   timed-out run remains in the result set with a failure category.
+4. Audit that every planned `run_id` has exactly one schema-complete result before aggregation.
+5. Report all primary metrics and the predefined B2/Ours-2/Ours-3/Ours-4 comparison. Diagnostic
+   ablations may not replace the primary table after results are known.
+
+```bash
+PYTHONPATH=. python3 -m manifold_motion.cvpr_benchmark plan \
+  --out reports/cvpr/benchmark_plan.jsonl
+PYTHONPATH=. python3 -m manifold_motion.cvpr_benchmark audit \
+  --plan reports/cvpr/benchmark_plan.jsonl --results reports/cvpr/results.jsonl
+PYTHONPATH=. python3 -m manifold_motion.cvpr_benchmark summarize \
+  --results reports/cvpr/results.jsonl --out reports/cvpr/summary.json
+```
+
+The primary evaluation uses 32 paired seeds per scene. Diagnostic ablations use eight seeds to
+control compute. Controller learning uses five independent training seeds. Report mean/median as
+appropriate, bootstrap 95% confidence intervals, paired method-minus-B2 effects and exact sample
+counts. Control the four declared primary metric families with Holm-Bonferroni; do not present
+single-seed GIFs as quantitative evidence.
+
+## ORCS baseline policy
+
+The official `Orcs-PerLoco-Grail-AdaptSonic` release is included as `ORCS-Grail`, in its pinned
+PyTorch/MJLab observation contract. It is a fair baseline on curb/terrain scenes that its 17x11
+downward height scan can observe. It is marked not-applicable—not failed—on side-wall and
+low-ceiling tests, because the released policy has no observation of those obstacles. Any variant
+whose augmentation is replaced by the proposed 3-D manifold encoding is a newly trained method,
+not the public checkpoint. The measured compatibility contract and checkpoint audit are in
+`ORCS_CONTROLLER_INTEGRATION.md`.
+
+## Required qualitative evidence
+
+The project page/GitHub gallery must contain, for both representative success and failure cases:
+
+- synchronized MuJoCo, 3-D occupancy slices, route, `M_e(t)`, measured `M_r^safe`, selected
+  primitive, clearance and hard-gate state;
+- an appearing/crossing/disappearing obstacle sequence with old and repaired routes;
+- a compound long sequence with at least three primitive changes and no state reset;
+- a paired counterfactual with identical initial state/route and changed aperture only;
+- one honest failure from each major category: perception stale, planner no route, primitive
+  mismatch, projection infeasible, controller tracking failure and self-manifold stop.
+
+Compact GitHub previews are built from accepted raw reports by
+`manifold_motion.build_github_demo_gallery`. The source reports, full-resolution videos and JSON
+metrics remain downloadable artifacts. Preview generation never changes acceptance labels.
+
+## Reviewer-facing completeness checklist
+
+- Compare against route-only, offline-primitive, online-without-history and no-self-manifold
+  baselines; include the native ORCS terrain expert where its sensor contract applies.
+- Separate perception, planning, generation and controller latency, and report P50/P95 plus GPU
+  memory on the named hardware.
+- Report training compute, evaluation compute, parameter counts and checkpoint-selection rule.
+- Release train/validation/test source provenance and prove that actor/clip/geometry identities do
+  not leak across splits.
+- Publish accepted and failed run IDs, not only videos; include a failure taxonomy and sensitivity
+  curves for clearance threshold, radar rate, D* truncation distance and switch hysteresis.
+- State clearly that 3-D voxels determine vertical clearance while D* Lite plans a ground-bound XY
+  route; do not describe the route search itself as free-flying 3-D planning.
+- Repeat final tables from a clean clone and record exact Git/LFS hashes before submission.

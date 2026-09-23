@@ -1,0 +1,108 @@
+{
+  "schema": "manifold-motion.github-demo-gallery.v1",
+  "generated_from": "accepted reports only; no rollout is performed",
+  "items": [
+    {
+      "id": "online_closed_loop",
+      "title": "Online 3-D SLAM \u2192 M_e \u2192 primitive \u2192 SONIC",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif",
+      "purpose": "continuous radar updates, D* Lite route repair and shadow-gated semantic switching",
+      "max_width": 520,
+      "stride": 4,
+      "preview": "docs/demo_gallery/media/online_closed_loop.gif",
+      "frames_source": 177,
+      "frames_preview": 45,
+      "size": [
+        520,
+        350
+      ],
+      "sha256": "f2b85b5c03b05acd1ba5cad9ca652cb4c2bf130e3e160599a91b5990b05eb117",
+      "bytes": 3131432
+    },
+    {
+      "id": "moving_obstacle_replanning",
+      "title": "Appearing / crossing / disappearing obstacle",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/incremental_dynamic_benchmark/moving_obstacle_replanning.gif",
+      "purpose": "incremental ESDF + D* Lite route changes under dynamic map updates",
+      "max_width": 560,
+      "stride": 1,
+      "preview": "docs/demo_gallery/media/moving_obstacle_replanning.gif",
+      "frames_source": 8,
+      "frames_preview": 8,
+      "size": [
+        480,
+        514
+      ],
+      "sha256": "abba582580915051c5cc597b8f9417728c485cbef8f7479d2221d0a530eac216",
+      "bytes": 387852
+    },
+    {
+      "id": "compound_long_horizon",
+      "title": "Long horizon: walk \u2192 side \u2192 turn \u2192 walk",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_long_sequence_v1/combo/manifold_adaptive.gif",
+      "purpose": "one continuous MuJoCo state with multiple manifold-conditioned primitives",
+      "max_width": 480,
+      "stride": 8,
+      "preview": "docs/demo_gallery/media/compound_long_horizon.gif",
+      "frames_source": 254,
+      "frames_preview": 32,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "3718747a7f9b61a19ce8a1ece30a1df1d03fff1715290ffd7d11440bea662fb4",
+      "bytes": 5193522
+    },
+    {
+      "id": "low_clearance_cycle",
+      "title": "Repeated low-clearance intervals",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_long_sequence_v1/low_cycle/manifold_adaptive.gif",
+      "purpose": "crouch transitions are triggered by measured vertical aperture",
+      "max_width": 480,
+      "stride": 10,
+      "preview": "docs/demo_gallery/media/low_clearance_cycle.gif",
+      "frames_source": 313,
+      "frames_preview": 32,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "35ccf3eaa080c99b952f9acf87b5d0afa2142bdda107bc1e3dc7ac0caa22cb6f",
+      "bytes": 5254194
+    },
+    {
+      "id": "wide_vs_low_counterfactual",
+      "title": "Counterfactual: same route, different aperture",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_manifold_counterfactual_v1/counterfactual_wide_vs_low_compact.gif",
+      "purpose": "paired wide/low manifold evidence without a segment-label shortcut",
+      "max_width": 480,
+      "stride": 6,
+      "preview": "docs/demo_gallery/media/wide_vs_low_counterfactual.gif",
+      "frames_source": 268,
+      "frames_preview": 45,
+      "size": [
+        480,
+        292
+      ],
+      "sha256": "6e360b7f41d97282e06c21eaa01d50a6c97144866ddd98c883e1779de9c7048e",
+      "bytes": 3093447
+    },
+    {
+      "id": "side_passage",
+      "title": "Offset obstacle: side-on passage",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_diverse_demo_v2/block_left/manifold_adaptive.gif",
+      "purpose": "lateral gait selection from the local safe corridor",
+      "max_width": 480,
+      "stride": 6,
+      "preview": "docs/demo_gallery/media/side_passage.gif",
+      "frames_source": 167,
+      "frames_preview": 28,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "bc28dfd2e5ec241d022d4abd793b21aab7b2eb2aa6efe04f535b66fbdea1a0e8",
+      "bytes": 4659184
+    }
+  ]
+}

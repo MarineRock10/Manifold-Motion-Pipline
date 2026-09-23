@@ -24,6 +24,9 @@ GR00T-WholeBodyControl trees were removed.
 | [`ROADMAP.md`](ROADMAP.md) | **the current boundary and next algorithmic gates**: what is physically verified, what still uses anchors, and the order of the remaining work |
 | [`STAGE2_DIVERSE_DEMOS.md`](STAGE2_DIVERSE_DEMOS.md) | **additional visual cases**: short-low, left-offset-block, and right-offset-block action changes |
 | [`STAGE2_LONG_SEQUENCES.md`](STAGE2_LONG_SEQUENCES.md) | **long-horizon cases**: repeated manifold changes in one continuous rollout |
+| [`DEMO_GALLERY.md`](DEMO_GALLERY.md) | **GitHub visual gallery**: online SLAM, dynamic obstacles, long-horizon compound tasks, counterfactual and side-on passage |
+| [`CVPR_EXPERIMENTS.md`](CVPR_EXPERIMENTS.md) | **paper experiment protocol**: hypotheses, paired baselines, ablations, robustness, statistics and artifact policy |
+| [`ORCS_CONTROLLER_INTEGRATION.md`](ORCS_CONTROLLER_INTEGRATION.md) | **official ORCS checkpoint audit**: what can run directly, what is incompatible, and the fair baseline protocol |
 
 ### Stage-2 GUI
 
@@ -52,13 +55,14 @@ manifold regions.
 ### Deploy perception demo
 
 The `deploy` branch adds a reproducible perception loop: MuJoCo radar returns are fused into a
-global-coordinate 3-D probabilistic voxel grid, then body-inflated 3-D voxel A* and a root-local
-3-D ellipsoidal safe corridor produce the Stage-2-compatible `condition.npz`. Run
+global-coordinate 3-D probabilistic voxel grid. Incremental truncated ESDF and D* Lite plan on a
+ground-bound projection while the full 3-D map supplies vertical clearance and a root-local 3-D
+ellipsoidal safe corridor. Run
 `run_deploy_perception_demo.ps1` (or `./run_deploy_perception_demo.sh` in WSL) and inspect
-`artifacts/deploy_perception_demo/slam_grid_route.png`. Coordinate contracts and the real-sensor
+the synchronized GIF linked from [`DEMO_GALLERY.md`](DEMO_GALLERY.md). Coordinate contracts and the real-sensor
 replacement points are documented in [`DEPLOY_PERCEPTION.md`](DEPLOY_PERCEPTION.md). The deploy
-output is only the P1 condition input; the same main-branch primitive router, Stage-2 generator,
-SONIC hard gate and MuJoCo executor run after it.
+layer supplies the P1 condition input; the same primitive router, Stage-2 generator, SONIC hard
+gate and MuJoCo executor continue to run while new radar frames arrive.
 
 Start with `ARCHITECTURE_CURRENT.md` and `STAGE2_STATUS.md` for the current runnable closed loop.
 `ARCHITECTURE.md` and `PIPELINE.md` retain the original design history and static-stage diagnosis;
