@@ -139,9 +139,14 @@ intentional until the turn/side online candidates are retrained.
 
 The current CPU-safe acceptance result is 11/11 keyframes, zero obstacle contacts, zero runtime
 self-manifold stops, minimum exact surface clearance 0.223 m, terminal error 0.218 m, route
-deviation P95 0.120 m, and body-route yaw P95 15.1 degrees. The MuJoCo replay is
-`artifacts/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif`; the corresponding
-report is `stage2_continuous_report.json`.
+deviation P95 0.120 m, and body-route yaw P95 15.1 degrees. The official replay is now a
+synchronized split-screen GIF: left is the accepted MuJoCo G1 rollout, while right is the same
+tick's executed trace, active primitive, measured `M_r^safe`, world-frame `M_e`, radar returns,
+and 3-D probability slices. Its first 5 map frames replay the 5 radar updates; during Stage-2
+the P1 map is explicitly frozen, so the visualization does not imply unimplemented online SLAM.
+The output is `artifacts/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif` (the
+uncomposed MuJoCo-only file remains `manifold_adaptive.gif`); the corresponding report is
+`stage2_continuous_report.json`.
 
 For an execution-aware conditional-mean baseline, `train-mean` also accepts
 `--model-target-field target_exec`. That checkpoint uses the SONIC-achieved window target for

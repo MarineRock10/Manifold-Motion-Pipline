@@ -20,4 +20,14 @@ python3 -m manifold_motion.stage2_manifold_adaptive \
   --online-condition-iterations 1 --receding-horizon-ticks 0 \
   --max-ticks 2600 --planner-body-radius-m 0.40 --planner-clearance-m 0.10 \
   --device cpu --fps 20
-cp "$stage2_out/manifold_adaptive.gif" "$out/deploy_sonic_mujoco_comprehensive.gif"
+python3 -m manifold_motion.render_synced_deploy_gif \
+  --mujoco-gif "$stage2_out/manifold_adaptive.gif" \
+  --executed "$stage2_out/executed.npz" \
+  --condition "$out/condition.npz" \
+  --slam-grid "$out/slam_grid.npz" \
+  --radar-returns "$out/radar_returns.npz" \
+  --segment-conditions "$stage2_out/segment_conditions.npz" \
+  --report "$stage2_out/report.json" \
+  --out "$out/deploy_mujoco_slam_synced.gif" \
+  --fps 20 --warmup-hold 5
+cp "$out/deploy_mujoco_slam_synced.gif" "$out/deploy_sonic_mujoco_comprehensive.gif"
