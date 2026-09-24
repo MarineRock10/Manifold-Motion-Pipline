@@ -47,6 +47,7 @@ from .seed_windows import _state_features
 
 PRIMITIVE_NAMES = {
     2: "crouch",
+    3: "low_transition",
     4: "walk_lateral_reverse",
     5: "walk_nominal",
     6: "walk_turn",
@@ -469,6 +470,13 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     phases = [[min(6, plan.motion.T - 1) for plan in options] for options in plan_options]
     active: tuple[int, int] | None = None
     segment_ticks = [0 for _ in plan_options]
+    # A turn helper is a short geometric alignment action. Without hysteresis, a side gait
+    # can move the measured pelvis yaw a few degrees across the engage threshold every cycle,
+    # producing a turn/side chatter loop. Keep a completed turn latched for this route segment
+    # and only re-arm it for a genuinely new, large heading error.
+    turn_active: dict[int, bool] = {}
+    turn_completed: dict[int, bool] = {}
+    turn_started_tick: dict[int, int] = {}
     previous_q: np.ndarray | None = None
     blend_from_q: np.ndarray | None = None
     blend_step = 0
@@ -597,7 +605,10 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                     preferred_index = next((index for index, option in enumerate(plan_options[segment])
                                             if option.primitive_id == requested_id), None)
                     if preferred_index is None:
-                        preferred_index = 1 if plan_options[segment][0].primitive_id == 6 else 0
+                        preferred_index = sum(
+                            option.primitive_id in (3, 6)
+                            for option in plan_options[segment]
+                        )
                         plan_options[segment].insert(preferred_index, accepted_plan)
                         phases[segment].insert(preferred_index, min(6, accepted_plan.motion.T - 1))
                     else:
@@ -639,13 +650,47 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         option_index = 0
         if len(plan_options[segment]) > 1:
             if getattr(args, "manifold_adaptive", False):
-                # A real turn helper is primitive 6 at option zero. Online M_e choices may add
-                # another preferred slot while retaining nominal fallback; never mistake that
-                # semantic slot for a turn helper merely because its index is zero.
-                has_turn_helper = plan_options[segment][0].primitive_id == 6
-                option_index = (0 if has_turn_helper
-                                and abs(alignment_yaw_error) > args.turn_threshold_rad
-                                else semantic_option_index)
+                # p3 is a short low-clearance transition helper and p6 is a geometric turn
+                # helper. The semantic locomotion option is always the last slot, so a segment
+                # can safely carry [transition, turn, gait] without confusing an action with a
+                # list index. The final physical gate remains authoritative for every helper.
+                transition_index = next((index for index, option in enumerate(plan_options[segment])
+                                         if option.primitive_id == 3), None)
+                turn_index = next((index for index, option in enumerate(plan_options[segment])
+                                   if option.primitive_id == 6), None)
+                transition_ticks = int(getattr(args, "transition_hold_ticks", 0))
+                if transition_index is not None and segment_ticks[segment] < transition_ticks:
+                    option_index = transition_index
+                else:
+                    turn_error = abs(alignment_yaw_error)
+                    release_threshold = float(getattr(args, "turn_release_threshold_rad", 0.26))
+                    reengage_threshold = float(getattr(
+                        args, "turn_reengage_threshold_rad",
+                        max(0.65, float(args.turn_threshold_rad) + 0.20),
+                    ))
+                    min_hold = int(getattr(args, "turn_min_hold_ticks", 3))
+                    max_hold = int(getattr(args, "turn_max_hold_ticks", 60))
+                    if turn_index is None:
+                        option_index = semantic_option_index
+                    elif turn_active.get(segment, False):
+                        elapsed = (segment_ticks[segment]
+                                   - turn_started_tick.get(segment, segment_ticks[segment]))
+                        if ((elapsed >= min_hold and turn_error <= release_threshold)
+                                or elapsed >= max_hold):
+                            turn_active[segment] = False
+                            turn_completed[segment] = True
+                            option_index = semantic_option_index
+                        else:
+                            option_index = turn_index
+                    else:
+                        trigger = (reengage_threshold if turn_completed.get(segment, False)
+                                   else float(args.turn_threshold_rad))
+                        if turn_error > trigger:
+                            turn_active[segment] = True
+                            turn_started_tick[segment] = segment_ticks[segment]
+                            option_index = turn_index
+                        else:
+                            option_index = semantic_option_index
             elif segment_ticks[segment] >= args.action_hold_ticks:
                 option_index = 1
         plan = plan_options[segment][option_index]
@@ -877,6 +922,12 @@ def main() -> int:
     parser.add_argument("--warmup-ticks", type=int, default=20)
     parser.add_argument("--max-ticks", type=int, default=900)
     parser.add_argument("--turn-threshold-rad", type=float, default=.28)
+    parser.add_argument("--turn-release-threshold-rad", type=float, default=.26,
+                        help="yaw error below which an active turn helper returns to the gait")
+    parser.add_argument("--turn-reengage-threshold-rad", type=float, default=.65,
+                        help="larger yaw error required to re-arm a completed turn in one segment")
+    parser.add_argument("--turn-min-hold-ticks", type=int, default=3)
+    parser.add_argument("--turn-max-hold-ticks", type=int, default=60)
     parser.add_argument("--fall-height-m", type=float, default=.30)
     parser.add_argument("--max-roll-deg", type=float, default=45.)
     parser.add_argument("--max-tracking-error-rad", type=float, default=.35)
@@ -893,6 +944,11 @@ def main() -> int:
     parser.add_argument("--skip-render", action="store_true", help="run the physical/candidate gate without GIF rendering")
     args = parser.parse_args()
     if args.num_candidates < 2: parser.error("num-candidates must be >= 2")
+    if not (0 < args.turn_release_threshold_rad <= args.turn_threshold_rad
+            < args.turn_reengage_threshold_rad):
+        parser.error("turn thresholds must satisfy 0 < release <= engage < re-engage")
+    if not (0 <= args.turn_min_hold_ticks <= args.turn_max_hold_ticks):
+        parser.error("turn hold ticks must satisfy 0 <= min <= max")
     args.out.mkdir(parents=True, exist_ok=True)
     planner = PlannerConfig(); boxes = _boxes(args.scene)
     raw_route = _astar(np.array([0., 0.]), np.array([args.goal_x, 0.]), boxes, planner)

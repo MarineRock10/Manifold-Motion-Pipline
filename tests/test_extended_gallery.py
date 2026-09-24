@@ -15,6 +15,7 @@ import numpy as np
 from manifold_motion.stage2_long_horizon_avoidance import PlannerConfig, _astar, _simplify
 from manifold_motion.stage2_manifold_adaptive import (
     _adaptive_segment_condition,
+    _bilateral_lateral_free_semi,
     _calibrate_envelope,
     _ground_obstacles,
     _physical_boxes,
@@ -59,6 +60,7 @@ def _decisions(name: str, goal_x: float) -> tuple[np.ndarray, list[dict]]:
             crouch_semi_z_m=1.12,
             side_semi_y_m=0.42,
             turn_threshold_rad=0.28,
+            bilateral_lateral_semi_m=_bilateral_lateral_free_semi(segment, boxes),
         )
         decisions.append(decision)
         previous_heading = heading
@@ -69,12 +71,12 @@ def test_extended_fixture_routing_contract() -> None:
     chicane_k, chicane = _decisions("chicane", 6.0)
     compound_k, compound = _decisions("low_side_turn", 5.6)
     cycle_k, cycle = _decisions("gate_cycle", 6.4)
-    slalom_k, slalom = _decisions("slalom", 5.8)
+    slalom_k, slalom = _decisions("slalom", 6.0)
 
     assert len(chicane_k) - 1 == 17
     assert len(compound_k) - 1 == 18
     assert len(cycle_k) - 1 == 15
-    assert len(slalom_k) - 1 == 17
+    assert len(slalom_k) - 1 == 18
     assert min(chicane_k[-1, 0], compound_k[-1, 0], cycle_k[-1, 0], slalom_k[-1, 0]) > 3.65
 
     assert {row["primitive"] for row in compound} >= {
@@ -83,6 +85,9 @@ def test_extended_fixture_routing_contract() -> None:
     assert {row["primitive"] for row in cycle} >= {
         "crouch", "walk_lateral_reverse", "walk_nominal"
     }
+    assert {row["primitive"] for row in chicane} == {"walk_nominal"}
+    assert sum(row["primitive"] == "walk_lateral_reverse" for row in slalom) <= 3
+    assert sum(row["primitive"] == "walk_nominal" for row in slalom) >= 12
     assert sum(row["requires_turn"] for row in chicane) == 9
     assert sum(row["requires_turn"] for row in compound) == 3
     assert sum(row["requires_turn"] for row in slalom) == 9

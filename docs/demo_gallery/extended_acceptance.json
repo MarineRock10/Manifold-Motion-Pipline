@@ -1,19 +1,21 @@
 {
-  "schema": "manifold-motion.extended-gallery-acceptance.v1",
+  "schema": "manifold-motion.extended-gallery-acceptance.v2",
   "date": "2026-09-24",
   "controller": "frozen NVIDIA GEAR-SONIC ONNX",
   "execution": "continuous MuJoCo state; no reset at primitive boundaries",
   "hard_gate": "obstacle contact + stability + tracking + exact G1 surface/self-manifold clearance",
+  "semantic_contract": "unilateral obstacles retain nominal gait and use curvature turns; only bilateral lateral contraction selects side gait; low vertical aperture selects crouch",
   "scenarios": [
     {
       "id": "chicane_turns",
       "accepted": true,
       "keyframes_reached": 17,
       "keyframes_total": 17,
-      "primitive_counts": {"walk_lateral_reverse": 17},
+      "route_primitive_counts": {"walk_nominal": 17},
+      "executed_primitive_ticks": {"walk_nominal": 526, "walk_turn": 120},
       "curvature_turn_intervals": 9,
       "obstacle_contact_ticks": 0,
-      "exact_surface_obstacle_clearance_min_m": 0.09339974075555801,
+      "exact_surface_obstacle_clearance_min_m": 0.023235933855175972,
       "self_manifold_gate_accepted": true
     },
     {
@@ -21,10 +23,11 @@
       "accepted": true,
       "keyframes_reached": 18,
       "keyframes_total": 18,
-      "primitive_counts": {"crouch": 5, "walk_lateral_reverse": 11, "walk_nominal": 2},
+      "route_primitive_counts": {"crouch": 5, "walk_lateral_reverse": 6, "walk_nominal": 7},
+      "executed_primitive_ticks": {"crouch": 347, "low_transition": 36, "walk_lateral_reverse": 193, "walk_nominal": 228, "walk_turn": 60},
       "curvature_turn_intervals": 3,
       "obstacle_contact_ticks": 0,
-      "exact_surface_obstacle_clearance_min_m": 0.05535013973712921,
+      "exact_surface_obstacle_clearance_min_m": 0.05904923006892204,
       "self_manifold_gate_accepted": true
     },
     {
@@ -32,21 +35,23 @@
       "accepted": true,
       "keyframes_reached": 15,
       "keyframes_total": 15,
-      "primitive_counts": {"crouch": 12, "walk_lateral_reverse": 1, "walk_nominal": 2},
+      "route_primitive_counts": {"crouch": 12, "walk_lateral_reverse": 1, "walk_nominal": 2},
+      "executed_primitive_ticks": {"crouch": 756, "low_transition": 108, "walk_lateral_reverse": 64, "walk_nominal": 79},
       "curvature_turn_intervals": 0,
       "obstacle_contact_ticks": 0,
-      "exact_surface_obstacle_clearance_min_m": 0.09304835647344589,
+      "exact_surface_obstacle_clearance_min_m": 0.110462985932827,
       "self_manifold_gate_accepted": true
     },
     {
       "id": "slalom_turns",
       "accepted": true,
-      "keyframes_reached": 17,
-      "keyframes_total": 17,
-      "primitive_counts": {"walk_lateral_reverse": 17},
+      "keyframes_reached": 18,
+      "keyframes_total": 18,
+      "route_primitive_counts": {"walk_nominal": 15, "walk_lateral_reverse": 3},
+      "executed_primitive_ticks": {"walk_lateral_reverse": 138, "walk_nominal": 551, "walk_turn": 65},
       "curvature_turn_intervals": 9,
       "obstacle_contact_ticks": 0,
-      "exact_surface_obstacle_clearance_min_m": 0.10513345897197723,
+      "exact_surface_obstacle_clearance_min_m": 0.049213677644729614,
       "self_manifold_gate_accepted": true
     }
   ]

@@ -371,15 +371,21 @@ The extended gallery moves beyond the original four regression fixtures:
 
 | task | environment-driven sequence | accepted evidence |
 |---|---|---|
-| alternating chicane | lateral gait plus repeated turn helpers | 17/17 keyframes, 9 turn intervals, 0 obstacle contacts |
+| alternating chicane | nominal walk with repeated curvature turn helpers; no false side-gait trigger from a unilateral obstacle | 17/17 keyframes, 9 turn intervals, 0 obstacle contacts |
 | low-side-turn compound | crouch → side gait → turn → nominal recovery | 18/18 keyframes, 3 turn intervals, 0 obstacle contacts |
 | repeated gate cycle | crouch → recovery → crouch → side → crouch → recovery | 15/15 keyframes, 0 obstacle contacts |
-| long slalom | alternating lateral route plus repeated turns | 17/17 keyframes, 9 turn intervals, 0 obstacle contacts |
+| long slalom | nominal walk → three bilateral side intervals → nominal walk, with nine latched turns | 18/18 keyframes, 9 turn intervals, 0 obstacle contacts |
 
 Every row uses the same aperture/curvature router, Flow candidate generator, projection layer and
 continuous SONIC/MuJoCo safety gate. The scene files contain geometry only; they do not contain a
 per-segment primitive schedule. Full reports are written to
-`reports/manifold_motion/stage2_extended_gallery_v1/`.
+`reports/manifold_motion/stage2_extended_gallery_v2/`.
+
+The v2 scheduler uses turn hysteresis: a curvature helper has a minimum hold, releases below a
+lower yaw threshold, and is not re-armed by the small body-yaw oscillation of a side gait. The
+slalom is planned with the validated 0.42 m footprint radius; its exact surface clearance is
+4.92 cm at runtime. The low-side compound also records an explicit `low_transition` helper
+around crouch boundaries (36 ticks) while retaining the continuous state and physical gate.
 
 The long-sequence GIFs now show three distinct layers: blue `M_e(t)` is the environment safe
 corridor, white is the measured safe self-manifold `M_r^safe`, and the colored ellipsoid is the

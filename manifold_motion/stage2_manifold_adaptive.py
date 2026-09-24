@@ -4,7 +4,7 @@ Unlike the earlier demonstration, this runner never assigns an action from the r
 index.  Every segment is classified from measurable environment-manifold quantities:
 
 * low vertical free semi-axis -> ``crouch``;
-* genuinely narrow lateral free semi-axis -> ``walk_lateral_reverse``;
+* genuinely bilateral narrow lateral free semi-axis -> ``walk_lateral_reverse``;
 * otherwise -> ``walk_nominal``;
 * a route heading change caused by obstacle avoidance temporarily activates ``walk_turn``.
 
@@ -114,8 +114,10 @@ def _adaptive_segment_condition(route_segment: np.ndarray, boxes: list[dict[str,
                         abs(point[1] - center[1]) <= half[1] + envelope_semi[1] + 0.08):
                     semis[frame, 2] = min(semis[frame, 2], max(0.06, bottom - safety))
                 continue
-            # For ground obstacles, contract only the horizontal direction in which the box
-            # surface is actually visible from this route point.
+            # Keep the complete symmetric clearance as the Flow condition.  Semantic side-gait
+            # eligibility is computed separately from signed bilateral evidence below; this
+            # avoids changing a previously validated crouch candidate merely because routing
+            # learned to distinguish a one-sided block from a true gate.
             if abs(point[0] - center[0]) <= half[0] + semis[frame, 0]:
                 lateral = abs(point[1] - center[1]) - half[1] - safety
                 if lateral > 0.0:
@@ -129,6 +131,47 @@ def _adaptive_segment_condition(route_segment: np.ndarray, boxes: list[dict[str,
     sdf = corridor_condition_sdf(corridor, PerceptionGridConfig())
     command = RouteFlowSampler._yaw_command(route[-1], 0.0)
     return corridor, sdf, command
+
+
+def _bilateral_lateral_free_semi(route_segment: np.ndarray, boxes: list[dict[str, Any]],
+                                 cap_m: float = 0.70) -> float:
+    """Return narrow lateral clearance only when nearby surfaces exist on both sides.
+
+    ``M_e`` remains a conservative symmetric Flow condition.  This signed affordance query is
+    used only by the primitive router, preventing a unilateral slalom pole from being treated as
+    a narrow doorway.  Geometry labels never enter the learned trajectory; the returned value is
+    measured from the same obstacle surfaces that build the corridor.
+    """
+    start, stop = route_segment[0], route_segment[-1]
+    heading = float(np.arctan2(stop[1] - start[1], stop[0] - start[0]))
+    c, s = np.cos(heading), np.sin(heading)
+    tangent = np.array([c, s], dtype=np.float64)
+    lateral_axis = np.array([-s, c], dtype=np.float64)
+    safety = 0.18
+    bilateral: list[float] = []
+    for point in route_segment:
+        left: list[float] = []
+        right: list[float] = []
+        for box in boxes:
+            center, half = np.asarray(box["center"]), np.asarray(box["half"])
+            if float(center[2] - half[2]) > 0.35:
+                continue
+            delta = center[:2] - point
+            longitudinal = float(delta @ tangent)
+            lateral = float(delta @ lateral_axis)
+            longitudinal_half = float(abs(c) * half[0] + abs(s) * half[1])
+            lateral_half = float(abs(s) * half[0] + abs(c) * half[1])
+            if abs(longitudinal) > longitudinal_half + 0.95:
+                continue
+            clearance = abs(lateral) - lateral_half - safety
+            if clearance <= 0.0:
+                continue
+            (left if lateral > 0.0 else right).append(clearance)
+        if left and right:
+            left_min, right_min = min(left), min(right)
+            if left_min < cap_m and right_min < cap_m:
+                bilateral.append(min(left_min, right_min))
+    return float(max(0.06, min(bilateral))) if bilateral else float(cap_m)
 
 
 def _subdivide(polyline: np.ndarray, max_length_m: float) -> np.ndarray:
@@ -447,7 +490,7 @@ def _self_manifold_safety(data: dict[str, np.ndarray], environment_corridor: np.
         "task_manifold_aperture_ratio_max": float(task_aperture_ratio.max()) if len(task_aperture_ratio) else None,
         "task_manifold_aperture_ratio_p95": float(np.quantile(task_aperture_ratio, 0.95)) if len(task_aperture_ratio) else None,
         "task_manifold_aperture_violation_ticks": int(np.sum(task_aperture_bad)),
-        "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks route-lateral M_r/M_e",
+    "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks bilateral route-lateral M_r/M_e",
         "physical_obstacle_count": len(boxes),
         "mesh_narrowphase_is_hard_gate": True,
         "ellipsoid_broadphase_is_conservative_query": True,
@@ -496,14 +539,16 @@ def _online_condition_overrides(data: dict[str, np.ndarray], execution: dict[str
 
 def _route_decision(corridor: np.ndarray, heading: float, previous_heading: float,
                     *, crouch_semi_z_m: float, side_semi_y_m: float,
-                    turn_threshold_rad: float) -> dict[str, Any]:
+                    turn_threshold_rad: float,
+                    bilateral_lateral_semi_m: float | None = None) -> dict[str, Any]:
     vertical = float(np.min(corridor[:, 5]))
     lateral = float(np.min(corridor[:, 4]))
+    bilateral_lateral = lateral if bilateral_lateral_semi_m is None else float(bilateral_lateral_semi_m)
     heading_change = _angle(heading - previous_heading)
     if vertical < crouch_semi_z_m:
         primitive_id, reason = 2, "vertical_free_semi_below_crouch_threshold"
-    elif lateral < side_semi_y_m:
-        primitive_id, reason = 4, "lateral_free_semi_below_side_threshold"
+    elif bilateral_lateral < side_semi_y_m:
+        primitive_id, reason = 4, "bilateral_lateral_free_semi_below_side_threshold"
     else:
         primitive_id, reason = 5, "wide_and_tall_enough_for_nominal_walk"
     return {
@@ -512,6 +557,7 @@ def _route_decision(corridor: np.ndarray, heading: float, previous_heading: floa
         "reason": reason,
         "vertical_free_semi_min_m": vertical,
         "lateral_free_semi_min_m": lateral,
+        "bilateral_lateral_free_semi_min_m": bilateral_lateral,
         "heading_rad": float(heading),
         "heading_change_rad": heading_change,
         "requires_turn": bool(abs(heading_change) > turn_threshold_rad),
@@ -543,7 +589,7 @@ def _choose_candidate(primitive_id: int, generated: np.ndarray, source_index: in
             directional = (float(abs(displacement[1])) >= min_forward_progress_m
                            and side_heading_error <= side_heading_tolerance_rad)
         else:
-            directional = (primitive_id == 6 or (
+            directional = (primitive_id in (3, 6) or (
                 float(displacement[0]) >= min_forward_progress_m
                 and abs(heading_offset) <= max_heading_error_rad
             ))
@@ -654,6 +700,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
     condition_arrays: dict[str, np.ndarray] = {}
     segment_inputs: list[dict[str, Any]] = []
     previous_heading = 0.0
+    previous_geometric_primitive = 5
     for segment_index, segment in enumerate(route_segments):
         if perception_grid is None:
             corridor, sdf, command = _adaptive_segment_condition(segment, physical_boxes, envelope)
@@ -697,6 +744,10 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             crouch_semi_z_m=args.crouch_semi_z_m,
             side_semi_y_m=args.side_semi_y_m,
             turn_threshold_rad=args.turn_threshold_rad,
+            bilateral_lateral_semi_m=(
+                None if perception_grid is not None else
+                _bilateral_lateral_free_semi(segment, physical_boxes)
+            ),
         )
         decision.update({"segment_index": segment_index,
                          "start_xy_m": segment[0].tolist(), "end_xy_m": segment[-1].tolist()})
@@ -707,9 +758,21 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         # A turn helper is caused by route curvature only.  The generated base gait's measured
         # displacement offset is handled by reference-yaw calibration in execute_plan, so a
         # straight corridor never receives an arbitrary extra action.
-        primitive_ids = ([6, base_id] if decision["requires_turn"] and base_id != 6 else [base_id])
+        primitive_ids: list[int] = []
+        transition_boundary = (base_id == 2) != (previous_geometric_primitive == 2)
+        if transition_boundary:
+            primitive_ids.append(3)
+            decision["transition_helper"] = (
+                "enter_low_clearance" if base_id == 2 else "exit_low_clearance"
+            )
+        else:
+            decision["transition_helper"] = None
+        if decision["requires_turn"] and base_id != 6:
+            primitive_ids.append(6)
+        primitive_ids.append(base_id)
         segment_inputs.append({"corridor": corridor, "sdf": sdf, "command": command,
                                "primitive_ids": primitive_ids})
+        previous_geometric_primitive = base_id
 
     projection_config = ProjectionConfig(
         iterations=args.projection_iterations, step_size=args.projection_step_size,
@@ -780,12 +843,27 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                     projected.append(projected_trajectory)
                     projection_reports.append(projection_report)
                 generated = np.asarray(projected, dtype=np.float32)
-                selected, rows = _choose_candidate(
-                    primitive_id, generated, source_index, segment_index, args.out, runner,
-                    min_forward_progress_m=args.min_forward_progress_m,
-                    max_heading_error_rad=args.max_candidate_heading_error_rad,
-                    side_on=(args.side_gait_mode == "side_on"),
-                    side_heading_tolerance_rad=args.side_heading_tolerance_rad)
+                try:
+                    selected, rows = _choose_candidate(
+                        primitive_id, generated, source_index, segment_index, args.out, runner,
+                        min_forward_progress_m=args.min_forward_progress_m,
+                        max_heading_error_rad=args.max_candidate_heading_error_rad,
+                        side_on=(args.side_gait_mode == "side_on"),
+                        side_heading_tolerance_rad=args.side_heading_tolerance_rad)
+                except RuntimeError as error:
+                    if primitive_id != 3:
+                        raise
+                    # A transition helper is an optional expressive/smoothing proposal.  It
+                    # may never veto an otherwise safe crouch or recovery gait: retain the
+                    # hard rejection as evidence and continue with the semantic base action.
+                    evidence_local.append({
+                        "segment_index": segment_index,
+                        "primitive_id": primitive_id,
+                        "primitive": PRIMITIVE_NAMES[primitive_id],
+                        "helper_rejected": True,
+                        "reason": str(error),
+                    })
+                    continue
                 for row in rows:
                     row["projection"] = projection_reports[int(row["candidate_index"])]
                 selected.screen_summary["projection"] = projection_reports[selected.candidate_index]
@@ -1128,6 +1206,12 @@ def main() -> int:
     parser.add_argument("--self-manifold-clearance-m", type=float, default=0.02,
                         help="minimum exact G1 surface-to-obstacle clearance for deployment gate")
     parser.add_argument("--turn-threshold-rad", type=float, default=0.28)
+    parser.add_argument("--turn-release-threshold-rad", type=float, default=0.26,
+                        help="yaw error below which an active turn helper returns to the gait")
+    parser.add_argument("--turn-reengage-threshold-rad", type=float, default=0.65,
+                        help="larger yaw error required to re-arm a completed turn in one segment")
+    parser.add_argument("--turn-min-hold-ticks", type=int, default=3)
+    parser.add_argument("--turn-max-hold-ticks", type=int, default=60)
     parser.add_argument("--keyframe-tolerance-m", type=float, default=0.22)
     parser.add_argument("--warmup-ticks", type=int, default=20)
     parser.add_argument("--max-ticks", type=int, default=1800)
@@ -1138,6 +1222,8 @@ def main() -> int:
     parser.add_argument("--max-switch-rms-rad", type=float, default=0.75)
     parser.add_argument("--handoff-blend-ticks", type=int, default=12,
                         help="preview-space crossfade length for semantic primitive changes")
+    parser.add_argument("--transition-hold-ticks", type=int, default=18,
+                        help="ticks to execute low-transition helper at low-clearance boundaries")
     parser.add_argument("--side-body-yaw-offset-rad", type=float, default=0.0,
                         help="side-gait body yaw offset relative to route tangent; zero keeps legacy alignment")
     parser.add_argument("--max-side-body-yaw-error-p95-deg", type=float, default=35.0)
@@ -1206,6 +1292,11 @@ def main() -> int:
         parser.error("candidate count and geometric parameters must be positive")
     if args.self_manifold_clearance_m < 0:
         parser.error("self-manifold clearance must be non-negative")
+    if not (0 < args.turn_release_threshold_rad <= args.turn_threshold_rad
+            < args.turn_reengage_threshold_rad):
+        parser.error("turn thresholds must satisfy 0 < release <= engage < re-engage")
+    if not (0 <= args.turn_min_hold_ticks <= args.turn_max_hold_ticks):
+        parser.error("turn hold ticks must satisfy 0 <= min <= max")
     report, _ = run(args)
     return 0 if report["accepted"] else 2
 

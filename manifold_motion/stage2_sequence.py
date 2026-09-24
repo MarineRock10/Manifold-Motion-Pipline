@@ -32,10 +32,13 @@ def _parse_segment(value: str) -> tuple[str, Path]:
 
 
 def _load_sample(path: Path) -> np.ndarray:
-    with np.load(path) as archive:
-        if "generated_ref" not in archive.files:
-            raise ValueError(f"{path} has no generated_ref")
-        trajectory = np.asarray(archive["generated_ref"], dtype=np.float32)
+    if path.suffix == ".npy":
+        trajectory = np.asarray(np.load(path), dtype=np.float32)
+    else:
+        with np.load(path) as archive:
+            if "generated_ref" not in archive.files:
+                raise ValueError(f"{path} has no generated_ref")
+            trajectory = np.asarray(archive["generated_ref"], dtype=np.float32)
     if trajectory.ndim != 2 or trajectory.shape[1] != 38 or len(trajectory) < 2:
         raise ValueError(f"{path} generated_ref must be [T>=2,38]")
     if not np.isfinite(trajectory).all():
@@ -52,7 +55,8 @@ def _bridge(start: np.ndarray, end: np.ndarray, frames: int) -> np.ndarray:
     return (start[None, :] + alpha[:, None] * (end[None, :] - start[None, :])).astype(np.float32)
 
 
-def assemble(segments: list[tuple[str, np.ndarray]], bridge_frames: int) -> tuple[np.ndarray, list[dict[str, object]]]:
+def assemble(segments: list[tuple[str, np.ndarray]], bridge_frames: int,
+             phase_match_frames: int = 0) -> tuple[np.ndarray, list[dict[str, object]]]:
     """Join root-local references without changing their joint target samples."""
     if len(segments) < 2:
         raise ValueError("a continuous task requires at least two segments")
@@ -61,6 +65,15 @@ def assemble(segments: list[tuple[str, np.ndarray]], bridge_frames: int) -> tupl
     boundaries: list[dict[str, object]] = []
     current_end = first[-1].copy()
     for name, next_segment in segments[1:]:
+        match_index = 0
+        if phase_match_frames > 0:
+            search_stop = min(len(next_segment) - 1, phase_match_frames)
+            errors = np.sqrt(np.mean(
+                (next_segment[:search_stop, :29] - current_end[None, :29]) ** 2,
+                axis=1,
+            ))
+            match_index = int(np.argmin(errors))
+            next_segment = next_segment[match_index:].copy()
         raw_start = next_segment[0].copy()
         # Root xyz is local to each sampled segment.  Rebase it to the endpoint of the prior
         # segment; the 6-D orientation reference is left in the same heading convention used by
@@ -74,6 +87,7 @@ def assemble(segments: list[tuple[str, np.ndarray]], bridge_frames: int) -> tupl
         boundaries.append({"next_segment": name, "pre_bridge_joint_rms_rad": rms,
                            "pre_bridge_joint_abs_max_rad": maximum,
                            "root_translation_rebase_m": [float(value) for value in root_shift],
+                           "phase_match_source_frame": match_index,
                            "bridge_frames": int(bridge_frames),
                            "first_frame_after_join": int(sum(len(part) for part in sequence) + bridge_frames)})
         sequence.append(_bridge(current_end, rebased[0], bridge_frames))
@@ -87,6 +101,8 @@ def main() -> int:
     parser.add_argument("--segment", action="append", required=True,
                         help="ordered primitive segment: NAME=selected_sample.npz (repeat at least twice)")
     parser.add_argument("--bridge-frames", type=int, default=18)
+    parser.add_argument("--phase-match-frames", type=int, default=0,
+                        help="search this many prefix frames for the safest learned handoff pose")
     parser.add_argument("--max-pre-bridge-rms", type=float, default=0.60,
                         help="reject an unacceptably discontinuous learned hand-off")
     parser.add_argument("--scene", type=Path, default=None,
@@ -97,13 +113,14 @@ def main() -> int:
     parser.add_argument("--min-terminal-progress", type=float, default=ReplayConfig.min_progress_ratio,
                         help="minimum executed/reference planar progress for the final locomotion segment")
     args = parser.parse_args()
-    if args.bridge_frames < 0 or args.max_pre_bridge_rms <= 0 or args.source_hz <= 0 or args.min_terminal_progress < 0:
-        parser.error("bridge-frames must be non-negative; rms/source-hz positive; terminal progress non-negative")
+    if (args.bridge_frames < 0 or args.phase_match_frames < 0 or args.max_pre_bridge_rms <= 0
+            or args.source_hz <= 0 or args.min_terminal_progress < 0):
+        parser.error("bridge/phase-match frames must be non-negative; rms/source-hz positive; terminal progress non-negative")
     parsed = [_parse_segment(value) for value in args.segment]
     if len({name for name, _ in parsed}) != len(parsed):
         parser.error("segment names must be unique")
     trajectories = [(name, _load_sample(path)) for name, path in parsed]
-    sequence, boundaries = assemble(trajectories, args.bridge_frames)
+    sequence, boundaries = assemble(trajectories, args.bridge_frames, args.phase_match_frames)
     join_ok = all(float(item["pre_bridge_joint_rms_rad"]) <= args.max_pre_bridge_rms for item in boundaries)
     args.out.mkdir(parents=True, exist_ok=True)
     sequence_path = args.out / "sequence.npz"
@@ -146,6 +163,7 @@ def main() -> int:
     report = {"segments": [{"name": name, "sample": str(path), "frames": int(len(trajectory))}
                            for (name, path), (_, trajectory) in zip(parsed, trajectories)],
               "sequence_frames": int(len(sequence)), "bridge_frames": args.bridge_frames,
+              "phase_match_frames": args.phase_match_frames,
               "boundaries": boundaries, "max_pre_bridge_rms_rad": args.max_pre_bridge_rms,
               "min_terminal_progress": args.min_terminal_progress,
               "no_reset_between_segments": True, "root_translation_rebased": True,

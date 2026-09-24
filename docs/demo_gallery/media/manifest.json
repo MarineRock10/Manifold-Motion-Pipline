@@ -208,71 +208,71 @@
     },
     {
       "id": "extended_chicane",
-      "title": "Long chicane: alternating lateral turns",
-      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v1/chicane_turns/manifold_adaptive.gif",
-      "purpose": "17-keyframe sequence with nine curvature-triggered turn intervals",
+      "title": "Long chicane: nominal walk with alternating turns",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v2/chicane_turns/manifold_adaptive.gif",
+      "purpose": "17-keyframe sequence where single-sided obstacles keep nominal walking and route curvature triggers nine turns",
       "max_width": 480,
       "stride": 10,
       "preview": "docs/demo_gallery/media/extended_chicane.gif",
-      "frames_source": 371,
+      "frames_source": 324,
+      "frames_preview": 33,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "5e9d07e20df641c99fb625244fda7db7abc3ea6453f64fca5c0d51e97d548d33",
+      "bytes": 2683336
+    },
+    {
+      "id": "extended_low_side_turn",
+      "title": "Compound task: crouch \u2192 side gait \u2192 turn \u2192 recovery",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v2/low_side_turn/manifold_adaptive.gif",
+      "purpose": "18-keyframe no-reset task with low-transition helpers, crouch, lateral gait and curved recovery",
+      "max_width": 480,
+      "stride": 10,
+      "preview": "docs/demo_gallery/media/extended_low_side_turn.gif",
+      "frames_source": 433,
+      "frames_preview": 44,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "3652b978ddbe3a8f0de8ee388e9e8df17766f4b9ad00f1112b899a47ba648d14",
+      "bytes": 3098413
+    },
+    {
+      "id": "extended_gate_cycle",
+      "title": "Repeated gates: crouch \u2194 walk \u2192 side \u2192 crouch",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v2/gate_cycle/manifold_adaptive.gif",
+      "purpose": "three low gates separated by recovery and a bilateral lateral-aperture gate",
+      "max_width": 480,
+      "stride": 10,
+      "preview": "docs/demo_gallery/media/extended_gate_cycle.gif",
+      "frames_source": 504,
+      "frames_preview": 51,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "ff3c37cddf8f626dda6166d518112bb910330331d93adb364aebe40a967ade75",
+      "bytes": 3981416
+    },
+    {
+      "id": "extended_slalom",
+      "title": "Long slalom: latched turns and side gait",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v2/slalom_turns/manifold_adaptive.gif",
+      "purpose": "18-keyframe alternating route with nine curvature turns, three bilateral side intervals and no turn/side chatter",
+      "max_width": 480,
+      "stride": 10,
+      "preview": "docs/demo_gallery/media/extended_slalom.gif",
+      "frames_source": 378,
       "frames_preview": 38,
       "size": [
         480,
         585
       ],
-      "sha256": "81e611500619f860d71d8c49d7e8a1fef4ae5cbf4b79915ba5f47ef09ed10ef8",
-      "bytes": 3093880
-    },
-    {
-      "id": "extended_low_side_turn",
-      "title": "Compound task: crouch \u2192 side gait \u2192 turn \u2192 recovery",
-      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v1/low_side_turn/manifold_adaptive.gif",
-      "purpose": "18-keyframe no-reset task spanning vertical, lateral and curved constraints",
-      "max_width": 480,
-      "stride": 10,
-      "preview": "docs/demo_gallery/media/extended_low_side_turn.gif",
-      "frames_source": 412,
-      "frames_preview": 42,
-      "size": [
-        480,
-        585
-      ],
-      "sha256": "7e9bd638decbd89177ddb112a661a1f277a41cde293cd079df73f16134148a62",
-      "bytes": 2948004
-    },
-    {
-      "id": "extended_gate_cycle",
-      "title": "Repeated gates: crouch \u2194 walk \u2192 side \u2192 crouch",
-      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v1/gate_cycle/manifold_adaptive.gif",
-      "purpose": "three low gates separated by recovery and a lateral-aperture gate",
-      "max_width": 480,
-      "stride": 10,
-      "preview": "docs/demo_gallery/media/extended_gate_cycle.gif",
-      "frames_source": 427,
-      "frames_preview": 43,
-      "size": [
-        480,
-        585
-      ],
-      "sha256": "0f4c3d64a88f6d9d632ac9c26c55436ffc100a416cd292315b97fcc28a4e4f2f",
-      "bytes": 3366426
-    },
-    {
-      "id": "extended_slalom",
-      "title": "Long slalom: repeated heading-conditioned switching",
-      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v1/slalom_turns/manifold_adaptive.gif",
-      "purpose": "17-keyframe alternating route with nine turn-helper intervals",
-      "max_width": 480,
-      "stride": 10,
-      "preview": "docs/demo_gallery/media/extended_slalom.gif",
-      "frames_source": 396,
-      "frames_preview": 40,
-      "size": [
-        480,
-        585
-      ],
-      "sha256": "f00bcc4098efb42b783d3c4230eddbd641f7a144d2fe383a97154329637acac1",
-      "bytes": 3184178
+      "sha256": "896043f98cdda66a3ea2a0e2485f83e8e01375a32854f3687e32d4d5536121f1",
+      "bytes": 3021558
     }
   ]
 }

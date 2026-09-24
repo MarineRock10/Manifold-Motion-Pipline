@@ -6,41 +6,45 @@ cd "$repo"
 export PYTHONPATH="${repo}${PYTHONPATH:+:${PYTHONPATH}}"
 export MUJOCO_GL=egl
 
-root="reports/manifold_motion/stage2_extended_gallery_v1"
+root="reports/manifold_motion/stage2_extended_gallery_v2"
 common=(--segment-length-m 0.45 --num-candidates 3 --side-semi-y-m 0.42
-        --planner-body-radius-m 0.40 --planner-clearance-m 0.10
+        --planner-clearance-m 0.10 --transition-hold-ticks 18
         --max-ticks 3200)
 
 python3 -m manifold_motion.stage2_manifold_adaptive \
   --scene data/g1_flat/scene_manifold_chicane.xml \
-  --title "CHICANE: FOUR ALTERNATING TURNS" \
+  --title "CHICANE: NOMINAL WALK WITH ALTERNATING TURNS" \
   --out "$root/chicane_turns" --goal-x 6.0 \
-  --side-gait-mode diagonal "${common[@]}"
+  --side-gait-mode diagonal --planner-body-radius-m 0.40 "${common[@]}"
 
 python3 -m manifold_motion.stage2_manifold_adaptive \
   --scene data/g1_flat/scene_manifold_low_side_turn.xml \
   --title "LOW TO SIDE TO TURN: COMPOUND MANIFOLD ROUTE" \
   --out "$root/low_side_turn" --goal-x 5.6 \
-  --side-gait-mode diagonal "${common[@]}"
+  --side-gait-mode diagonal --planner-body-radius-m 0.40 "${common[@]}"
 
 python3 -m manifold_motion.stage2_manifold_adaptive \
   --scene data/g1_flat/scene_manifold_gate_cycle.xml \
   --title "GATE CYCLE: CROUCH RECOVERY SIDE CROUCH" \
   --out "$root/gate_cycle" --goal-x 6.4 \
-  --side-gait-mode diagonal "${common[@]}"
+  --side-gait-mode diagonal --planner-body-radius-m 0.40 "${common[@]}"
 
 python3 -m manifold_motion.stage2_manifold_adaptive \
   --scene data/g1_flat/scene_manifold_slalom.xml \
-  --title "SLALOM: REPEATED HEADING CHANGES" \
-  --out "$root/slalom_turns" --goal-x 5.8 \
-  --side-gait-mode diagonal "${common[@]}"
+  --title "SLALOM: LATCHED TURNS AND SIDE GAIT" \
+  --out "$root/slalom_turns" --goal-x 6.0 \
+  --side-gait-mode diagonal --planner-body-radius-m 0.42 "${common[@]}"
 
 python3 - <<'PY'
 import json
 from pathlib import Path
-root = Path("reports/manifold_motion/stage2_extended_gallery_v1")
+root = Path("reports/manifold_motion/stage2_extended_gallery_v2")
 rows = []
-for report in sorted(root.glob("*/report.json")):
+expected = ("chicane_turns", "low_side_turn", "gate_cycle", "slalom_turns")
+for name in expected:
+    report = root / name / "report.json"
+    if not report.is_file():
+        raise FileNotFoundError(report)
     data = json.loads(report.read_text())
     rows.append({
         "id": report.parent.name,

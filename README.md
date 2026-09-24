@@ -82,17 +82,20 @@ remain in the reproducibility artifacts.
 #### Extended long-sequence tasks
 
 <p>
-  <img src="docs/demo_gallery/media/extended_chicane.gif" width="360" alt="Seventeen-keyframe alternating chicane" />
+  <img src="docs/demo_gallery/media/extended_chicane.gif" width="360" alt="Seventeen-keyframe nominal chicane with curvature turns" />
   <img src="docs/demo_gallery/media/extended_low_side_turn.gif" width="360" alt="Low to side gait to turn compound route" />
 </p>
 <p>
   <img src="docs/demo_gallery/media/extended_gate_cycle.gif" width="360" alt="Repeated crouch recovery side gait cycle" />
-  <img src="docs/demo_gallery/media/extended_slalom.gif" width="360" alt="Long slalom with repeated heading changes" />
+  <img src="docs/demo_gallery/media/extended_slalom.gif" width="360" alt="Long slalom with latched turns and side gait" />
 </p>
 
 All four extended tasks pass the same continuous MuJoCo/SONIC gate with zero obstacle-contact
-ticks. They reach 17, 18, 15 and 17 keyframes respectively; their primitive sequences are derived
-from measured aperture and route curvature, not from a scripted segment schedule.
+ticks. They reach 17, 18, 15 and 18 keyframes respectively. Chicane uses nominal walking plus
+curvature turns; the slalom uses nominal walking, three bilateral side-gait intervals and
+curvature turns. Low-side-turn additionally includes explicit low-clearance transition helpers.
+Every primitive sequence is derived from measured aperture and route curvature, not from a
+scripted segment schedule.
 The machine-readable acceptance rows are in [`docs/demo_gallery/extended_acceptance.json`](docs/demo_gallery/extended_acceptance.json).
 
 See [`DEMO_GALLERY.md`](DEMO_GALLERY.md) for the complete list, scenario descriptions and
