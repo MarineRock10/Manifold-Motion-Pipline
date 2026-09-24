@@ -1,0 +1,13 @@
+{
+  "schema": "manifold-motion.cvpr-primary-smoke.v1",
+  "date": "2026-09-24",
+  "accepted": true,
+  "rows": 104,
+  "methods": ["B2", "Ours-2", "Ours-3", "Ours-4"],
+  "scenarios": 26,
+  "seed": 31000,
+  "failed_smoke_ids": [],
+  "evidence_type": "structural_preflight_only",
+  "limitation": "No Flow generation or MuJoCo rollout is performed; this is not task-success, collision, or paper-statistics evidence.",
+  "next_gate": "one-seed physical MuJoCo sweep, then paired eight-seed pilot"
+}

@@ -140,6 +140,11 @@ PYTHONPATH=. python3 tests/test_extended_gallery.py
 # extended no-reset MuJoCo/SONIC acceptance tasks
 ./run_stage2_extended_gallery.sh
 
+# fast 4 primary methods x 26 scenarios structural preflight (104 rows)
+# This checks adapters/profiles only and is not a physics-result table.
+PYTHONPATH=. python3 -m manifold_motion.cvpr_smoke \
+  --out reports/cvpr/primary_smoke.jsonl
+
 # moving obstacle + map-change benchmark
 PYTHONPATH=. python3 -m manifold_motion.incremental_dynamic_benchmark \
   --out reports/manifold_motion/incremental_dynamic_benchmark
@@ -193,6 +198,11 @@ PYTHONPATH=. python3 -m manifold_motion.cvpr_benchmark audit \
 PYTHONPATH=. python3 -m manifold_motion.cvpr_benchmark summarize \
   --results reports/cvpr/results.jsonl --out reports/cvpr/summary.json
 ```
+
+The structural smoke must pass before starting expensive rollouts, but it never satisfies the
+benchmark audit: it deliberately uses `smoke_pass` instead of the required result fields. The
+next gates are (1) one physical seed for all 104 primary rows, (2) eight paired physical seeds,
+and only then (3) the frozen 32-seed primary sweep.
 
 The primary evaluation uses 32 paired seeds per scene. Diagnostic ablations use eight seeds to
 control compute. Controller learning uses five independent training seeds. Report mean/median as

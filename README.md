@@ -100,6 +100,9 @@ The machine-readable acceptance rows are in [`docs/demo_gallery/extended_accepta
 
 See [`DEMO_GALLERY.md`](DEMO_GALLERY.md) for the complete list, scenario descriptions and
 reproduction command. The quantitative pilot log is [`CVPR_PILOT_RESULTS.md`](CVPR_PILOT_RESULTS.md).
+The 104-row primary adapter preflight is summarized in
+[`docs/cvpr_primary_smoke_report.json`](docs/cvpr_primary_smoke_report.json); it is explicitly
+structural-only and is not paper statistics.
 
 ### Deploy perception demo
 

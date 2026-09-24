@@ -64,14 +64,31 @@ wide/low/narrow/center set:
 
 | task | keyframes | routed behavior | turn intervals | obstacle contacts |
 |---|---:|---|---:|---:|
-| alternating chicane | 17/17 | lateral gait with alternating route headings | 9 | 0 |
-| low-side-turn compound | 18/18 | crouch, lateral gait, turn, nominal recovery | 3 | 0 |
+| alternating chicane | 17/17 | nominal gait with alternating curvature turns | 9 | 0 |
+| low-side-turn compound | 18/18 | low transition, crouch, lateral gait, turn, nominal recovery | 3 | 0 |
 | repeated gate cycle | 15/15 | crouch/recovery cycles plus lateral gate | 0 | 0 |
-| long slalom | 17/17 | lateral gait with repeated heading changes | 9 | 0 |
+| long slalom | 18/18 | nominal gait plus 3 bilateral side intervals and latched turns | 9 | 0 |
 
 Each run keeps one MuJoCo state and passes the exact G1-surface/self-manifold clearance audit.
 These are deterministic qualitative pilot runs; they expand failure-mode coverage but do not
 replace the predeclared paired multi-seed benchmark.
+
+## Primary-matrix structural smoke
+
+The 4 primary methods × 26 scenarios × first nominal seed matrix now has an explicit 104-row
+adapter preflight. It verifies that every scenario resolves to a tracked fixture, a parameterized
+narrow/low generator, or a named dynamic-map event, and that B2/Ours-2/Ours-3/Ours-4 each has an
+explicit implementation profile. The preflight passes 104/104 rows.
+
+This is deliberately stored as `structural_preflight_only`: it runs no Flow generation and no
+MuJoCo physics, so it is not included in success/collision statistics. The next quantitative gate
+is the one-seed physical sweep, followed by the paired eight-seed pilot.
+The checked-in summary is [`docs/cvpr_primary_smoke_report.json`](docs/cvpr_primary_smoke_report.json).
+
+```bash
+PYTHONPATH=. python3 -m manifold_motion.cvpr_smoke \
+  --out reports/cvpr/primary_smoke.jsonl
+```
 
 ## What remains for the paper table
 
