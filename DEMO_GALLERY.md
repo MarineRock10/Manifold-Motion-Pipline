@@ -81,6 +81,16 @@ of separately reset clips.
 This accepted high-amplitude primitive records airborne ticks and a verified landing while keeping
 non-foot floor contacts and obstacle contacts at zero.
 
+## Phase-matched jump to crouch
+
+![Continuous jump transition crouch](docs/demo_gallery/media/jump_transition_crouch.gif)
+
+This accepted 220-tick, no-reset sequence uses a phase-matched low-transition clip between a
+high-amplitude jump and a crouched gait. The two handoff RMS errors are 0.488 and 0.280 rad;
+lift is 0.255 m, landing is verified, and obstacle/non-foot contacts are zero. It demonstrates
+controller handoff capability only: jump-over obstacle routing remains opt-in until a
+corridor-conditioned jump is trained and gated.
+
 ## Long side and low-clearance sequences
 
 ![Long side gait](docs/demo_gallery/media/long_side_gait.gif)
@@ -94,7 +104,8 @@ remains active throughout the constrained intervals.
 ![Alternating chicane](docs/demo_gallery/media/extended_chicane.gif)
 ![Low-side-turn compound task](docs/demo_gallery/media/extended_low_side_turn.gif)
 
-The chicane reaches 17 keyframes and activates nine curvature-caused turn intervals. The compound
+The chicane reaches 17 keyframes and activates nine curvature-caused turn intervals; unilateral
+obstacles keep its base primitive nominal rather than falsely requesting side gait. The compound
 route reaches 18 keyframes and changes from crouch under the low lintel to lateral gait in the
 narrow passage, then uses turn assistance around the offset block before recovering nominal gait.
 Both runs have zero obstacle-contact ticks.
@@ -103,8 +114,9 @@ Both runs have zero obstacle-contact ticks.
 ![Long slalom](docs/demo_gallery/media/extended_slalom.gif)
 
 The gate cycle exercises `crouch → walk → crouch → side → crouch → walk` over 15 keyframes.
-The slalom reaches 17 keyframes and activates nine turn intervals while alternating around four
-obstacles. These are one-state executions; the simulator is not reset at primitive boundaries.
+The slalom reaches 18 keyframes, uses three bilateral side intervals and activates nine latched
+turn intervals while alternating around four obstacles. These are one-state executions; the
+simulator is not reset at primitive boundaries.
 The exact G1-surface clearance gate and the changing task/self manifolds remain visible in every
 clip.
 

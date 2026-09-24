@@ -75,6 +75,7 @@ remain in the reproducibility artifacts.
 </p>
 <p>
   <img src="docs/demo_gallery/media/jump_and_land.gif" width="300" alt="Jump and verified landing" />
+  <img src="docs/demo_gallery/media/jump_transition_crouch.gif" width="300" alt="Continuous jump transition crouch" />
   <img src="docs/demo_gallery/media/long_side_gait.gif" width="360" alt="Long side gait through a narrow passage" />
   <img src="docs/demo_gallery/media/long_low_gait.gif" width="360" alt="Long crouch gait through a low corridor" />
 </p>

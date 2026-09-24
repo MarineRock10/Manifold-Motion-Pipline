@@ -56,6 +56,10 @@ pilot; it is not yet the 32-seed paired table.
 The gallery also includes independently gated jump/landing, transition→crouch without a state
 reset, Flow candidate screening, long side gait and long low-clearance sequences. The jump pilot
 records `0.253 m` lift, verified landing, no non-foot floor contacts and no obstacle contacts.
+Phase matching now also yields an accepted 220-tick `jump → low_transition → crouch` sequence:
+the two handoff RMS values are `0.488/0.280 rad`, lift is `0.255 m`, landing is verified and the
+terminal crouch progress ratio is `0.610`. This remains transition evidence, not a claim that the
+environment router can yet select a jump over an obstacle.
 
 ## Extended long-sequence pilot
 

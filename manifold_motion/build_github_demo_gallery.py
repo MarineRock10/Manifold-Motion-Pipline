@@ -100,6 +100,14 @@ SPECS = (
         "stride": 2,
     },
     {
+        "id": "jump_transition_crouch",
+        "title": "Continuous jump → low transition → crouch",
+        "source": "reports/manifold_motion/stage2_sequence_jump_transition_crouch_v4/sequence.gif",
+        "purpose": "phase-matched high-amplitude handoff into a low-clearance gait; accepted as a transition capability, not automatic jump-over routing",
+        "max_width": 520,
+        "stride": 2,
+    },
+    {
         "id": "long_side_gait",
         "title": "Long narrow passage: side gait",
         "source": "reports/manifold_motion/stage2_long_sequence_gallery_v1/narrow_long/manifold_adaptive.gif",

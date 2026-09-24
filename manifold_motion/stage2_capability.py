@@ -45,7 +45,10 @@ CAPABILITIES: dict[str, dict[str, Any]] = {
     },
     "jump": {
         "primitive_id": 7, "status": "partial",
-        "reason": "20/20 isolated takeoff/landing checks pass; corridor-conditioned jump is not validated",
+        "reason": (
+            "20/20 isolated takeoff/landing checks and one phase-matched "
+            "jump->low-transition->crouch sequence pass; corridor-conditioned jump routing is not validated"
+        ),
     },
 }
 

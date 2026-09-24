@@ -173,6 +173,23 @@
       "bytes": 2364423
     },
     {
+      "id": "jump_transition_crouch",
+      "title": "Continuous jump \u2192 low transition \u2192 crouch",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_sequence_jump_transition_crouch_v4/sequence.gif",
+      "purpose": "phase-matched high-amplitude handoff into a low-clearance gait; accepted as a transition capability, not automatic jump-over routing",
+      "max_width": 520,
+      "stride": 2,
+      "preview": "docs/demo_gallery/media/jump_transition_crouch.gif",
+      "frames_source": 220,
+      "frames_preview": 110,
+      "size": [
+        520,
+        390
+      ],
+      "sha256": "27f61a2430f1c82919715fce510aec595463bf5cdbb273087702a19d7265b3de",
+      "bytes": 5308518
+    },
+    {
       "id": "long_side_gait",
       "title": "Long narrow passage: side gait",
       "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_long_sequence_gallery_v1/narrow_long/manifold_adaptive.gif",
