@@ -115,6 +115,38 @@ SPECS = (
         "max_width": 480,
         "stride": 9,
     },
+    {
+        "id": "extended_chicane",
+        "title": "Long chicane: alternating lateral turns",
+        "source": "reports/manifold_motion/stage2_extended_gallery_v1/chicane_turns/manifold_adaptive.gif",
+        "purpose": "17-keyframe sequence with nine curvature-triggered turn intervals",
+        "max_width": 480,
+        "stride": 10,
+    },
+    {
+        "id": "extended_low_side_turn",
+        "title": "Compound task: crouch → side gait → turn → recovery",
+        "source": "reports/manifold_motion/stage2_extended_gallery_v1/low_side_turn/manifold_adaptive.gif",
+        "purpose": "18-keyframe no-reset task spanning vertical, lateral and curved constraints",
+        "max_width": 480,
+        "stride": 10,
+    },
+    {
+        "id": "extended_gate_cycle",
+        "title": "Repeated gates: crouch ↔ walk → side → crouch",
+        "source": "reports/manifold_motion/stage2_extended_gallery_v1/gate_cycle/manifold_adaptive.gif",
+        "purpose": "three low gates separated by recovery and a lateral-aperture gate",
+        "max_width": 480,
+        "stride": 10,
+    },
+    {
+        "id": "extended_slalom",
+        "title": "Long slalom: repeated heading-conditioned switching",
+        "source": "reports/manifold_motion/stage2_extended_gallery_v1/slalom_turns/manifold_adaptive.gif",
+        "purpose": "17-keyframe alternating route with nine turn-helper intervals",
+        "max_width": 480,
+        "stride": 10,
+    },
 )
 
 

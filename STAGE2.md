@@ -363,6 +363,24 @@ For repeated environment changes in one continuous task, run
 `./run_stage2_long_sequence_demo.sh`. The accepted long-sequence reports are documented in
 `STAGE2_LONG_SEQUENCES.md`.
 
+The extended gallery moves beyond the original four regression fixtures:
+
+```bash
+./run_stage2_extended_gallery.sh
+```
+
+| task | environment-driven sequence | accepted evidence |
+|---|---|---|
+| alternating chicane | lateral gait plus repeated turn helpers | 17/17 keyframes, 9 turn intervals, 0 obstacle contacts |
+| low-side-turn compound | crouch → side gait → turn → nominal recovery | 18/18 keyframes, 3 turn intervals, 0 obstacle contacts |
+| repeated gate cycle | crouch → recovery → crouch → side → crouch → recovery | 15/15 keyframes, 0 obstacle contacts |
+| long slalom | alternating lateral route plus repeated turns | 17/17 keyframes, 9 turn intervals, 0 obstacle contacts |
+
+Every row uses the same aperture/curvature router, Flow candidate generator, projection layer and
+continuous SONIC/MuJoCo safety gate. The scene files contain geometry only; they do not contain a
+per-segment primitive schedule. Full reports are written to
+`reports/manifold_motion/stage2_extended_gallery_v1/`.
+
 The long-sequence GIFs now show three distinct layers: blue `M_e(t)` is the environment safe
 corridor, white is the measured safe self-manifold `M_r^safe`, and the colored ellipsoid is the
 task-conditioned `M_r^task` (orange=crouch, green=side gait, yellow=nominal, violet=turn).

@@ -60,6 +60,20 @@ The primary paper comparison should be B2, Ours-2, Ours-3 and Ours-4. B0/B1/A0/A
 diagnostic ablations. A tabula-rasa controller is intentionally deferred until a matched
 controller training budget and stable SONIC replacement interface exist.
 
+## Scenario families
+
+The frozen manifest contains 26 scenario variants rather than only the original four fixtures:
+
+- open, wide, three narrow widths and four low-clearance heights for controlled sweeps;
+- compound side/low/turn and repeated-low tasks for primitive-transition accuracy;
+- four extended no-reset tasks: alternating chicane, low-side-turn, repeated gate cycle and
+  four-obstacle slalom;
+- appearing, crossing, moving-wall and route-reopening obstacles for online replanning;
+- held-out box layouts, corridor lengths and aperture compositions for generalization.
+
+The extended qualitative tasks are also part of the benchmark manifest, but their accepted GIFs
+remain pilot evidence until every predeclared method/seed row has been executed and audited.
+
 ## Metrics
 
 ### Task and safety
@@ -121,6 +135,10 @@ controller training budget and stable SONIC replacement interface exist.
 # unit contracts
 PYTHONPATH=. python3 tests/test_incremental_planner.py
 PYTHONPATH=. python3 tests/test_real_slam.py
+PYTHONPATH=. python3 tests/test_extended_gallery.py
+
+# extended no-reset MuJoCo/SONIC acceptance tasks
+./run_stage2_extended_gallery.sh
 
 # moving obstacle + map-change benchmark
 PYTHONPATH=. python3 -m manifold_motion.incremental_dynamic_benchmark \

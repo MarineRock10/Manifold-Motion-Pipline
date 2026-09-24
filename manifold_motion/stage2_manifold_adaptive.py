@@ -611,8 +611,15 @@ def _choose_candidate(primitive_id: int, generated: np.ndarray, source_index: in
 
 def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
     args.out.mkdir(parents=True, exist_ok=True)
-    planner = PlannerConfig(body_radius_m=args.planner_body_radius_m,
-                            clearance_m=args.planner_clearance_m)
+    # The original four fixtures ended at x=3.60 m, so PlannerConfig's historical
+    # 3.65 m bound was sufficient.  Extended CVPR tasks are deliberately longer.
+    # Grow only the forward search bound from the requested goal; all collision,
+    # inflation and lateral-bound semantics remain identical to the short tasks.
+    planner = PlannerConfig(
+        x_bounds=(-0.05, max(3.65, float(args.goal_x) + 0.05)),
+        body_radius_m=args.planner_body_radius_m,
+        clearance_m=args.planner_clearance_m,
+    )
     ground = _ground_obstacles(args.scene)
     perception_provenance: dict[str, Any] | None = None
     perception_grid: ProbabilisticSlidingVoxelGrid | None = None

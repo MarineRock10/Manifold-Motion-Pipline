@@ -5,6 +5,11 @@ branch was removed from the active experiment. It is an evidence log, not the fi
 frozen protocol still requires paired seeds, complete failure rows and the audit in
 [`CVPR_EXPERIMENTS.md`](CVPR_EXPERIMENTS.md).
 
+The pre-registered config now contains 26 scenario variants, including the four extended tasks
+shown below. With the current paired seed policy this expands the plan to 10,752 rows (7,168
+primary and 3,584 diagnostic); this is a planned workload, not a claim that every row has already
+been executed.
+
 ## Re-run completed on 2026-09-24
 
 Command:
@@ -51,6 +56,22 @@ pilot; it is not yet the 32-seed paired table.
 The gallery also includes independently gated jump/landing, transition→crouch without a state
 reset, Flow candidate screening, long side gait and long low-clearance sequences. The jump pilot
 records `0.253 m` lift, verified landing, no non-foot floor contacts and no obstacle contacts.
+
+## Extended long-sequence pilot
+
+The same pipeline was also run on four new fixtures that are not aliases of the original
+wide/low/narrow/center set:
+
+| task | keyframes | routed behavior | turn intervals | obstacle contacts |
+|---|---:|---|---:|---:|
+| alternating chicane | 17/17 | lateral gait with alternating route headings | 9 | 0 |
+| low-side-turn compound | 18/18 | crouch, lateral gait, turn, nominal recovery | 3 | 0 |
+| repeated gate cycle | 15/15 | crouch/recovery cycles plus lateral gate | 0 | 0 |
+| long slalom | 17/17 | lateral gait with repeated heading changes | 9 | 0 |
+
+Each run keeps one MuJoCo state and passes the exact G1-surface/self-manifold clearance audit.
+These are deterministic qualitative pilot runs; they expand failure-mode coverage but do not
+replace the predeclared paired multi-seed benchmark.
 
 ## What remains for the paper table
 

@@ -51,6 +51,9 @@ right-offset-block scenes with crouch/side/turn route decisions.
 For long-horizon tasks, run `run_stage2_long_sequence_demo.ps1` or
 `./run_stage2_long_sequence_demo.sh`; these keep one MuJoCo state while crossing multiple
 manifold regions.
+`./run_stage2_extended_gallery.sh` adds four longer tasks that are not variants of the original
+center/low/narrow/wide fixtures: an alternating chicane, a low-to-side-to-turn compound route,
+a repeated low/side gate cycle, and a multi-turn slalom.
 
 ### Visual results (accepted MuJoCo + SONIC simulations)
 
@@ -75,6 +78,22 @@ remain in the reproducibility artifacts.
   <img src="docs/demo_gallery/media/long_side_gait.gif" width="360" alt="Long side gait through a narrow passage" />
   <img src="docs/demo_gallery/media/long_low_gait.gif" width="360" alt="Long crouch gait through a low corridor" />
 </p>
+
+#### Extended long-sequence tasks
+
+<p>
+  <img src="docs/demo_gallery/media/extended_chicane.gif" width="360" alt="Seventeen-keyframe alternating chicane" />
+  <img src="docs/demo_gallery/media/extended_low_side_turn.gif" width="360" alt="Low to side gait to turn compound route" />
+</p>
+<p>
+  <img src="docs/demo_gallery/media/extended_gate_cycle.gif" width="360" alt="Repeated crouch recovery side gait cycle" />
+  <img src="docs/demo_gallery/media/extended_slalom.gif" width="360" alt="Long slalom with repeated heading changes" />
+</p>
+
+All four extended tasks pass the same continuous MuJoCo/SONIC gate with zero obstacle-contact
+ticks. They reach 17, 18, 15 and 17 keyframes respectively; their primitive sequences are derived
+from measured aperture and route curvature, not from a scripted segment schedule.
+The machine-readable acceptance rows are in [`docs/demo_gallery/extended_acceptance.json`](docs/demo_gallery/extended_acceptance.json).
 
 See [`DEMO_GALLERY.md`](DEMO_GALLERY.md) for the complete list, scenario descriptions and
 reproduction command. The quantitative pilot log is [`CVPR_PILOT_RESULTS.md`](CVPR_PILOT_RESULTS.md).

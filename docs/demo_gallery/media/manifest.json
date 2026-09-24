@@ -205,6 +205,74 @@
       ],
       "sha256": "f040ad08b87a9e3f9623bc9bd4f6db1ac6335d15823c0408aaa3ab45b185a43e",
       "bytes": 4561470
+    },
+    {
+      "id": "extended_chicane",
+      "title": "Long chicane: alternating lateral turns",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v1/chicane_turns/manifold_adaptive.gif",
+      "purpose": "17-keyframe sequence with nine curvature-triggered turn intervals",
+      "max_width": 480,
+      "stride": 10,
+      "preview": "docs/demo_gallery/media/extended_chicane.gif",
+      "frames_source": 371,
+      "frames_preview": 38,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "81e611500619f860d71d8c49d7e8a1fef4ae5cbf4b79915ba5f47ef09ed10ef8",
+      "bytes": 3093880
+    },
+    {
+      "id": "extended_low_side_turn",
+      "title": "Compound task: crouch \u2192 side gait \u2192 turn \u2192 recovery",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v1/low_side_turn/manifold_adaptive.gif",
+      "purpose": "18-keyframe no-reset task spanning vertical, lateral and curved constraints",
+      "max_width": 480,
+      "stride": 10,
+      "preview": "docs/demo_gallery/media/extended_low_side_turn.gif",
+      "frames_source": 412,
+      "frames_preview": 42,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "7e9bd638decbd89177ddb112a661a1f277a41cde293cd079df73f16134148a62",
+      "bytes": 2948004
+    },
+    {
+      "id": "extended_gate_cycle",
+      "title": "Repeated gates: crouch \u2194 walk \u2192 side \u2192 crouch",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v1/gate_cycle/manifold_adaptive.gif",
+      "purpose": "three low gates separated by recovery and a lateral-aperture gate",
+      "max_width": 480,
+      "stride": 10,
+      "preview": "docs/demo_gallery/media/extended_gate_cycle.gif",
+      "frames_source": 427,
+      "frames_preview": 43,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "0f4c3d64a88f6d9d632ac9c26c55436ffc100a416cd292315b97fcc28a4e4f2f",
+      "bytes": 3366426
+    },
+    {
+      "id": "extended_slalom",
+      "title": "Long slalom: repeated heading-conditioned switching",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_extended_gallery_v1/slalom_turns/manifold_adaptive.gif",
+      "purpose": "17-keyframe alternating route with nine turn-helper intervals",
+      "max_width": 480,
+      "stride": 10,
+      "preview": "docs/demo_gallery/media/extended_slalom.gif",
+      "frames_source": 396,
+      "frames_preview": 40,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "f00bcc4098efb42b783d3c4230eddbd641f7a144d2fe383a97154329637acac1",
+      "bytes": 3184178
     }
   ]
 }

@@ -89,11 +89,34 @@ non-foot floor contacts and obstacle contacts at zero.
 These are longer no-reset sequences for side-on and crouch gait. The measured self-manifold gate
 remains active throughout the constrained intervals.
 
+## Extended compound and multi-turn tasks
+
+![Alternating chicane](docs/demo_gallery/media/extended_chicane.gif)
+![Low-side-turn compound task](docs/demo_gallery/media/extended_low_side_turn.gif)
+
+The chicane reaches 17 keyframes and activates nine curvature-caused turn intervals. The compound
+route reaches 18 keyframes and changes from crouch under the low lintel to lateral gait in the
+narrow passage, then uses turn assistance around the offset block before recovering nominal gait.
+Both runs have zero obstacle-contact ticks.
+
+![Repeated gate cycle](docs/demo_gallery/media/extended_gate_cycle.gif)
+![Long slalom](docs/demo_gallery/media/extended_slalom.gif)
+
+The gate cycle exercises `crouch → walk → crouch → side → crouch → walk` over 15 keyframes.
+The slalom reaches 17 keyframes and activates nine turn intervals while alternating around four
+obstacles. These are one-state executions; the simulator is not reset at primitive boundaries.
+The exact G1-surface clearance gate and the changing task/self manifolds remain visible in every
+clip.
+
+The compact machine-readable acceptance summary is
+[`docs/demo_gallery/extended_acceptance.json`](docs/demo_gallery/extended_acceptance.json).
+
 ## Reproduce the previews
 
 First run the corresponding acceptance demos, then build the compact previews:
 
 ```bash
+./run_stage2_extended_gallery.sh
 PYTHONPATH=. python3 -m manifold_motion.build_github_demo_gallery
 ```
 
