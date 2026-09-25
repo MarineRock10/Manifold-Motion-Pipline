@@ -71,7 +71,7 @@ remain in the reproducibility artifacts.
 <p>
   <img src="docs/demo_gallery/media/dynamic_crossing.gif" width="300" alt="Robot waits for a crossing obstacle and resumes the route" />
   <img src="docs/demo_gallery/media/dynamic_appear_disappear.gif" width="300" alt="Robot replans when an obstacle appears and disappears" />
-  <img src="docs/demo_gallery/media/dynamic_moving_wall.gif" width="300" alt="Robot uses a side gait around a moving wall" />
+  <img src="docs/demo_gallery/media/dynamic_moving_wall.gif" width="300" alt="Robot reroutes around a moving wall" />
 </p>
 <p>
   <img src="docs/demo_gallery/media/manifold_behavior_matrix.gif" width="480" alt="Primitive matrix for wide, low and narrow manifolds" />
