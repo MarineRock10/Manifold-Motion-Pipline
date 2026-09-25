@@ -120,11 +120,21 @@ class OnlinePerceptionNavigator:
                  side_body_radius_m: float | None = None,
                  route_preference_weight: float = 2.0,
                  crouch_semi_z_m: float = 1.12, side_semi_y_m: float = 0.40,
-                 decision_confirm_updates: int = 2, seed: int = 20260923):
+                 decision_confirm_updates: int = 2,
+                 decision_release_confirm_updates: int = 4,
+                 initial_primitive_id: int = 5,
+                 vertical_lookahead_m: float = 1.20, seed: int = 20260923):
         if scan_ticks <= 0 or lookahead_m <= 0 or body_radius_m <= 0 or clearance_m <= 0:
             raise ValueError("online perception cadence and geometry must be positive")
         if decision_confirm_updates <= 0:
             raise ValueError("decision_confirm_updates must be positive")
+        if decision_release_confirm_updates < decision_confirm_updates:
+            raise ValueError(
+                "decision_release_confirm_updates must be no smaller than decision_confirm_updates")
+        if initial_primitive_id not in (2, 4, 5):
+            raise ValueError("initial_primitive_id must be crouch(2), side(4), or nominal(5)")
+        if vertical_lookahead_m < 0.90:
+            raise ValueError("vertical_lookahead_m must cover the nominal online horizon")
         self.scene = Path(scene)
         self.seed_grid = Path(seed_grid) if seed_grid is not None else None
         self.scan_ticks = int(scan_ticks)
@@ -140,6 +150,8 @@ class OnlinePerceptionNavigator:
         self.crouch_semi_z_m = float(crouch_semi_z_m)
         self.side_semi_y_m = float(side_semi_y_m)
         self.decision_confirm_updates = int(decision_confirm_updates)
+        self.decision_release_confirm_updates = int(decision_release_confirm_updates)
+        self.vertical_lookahead_m = float(vertical_lookahead_m)
         self.config = SlidingGridConfig()
         self.radar = SimulatedRadar(self.scene, RadarConfig(seed=int(seed)))
         self.grid: ProbabilisticSlidingVoxelGrid | None = None
@@ -149,7 +161,9 @@ class OnlinePerceptionNavigator:
         self.last_corridor: np.ndarray | None = None
         self.last_sdf: np.ndarray | None = None
         self.last_decision: dict[str, Any] | None = None
-        self.stable_primitive_id = 5
+        # Start from the posture selected by the initial P1 manifold instead of silently
+        # expanding to nominal walk while the first radar scans are still incomplete.
+        self.stable_primitive_id = int(initial_primitive_id)
         self.pending_primitive_id: int | None = None
         self.pending_primitive_updates = 0
         self.failure: str | None = None
@@ -219,9 +233,17 @@ class OnlinePerceptionNavigator:
         else:
             self.pending_primitive_id = raw
             self.pending_primitive_updates = 1
+        # Contracting the body is safety-positive and may be committed quickly.  Expanding
+        # from crouch/side to nominal needs more consecutive observations because an unseen
+        # ceiling/wall initially looks like free space to a forward-looking radar.
+        required_confirm_updates = int(
+            self.decision_release_confirm_updates
+            if raw == 5 and previous in (2, 4)
+            else self.decision_confirm_updates
+        )
         committed = False
         if (self.pending_primitive_id is not None
-                and self.pending_primitive_updates >= self.decision_confirm_updates):
+                and self.pending_primitive_updates >= required_confirm_updates):
             self.stable_primitive_id = int(self.pending_primitive_id)
             self.pending_primitive_id = None
             self.pending_primitive_updates = 0
@@ -233,7 +255,9 @@ class OnlinePerceptionNavigator:
             "primitive_changed": bool(committed), "previous_primitive_id": previous,
             "pending_primitive_id": self.pending_primitive_id,
             "pending_updates": int(self.pending_primitive_updates),
-            "confirm_updates": int(self.decision_confirm_updates),
+            "confirm_updates": required_confirm_updates,
+            "contraction_confirm_updates": int(self.decision_confirm_updates),
+            "release_confirm_updates": int(self.decision_release_confirm_updates),
             "vertical_free_semi_min_m": vertical,
             "lateral_free_semi_min_m": lateral,
             "bilateral_lateral_free_semi_min_m": bilateral_lateral,
@@ -293,7 +317,11 @@ class OnlinePerceptionNavigator:
                 route[:, 2] = position[2]
                 corridor, sdf, corridor_report = safe_corridor_from_grid(
                     self.grid, route, position, quat, vertical_semi_m=1.20,
-                    clearance_m=self.clearance_m, frames=48, horizon_m=0.90,
+                    clearance_m=self.clearance_m, frames=48,
+                    # The vertical aperture must look far enough ahead to see a ceiling
+                    # before the robot's head enters it; the route planner still uses the
+                    # shorter local horizon for latency, while M_e is anticipatory.
+                    horizon_m=self.vertical_lookahead_m,
                 )
                 bilateral_lateral = _bilateral_lateral_free_semi_from_radar(
                     route, scan.points_world, float(position[2]),
@@ -385,6 +413,7 @@ class OnlinePerceptionNavigator:
             "total_map_updates": (int(self.grid.update_count) if self.grid is not None else 0),
             "planning_override_ticks": int(self.override_ticks),
             "route_preference_weight": self.route_preference_weight, "failure": self.failure,
+            "vertical_lookahead_m": self.vertical_lookahead_m,
             "nominal_body_radius_m": self.body_radius_m,
             "side_body_radius_m": self.side_body_radius_m,
             "active_body_radius_m": self.body_radius_history,

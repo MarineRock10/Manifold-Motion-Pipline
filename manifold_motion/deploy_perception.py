@@ -34,7 +34,10 @@ class RadarConfig:
     """A deterministic 2-D/vertical fan used by the MuJoCo radar fixture."""
 
     horizontal_rays: int = 240
-    vertical_angles_rad: tuple[float, ...] = (-0.16, 0.0, 0.16)
+    # Upward channels make overhead clearance observable even while the pelvis pitches during
+    # a crouch transition.  The old +/-0.16 fan intermittently lost a 1.20 m ceiling and
+    # incorrectly expanded M_e back to nominal posture before entry.
+    vertical_angles_rad: tuple[float, ...] = (-0.16, 0.0, 0.16, 0.32, 0.48)
     horizontal_fov_rad: float = 2.0 * math.pi
     max_range_m: float = 5.0
     # Offset above the pelvis/root origin.  With the fixture root at z=0.78 this places the
@@ -891,10 +894,44 @@ def _axis_free_half_extent(grid: ProbabilisticSlidingGrid | ProbabilisticSliding
     return max(grid.config.min_corridor_semi_m, max_distance_m - clearance_m)
 
 
+def _vertical_footprint_occupied(
+    grid: ProbabilisticSlidingVoxelGrid,
+    center_xy: np.ndarray,
+    z_world: float,
+    probability: np.ndarray,
+    *,
+    footprint_radius_m: float = 0.28,
+    min_occupied_voxels: int = 2,
+) -> bool:
+    """Query an overhead slice across the body footprint, not one centre voxel.
+
+    A spinning/ray radar samples a ceiling sparsely.  Requiring the exact route-centre voxel
+    misses most valid returns, while a small footprint disk retains the geometric meaning of
+    vertical clearance.  Two occupied cells suppress an isolated noisy hit.
+    """
+    global_cell = grid.world_to_global_cell_xyz(np.array([
+        [float(center_xy[0]), float(center_xy[1]), float(z_world)]], dtype=np.float64))[0]
+    local = global_cell - grid.origin_cell_xyz
+    z, cy, cx = int(local[2]), int(local[1]), int(local[0])
+    if not (0 <= z < grid.shape_zyx[0]):
+        return False
+    radius = max(1, int(math.ceil(footprint_radius_m / grid.config.resolution_m)))
+    x0, x1 = max(0, cx - radius), min(grid.shape_zyx[2], cx + radius + 1)
+    y0, y1 = max(0, cy - radius), min(grid.shape_zyx[1], cy + radius + 1)
+    if x1 <= x0 or y1 <= y0:
+        return False
+    yy, xx = np.indices((y1 - y0, x1 - x0))
+    disk = ((xx + x0 - cx) ** 2 + (yy + y0 - cy) ** 2) <= radius ** 2
+    occupied = probability[z, y0:y1, x0:x1] >= grid.config.occupied_probability
+    return int(np.count_nonzero(occupied & disk)) >= int(min_occupied_voxels)
+
+
 def _vertical_free_half_extent(grid: ProbabilisticSlidingVoxelGrid, center_xy: np.ndarray,
                                z_center: float, max_distance_m: float,
-                               clearance_m: float) -> float:
-    """Find the symmetric vertical free half extent from the 3-D voxel evidence."""
+                               clearance_m: float,
+                               probability: np.ndarray | None = None) -> float:
+    """Find the upward free extent from footprint-aware 3-D voxel evidence."""
+    probability = grid.probability() if probability is None else probability
     steps = max(1, int(math.ceil(max_distance_m / grid.config.resolution_m)))
     limits = []
     for sign in (-1.0, 1.0):
@@ -905,7 +942,8 @@ def _vertical_free_half_extent(grid: ProbabilisticSlidingVoxelGrid, center_xy: n
             if sign < 0.0 and point[2] <= grid.config.known_ground_z_m:
                 free = max(0.0, z_center - grid.config.known_ground_z_m - clearance_m)
                 break
-            if grid.vertical_probability_at(point) >= grid.config.occupied_probability:
+            if _vertical_footprint_occupied(
+                    grid, center_xy, float(point[2]), probability):
                 free = (step - 1) * grid.config.resolution_m - clearance_m
                 break
         limits.append(max(grid.config.min_corridor_semi_m, free))
@@ -965,6 +1003,7 @@ def safe_corridor_from_grid(grid: ProbabilisticSlidingGrid | ProbabilisticSlidin
     headings_world = np.unwrap(np.arctan2(np.gradient(route_world[:, 1]), np.gradient(route_world[:, 0])))
     headings_local = headings_world - root_yaw
     semis = []
+    volume_probability = grid.probability() if hasattr(grid, "vertical_probability_at") else None
     for point, heading in zip(route_world, headings_world):
         tangent = np.array([math.cos(float(heading)), math.sin(float(heading))])
         lateral = np.array([-tangent[1], tangent[0]])
@@ -974,7 +1013,8 @@ def safe_corridor_from_grid(grid: ProbabilisticSlidingGrid | ProbabilisticSlidin
                            _axis_free_half_extent(grid, point[:2], -lateral, 1.4, clearance_m))
         if hasattr(grid, "vertical_probability_at"):
             vertical_free = _vertical_free_half_extent(
-                grid, point[:2], float(point[2]), vertical_semi_m, clearance_m)
+                grid, point[:2], float(point[2]), vertical_semi_m, clearance_m,
+                probability=volume_probability)
         else:
             vertical_free = vertical_semi_m
         semis.append([max(grid.config.min_corridor_semi_m, tangent_free),

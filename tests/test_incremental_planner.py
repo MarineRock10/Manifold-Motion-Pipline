@@ -66,7 +66,24 @@ def test_dstar_reuses_state_after_map_change(tmp_path: Path) -> None:
     (tmp_path / "incremental_planner_report.json").write_text(json.dumps(payload, indent=2))
 
 
+def test_overhead_ceiling_does_not_block_ground_route() -> None:
+    config = SlidingGridConfig(size_xyz=(64, 64, 24), size_xy=(64, 64), resolution_m=0.08)
+    grid = ProbabilisticSlidingVoxelGrid(config, np.array([0.0, 0.0, 0.78]))
+    grid.log_odds[:] = -8.0
+    z = int(np.floor(1.20 / config.resolution_m)) - int(grid.origin_cell_xyz[2])
+    x = int(np.floor(0.0 / config.resolution_m)) - int(grid.origin_cell_xyz[0])
+    y0 = int(np.floor(-0.70 / config.resolution_m)) - int(grid.origin_cell_xyz[1])
+    y1 = int(np.ceil(0.70 / config.resolution_m)) - int(grid.origin_cell_xyz[1])
+    grid.log_odds[z:z + 1, y0:y1 + 1, x:x + 1] = 8.0
+    planner = DStarLitePlanner(0.08, IncrementalPlannerConfig(
+        body_radius_m=0.16, clearance_m=0.08, body_half_height_m=0.78,
+        ground_projection_height_m=0.45, route_preference_weight=0.0))
+    route, _ = planner.plan(grid, np.array([-1.5, 0.0, 0.78]), np.array([1.5, 0.0, 0.78]))
+    assert float(np.max(np.abs(route[:, 1]))) < 0.20
+
+
 if __name__ == "__main__":
     test_esdf_dirty_update_matches_full()
     test_dstar_reuses_state_after_map_change(Path("/tmp"))
+    test_overhead_ceiling_does_not_block_ground_route()
     print("incremental planner tests passed")

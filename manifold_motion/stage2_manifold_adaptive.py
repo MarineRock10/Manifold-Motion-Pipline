@@ -1128,6 +1128,11 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             crouch_semi_z_m=args.crouch_semi_z_m,
             side_semi_y_m=args.side_semi_y_m,
             decision_confirm_updates=int(getattr(args, "online_primitive_confirm_updates", 2)),
+            decision_release_confirm_updates=int(
+                getattr(args, "online_primitive_release_confirm_updates", 4)),
+            initial_primitive_id=(int(decisions[0]["primitive_id"]) if decisions else 5),
+            vertical_lookahead_m=float(
+                getattr(args, "online_perception_vertical_lookahead_m", 1.20)),
             seed=args.seed + 7103,
         )
 
@@ -1281,12 +1286,16 @@ def main() -> int:
     parser.add_argument("--online-perception-scan-ticks", type=int, default=20,
                         help="radar/SLAM/A* update period at the 50 Hz control rate")
     parser.add_argument("--online-perception-lookahead-m", type=float, default=0.45)
+    parser.add_argument("--online-perception-vertical-lookahead-m", type=float, default=1.20,
+                        help="anticipatory vertical M_e lookahead; must cover overhead hazards before entry")
     parser.add_argument("--online-perception-route-preference-weight", type=float, default=2.0,
                         help="soft hysteresis toward the last accepted global route")
     parser.add_argument("--disable-online-primitive-reroute", action="store_true",
                         help="ablation: keep online route yaw but do not let live M_e switch primitives")
     parser.add_argument("--online-primitive-confirm-updates", type=int, default=2,
                         help="consecutive radar updates required before committing an M_e class")
+    parser.add_argument("--online-primitive-release-confirm-updates", type=int, default=4,
+                        help="consecutive free-space updates required before expanding to nominal posture")
     parser.add_argument("--online-shadow-ticks", type=int, default=24,
                         help="current-state MuJoCo ticks used to gate a semantic switch")
     parser.add_argument("--windows", type=Path, default=C.REPO / "reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz")

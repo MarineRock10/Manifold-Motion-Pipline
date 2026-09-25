@@ -100,6 +100,7 @@ class IncrementalPlannerConfig:
     body_radius_m: float = 0.40
     clearance_m: float = 0.10
     body_half_height_m: float = 0.78
+    ground_projection_height_m: float = 0.45
     esdf_truncation_m: float = 1.20
     risk_weight: float = 0.50
     unknown_penalty: float = 0.35
@@ -110,6 +111,7 @@ class IncrementalPlannerConfig:
 
     def validate(self) -> None:
         if min(self.body_radius_m, self.clearance_m, self.body_half_height_m,
+               self.ground_projection_height_m,
                self.esdf_truncation_m, self.max_compute_steps) <= 0:
             raise ValueError("incremental planner geometry and budget must be positive")
         if min(self.risk_weight, self.unknown_penalty, self.route_preference_weight) < 0:
@@ -386,8 +388,13 @@ class DStarLitePlanner:
         started = time.perf_counter()
         start_xyz = np.asarray(start_world_xyz, dtype=np.float64).reshape(3)
         goal_xyz = np.asarray(goal_world_xyz, dtype=np.float64).reshape(3)
-        z_min = start_xyz[2] - self.config.body_half_height_m - self.config.clearance_m
-        z_max = start_xyz[2] + self.config.body_half_height_m + self.config.clearance_m
+        # D* Lite searches a ground-bound XY route.  Projecting the complete robot-height band
+        # here makes a low ceiling look like a vertical wall and causes the route to detour
+        # around a passage that is actually traversable by crouching.  Keep the 3-D map intact
+        # for M_e/vertical clearance; only the near-ground obstacle band feeds XY occupancy.
+        ground_z = start_xyz[2] - self.config.body_half_height_m
+        z_min = ground_z - self.config.clearance_m
+        z_max = ground_z + self.config.ground_projection_height_m
         occupied = grid.occupancy_xy_projection(z_min, z_max)
         unknown = grid.unknown_xy_projection(z_min, z_max)
         probability = grid.probability_xy_projection(z_min, z_max)
