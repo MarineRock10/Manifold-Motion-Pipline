@@ -1,0 +1,43 @@
+{
+  "schema": "manifold-motion.cvpr-physical-summary.v1",
+  "experiment": "one nominal seed primary physical smoke",
+  "seed": 31000,
+  "planned_rows": 104,
+  "reported_rows": 104,
+  "missing_rows": 0,
+  "fidelity": {
+    "exact_physics": {"rows": 76, "successes": 33},
+    "proxy_geometry": {"rows": 12, "successes": 9},
+    "unsupported_dynamic_adapter": {"rows": 16, "successes": 0}
+  },
+  "methods": {
+    "B2": {"rows": 26, "successes": 14, "physical_or_proxy_rows": 22},
+    "Ours-2": {"rows": 26, "successes": 10, "physical_or_proxy_rows": 22},
+    "Ours-3": {"rows": 26, "successes": 10, "physical_or_proxy_rows": 22},
+    "Ours-4": {"rows": 26, "successes": 8, "physical_or_proxy_rows": 22}
+  },
+  "failure_taxonomy_counts": {
+    "scenario_adapter_not_implemented": 16,
+    "rollout_timeout": 13,
+    "self_manifold_stop_without_contact": 15,
+    "self_manifold_stop_with_route_deviation": 11,
+    "self_manifold_stop_with_scene_contact": 4,
+    "fall_or_tracking_failure": 2,
+    "route_deviation_only": 1
+  },
+  "interpretation": {
+    "positive": [
+      "open-center and open-wide passed for all four methods",
+      "0.95 m and 0.85 m side-gait fixtures passed for Ours-2/3/4 after compact self-manifold planning feedback",
+      "chicane, slalom and held-out corridor/box fixtures provide accepted long-horizon evidence"
+    ],
+    "limitation": [
+      "dynamic-crossing-block, dynamic-appear-disappear, dynamic-moving-wall and dynamic-route-reopen still need a time-varying MuJoCo/radar adapter",
+      "low-ceiling and repeated primitive-transition failures show that online crouch/history switching needs another controller/data iteration",
+      "B2 is an offline geometry-A* proxy in this smoke, not the final independent full-voxel baseline",
+      "one seed is smoke/pilot evidence; no paper claim should use these counts as final statistics"
+    ]
+  },
+  "source": "reports/cvpr/physical_primary_seed31000/results.jsonl",
+  "reproduction": "PYTHONPATH=. python3 -m manifold_motion.cvpr_physical_smoke --out reports/cvpr/physical_primary_seed31000 --resume --skip-render --row-timeout-s 180"
+}

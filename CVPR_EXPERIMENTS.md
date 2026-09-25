@@ -96,6 +96,12 @@ The one-seed output is a smoke/pilot and must not be reported as the final multi
 table. In particular, B2 is currently an offline geometry-A* proxy until the independent
 full-voxel baseline is wired into the same MuJoCo executor.
 
+The completed nominal-seed audit currently reports 104/104 rows (76 exact MuJoCo, 12 held-out
+proxy fixtures, and 16 explicit dynamic-adapter gaps). The checked-in snapshot is
+`docs/cvpr_primary_physical_seed31000_summary.json`; it records the failure taxonomy and must
+be read together with the per-run JSONL source. A row timeout is a failure category, not a
+successful rollout.
+
 ## Metrics
 
 ### Task and safety

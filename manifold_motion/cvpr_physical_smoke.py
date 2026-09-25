@@ -214,7 +214,8 @@ def _report_to_result(row: dict[str, Any], report: dict[str, Any], fidelity: str
     }
 
 
-def execute_row(row: dict[str, Any], out: Path, *, skip_render: bool) -> dict[str, Any]:
+def execute_row(row: dict[str, Any], out: Path, *, skip_render: bool,
+                row_timeout_s: float) -> dict[str, Any]:
     started = time.perf_counter()
     run_dir = out / "runs" / row["run_id"]
     result_path = run_dir / "result.json"
@@ -238,11 +239,20 @@ def execute_row(row: dict[str, Any], out: Path, *, skip_render: bool) -> dict[st
                "--planner-clearance-m",
                ("0.06" if adapter.get("factory") == "narrow_corridor" else "0.10"),
                "--self-manifold-clearance-m", "0.02",
-               "--max-ticks", "2600", "--seed", str(row["seed"])]
+               "--max-ticks", "1400", "--seed", str(row["seed"])]
     if skip_render:
         command.append("--skip-render")
     started_process = time.perf_counter()
-    completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True)
+    try:
+        completed = subprocess.run(command, cwd=ROOT, text=True, capture_output=True,
+                                   timeout=row_timeout_s)
+    except subprocess.TimeoutExpired as error:
+        return _empty_result(
+            row, failure_type="rollout_timeout", fidelity=fidelity, started=started,
+            extra={"adapter": adapter, "timeout_s": float(row_timeout_s),
+                   "stdout_tail": str(error.stdout)[-2000:] if error.stdout else "",
+                   "stderr_tail": str(error.stderr)[-2000:] if error.stderr else ""},
+        )
     report_path = rollout / "report.json"
     if not report_path.is_file():
         return _empty_result(row, failure_type=f"stage2_process_failed:{completed.returncode}",
@@ -273,7 +283,8 @@ def _read_existing(out: Path) -> dict[str, dict[str, Any]]:
 
 
 def run(config: Path, out: Path, *, seed: int | None, resume: bool,
-        max_runs: int | None, skip_render: bool, rerun_failures: bool) -> dict[str, Any]:
+        max_runs: int | None, skip_render: bool, rerun_failures: bool,
+        row_timeout_s: float) -> dict[str, Any]:
     out.mkdir(parents=True, exist_ok=True)
     rows = build_rows(config, seed)
     existing = _read_existing(out) if resume else {}
@@ -286,7 +297,8 @@ def run(config: Path, out: Path, *, seed: int | None, resume: bool,
             continue
         if max_runs is not None and executed >= max_runs:
             continue
-        result = execute_row(row, out, skip_render=skip_render)
+        result = execute_row(row, out, skip_render=skip_render,
+                             row_timeout_s=row_timeout_s)
         results[row["run_id"]] = result
         result_path = out / "runs" / row["run_id"] / "result.json"
         result_path.parent.mkdir(parents=True, exist_ok=True)
@@ -331,12 +343,16 @@ def main() -> int:
     parser.add_argument("--max-runs", type=int, default=None,
                         help="limit new rows for a bounded pilot; resume continues later")
     parser.add_argument("--skip-render", action="store_true")
+    parser.add_argument("--row-timeout-s", type=float, default=180.0,
+                        help="wall-clock timeout for one MuJoCo row")
     args = parser.parse_args()
     if args.max_runs is not None and args.max_runs <= 0:
         parser.error("--max-runs must be positive")
+    if args.row_timeout_s <= 0:
+        parser.error("--row-timeout-s must be positive")
     report = run(args.config, args.out, seed=args.seed, resume=args.resume,
                  max_runs=args.max_runs, skip_render=args.skip_render,
-                 rerun_failures=args.rerun_failures)
+                 rerun_failures=args.rerun_failures, row_timeout_s=args.row_timeout_s)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0 if report["accepted"] else 2
 
