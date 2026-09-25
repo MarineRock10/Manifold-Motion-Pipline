@@ -32,7 +32,9 @@ import numpy as np
 
 from .cvpr_benchmark import DEFAULT_CONFIG, _read_json
 from .cvpr_smoke import DYNAMIC_SCENARIOS, FIXTURE_SCENARIOS
-from .dynamic_scene import SUPPORTED_DYNAMIC_EVENTS, dynamic_half_xy, obstacle_state
+from .dynamic_scene import (
+    SUPPORTED_DYNAMIC_EVENTS, dynamic_half_xy, dynamic_half_z, obstacle_state,
+)
 from .stage2_manifold_adaptive import BENCHMARK_METHOD_PROFILES
 
 
@@ -142,11 +144,12 @@ def _xml_for_generated_fixture(adapter: dict[str, Any], output: Path) -> Path:
             raise ValueError(f"unknown dynamic event {event}")
         state = obstacle_state(event, 0.0)
         hx, hy = dynamic_half_xy(event)
+        hz = dynamic_half_z(event)
         title = f"cvpr dynamic {event}"
         walls = f"""
-    <geom name="obstacle_dynamic_block" type="box" pos="{state.center_xy[0]:.4f} {state.center_xy[1]:.4f} 0.55" size="{hx:.4f} {hy:.4f} 0.55" rgba="0.95 0.30 0.18 0.62"/>
-    <geom name="obstacle_boundary_left" type="box" pos="1.8 1.45 0.55" size="2.35 0.04 0.55" rgba="0.25 0.62 0.92 0.22"/>
-    <geom name="obstacle_boundary_right" type="box" pos="1.8 -1.45 0.55" size="2.35 0.04 0.55" rgba="0.25 0.62 0.92 0.22"/>"""
+    <geom name="obstacle_dynamic_block" type="box" pos="{state.center_xy[0]:.4f} {state.center_xy[1]:.4f} {hz:.4f}" size="{hx:.4f} {hy:.4f} {hz:.4f}" rgba="0.95 0.30 0.18 0.62"/>
+    <geom name="obstacle_boundary_left" type="box" pos="1.8 2.00 0.55" size="2.35 0.04 0.55" rgba="0.25 0.62 0.92 0.22"/>
+    <geom name="obstacle_boundary_right" type="box" pos="1.8 -2.00 0.55" size="2.35 0.04 0.55" rgba="0.25 0.62 0.92 0.22"/>"""
     else:
         raise ValueError(f"unknown generated fixture: {adapter}")
     xml = f"""<mujoco model=\"{title}\">\n  <include file=\"{include}\"/>\n  <statistic center=\"1.8 0 0.65\" extent=\"4.5\"/>\n  <visual><headlight diffuse=\"0.7 0.7 0.7\" ambient=\"0.35 0.35 0.35\" specular=\"0 0 0\"/><global azimuth=\"-120\" elevation=\"-28\"/></visual>\n  <asset><texture type=\"skybox\" builtin=\"gradient\" rgb1=\"0.30 0.48 0.68\" rgb2=\"0 0 0\" width=\"512\" height=\"3072\"/><texture type=\"2d\" name=\"groundplane\" builtin=\"checker\" mark=\"edge\" rgb1=\"0.22 0.29 0.36\" rgb2=\"0.10 0.14 0.18\" markrgb=\"0.8 0.8 0.8\" width=\"300\" height=\"300\"/><material name=\"groundplane\" texture=\"groundplane\" texuniform=\"true\" texrepeat=\"8 5\" reflectance=\"0.12\"/></asset>\n  <worldbody><light pos=\"1.8 0 3.5\" dir=\"0 0 -1\" directional=\"true\"/><geom name=\"floor\" size=\"0 0 0.05\" type=\"plane\" material=\"groundplane\"/>{walls}\n  </worldbody>\n</mujoco>\n"""

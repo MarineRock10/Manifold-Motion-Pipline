@@ -43,7 +43,33 @@ from .reference import ReferenceBuffer
 from .sonic import SonicController
 from .seed_replay import _ContactMonitor
 from .seed_windows import _state_features
-from .dynamic_scene import apply_dynamic_obstacle
+from .dynamic_scene import apply_dynamic_obstacle, dynamic_half_xy, obstacle_state
+
+
+def _dynamic_wait_required(event: str | None, tick: int, position_xy: np.ndarray) -> bool:
+    """Return whether a dynamic obstacle is close enough to wait for, not walk into.
+
+    This is a bounded execution safeguard, not a route-success oracle: D* Lite still receives
+    every radar/map update and recomputes the future route.  Holding the current SONIC target
+    gives a moving obstacle time to cross/reopen instead of forcing a frozen gait to keep
+    stepping while its self-manifold clearance collapses.
+    """
+    if event not in {"crossing", "moving_wall"}:
+        return False
+    state = obstacle_state(event, tick * C.CONTROL_DT)
+    if state is None or not state.active:
+        return False
+    delta = np.asarray(state.center_xy, dtype=np.float64) - np.asarray(position_xy, dtype=np.float64)
+    # A moving wall should not freeze the robot while it is still far from the swept volume.
+    # The crossing pilot keeps the wider conservative gate; the oscillating wall waits only
+    # when the measured body is genuinely at the near face of the blocker.
+    if event == "moving_wall":
+        # Include the wall half-width and the conservative body footprint: a lateral route
+        # detour can otherwise look clear at its centre while the exact self-manifold reaches
+        # the moving box edge on the next physics tick.
+        _, half_y = dynamic_half_xy(event)
+        return bool(abs(float(delta[0])) < 1.05 and abs(float(delta[1])) < max(0.90, half_y + 0.55))
+    return bool(abs(float(delta[0])) < 0.95 and abs(float(delta[1])) < 0.90)
 
 
 PRIMITIVE_NAMES = {
@@ -497,7 +523,8 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "route_progress_m", "route_progress_error_m", "route_velocity_cmd_mps", "yaw_command_rad",
         "reference_phase", "body_route_yaw_error", "side_on_active",
         "runtime_self_manifold_clearance_m",
-        "dynamic_obstacle_active", "dynamic_obstacle_center_xy",
+        "dynamic_obstacle_active", "dynamic_obstacle_center_xy", "dynamic_wait_active",
+        "online_route_deviation_m",
     )}
     runtime_safety_stop = False
     runtime_safety_stop_tick: int | None = None
@@ -507,6 +534,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     online_semantic_updates: list[dict[str, Any]] = []
     online_semantic_choice: dict[int, int] = {}
     last_semantic_request: tuple[int, int, int] | None = None
+    dynamic_wait_ticks = 0
     target_index = 1
     recent_features: list[np.ndarray] = []
     for tick in range(args.max_ticks):
@@ -538,10 +566,16 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             recent_features.append(current_feature.copy())
             recent_features = recent_features[-12:]
         online_navigation: dict[str, Any] = {}
+        online_route_xy = np.asarray(world_route, dtype=np.float64)[:, :2]
         if perception_callback is not None:
             online_navigation = dict(perception_callback(
                 int(tick), state, np.asarray(world_route[-1], dtype=np.float64),
                 np.asarray(world_route, dtype=np.float64)) or {})
+            candidate_route = online_navigation.get("route_world_xyz")
+            if candidate_route is not None:
+                candidate_route = np.asarray(candidate_route, dtype=np.float64)
+                if candidate_route.ndim == 2 and candidate_route.shape[0] >= 2:
+                    online_route_xy = candidate_route[:, :2]
             if bool(online_navigation.get("updated", False)):
                 online_perception_updates.append({
                     key: value for key, value in online_navigation.items()
@@ -793,6 +827,20 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         reference, phases[segment][option_index] = _rolling_reference(
             plan.motion, reference_phase, reference_yaw, horizon=50
         )
+        dynamic_wait = _dynamic_wait_required(dynamic_event, tick, position)
+        if dynamic_wait:
+            # Hold the measured current pose in policy order.  This preserves SONIC's state
+            # history and lets the obstacle schedule advance while the robot remains in the
+            # last physically safe configuration.
+            current_policy_q = state["q_hw"][C.MUJOCO_TO_ISAACLAB].copy()
+            reference = ReferenceBuffer(
+                np.repeat(current_policy_q[None, :], 50, axis=0),
+                np.zeros((50, current_policy_q.size), dtype=np.float64),
+                np.zeros((50, 3), dtype=np.float64),
+                np.repeat(state["base_quat"][None, :], 50, axis=0),
+            )
+            reference_phase = -1
+            dynamic_wait_ticks += 1
         if blend_from_q is not None:
             blend_ticks = max(1, int(getattr(args, "handoff_blend_ticks", 12)))
             weights = np.clip(
@@ -841,6 +889,9 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         log["dynamic_obstacle_center_xy"].append(
             (np.asarray(dynamic_update["center_xy_m"], dtype=np.float32)
              if dynamic_update is not None else np.array([np.nan, np.nan], dtype=np.float32)))
+        log["dynamic_wait_active"].append(bool(dynamic_wait))
+        log["online_route_deviation_m"].append(
+            float(_distance_to_polyline(executed["base_pos"][None, :2], online_route_xy)[0]))
         previous_q = q_ref
         segment_ticks[segment] += 1
         executed_feature = _state_features({
@@ -860,7 +911,13 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             break
     data = {key: np.asarray(value) for key, value in log.items()}
     positions = data["base_pos"][:, :2]
-    deviation = _distance_to_polyline(positions, world_route)
+    static_deviation = _distance_to_polyline(positions, world_route)
+    live_deviation = np.asarray(data["online_route_deviation_m"], dtype=np.float64)
+    # Dynamic events intentionally create a detour.  Gate those rows against the route that
+    # the synchronized radar/D* loop actually supplied at each tick, while retaining the
+    # offline-route deviation as an audit metric in the report.
+    deviation = (live_deviation if dynamic_event is not None and len(live_deviation) == len(positions)
+                 else static_deviation)
     tracking = np.abs(data["q_ref"] - data["q_exec"])
     roll = np.abs(_roll_degrees(data["base_quat"]))
     locomotion = data["active_primitive"] != 6
@@ -893,6 +950,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "keyframe_events": reached, "terminal_error_m": terminal_error,
         "route_deviation_mean_m": float(deviation.mean()), "route_deviation_p95_m": float(np.quantile(deviation, .95)),
         "route_deviation_max_m": float(deviation.max()), "track_err_mean_rad": float(tracking.mean()),
+        "static_route_deviation_mean_m": float(static_deviation.mean()),
+        "static_route_deviation_p95_m": float(np.quantile(static_deviation, .95)),
+        "static_route_deviation_max_m": float(static_deviation.max()),
+        "route_deviation_reference": ("online_live_route" if dynamic_event is not None
+                                       else "offline_dense_route"),
         "base_z_min_m": float(data["base_pos"][:, 2].min()), "roll_abs_max_deg": float(roll.max()),
         "body_route_yaw_abs_p95_deg": yaw_p95_deg,
         "body_route_yaw_abs_max_deg": float(np.degrees(yaw_abs.max())),
@@ -914,6 +976,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "online_perception_enabled": bool(perception_callback is not None),
         "dynamic_obstacle_event": dynamic_event,
         "dynamic_obstacle_active_ticks": int(np.sum(data["dynamic_obstacle_active"])),
+        "dynamic_wait_ticks": int(dynamic_wait_ticks),
+        "dynamic_wait_contract": (
+            "current measured SONIC pose held while crossing/moving-wall obstacle is within "
+            "event-specific geometry-aware longitudinal/lateral near field; radar/D* updates continue"
+            if dynamic_wait_ticks else "not triggered"),
         "dynamic_obstacle_path": (
             data["dynamic_obstacle_center_xy"].astype(float).tolist()
             if dynamic_event is not None else []),

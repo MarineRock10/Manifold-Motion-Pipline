@@ -28,14 +28,27 @@ previous full voxel A* implementation on this machine.
 
 ![Dynamic route reopen](docs/demo_gallery/media/dynamic_route_reopen.gif)
 
+![Dynamic crossing](docs/demo_gallery/media/dynamic_crossing.gif)
+
+![Dynamic appearance/disappearance](docs/demo_gallery/media/dynamic_appear_disappear.gif)
+
+![Dynamic moving wall](docs/demo_gallery/media/dynamic_moving_wall.gif)
+
 This is the complete physical chain rather than a map-only animation. A centre block is present
 for the first 200 control ticks and then disappears. The same timestamped pose drives MuJoCo
 contacts, simulated radar, the 3-D probability map, D* Lite, the rendered obstacle and the exact
-G1 self-manifold audit. The Ours-4 seed-31000 pilot reaches 10/10 keyframes in 363 ticks with
-zero obstacle contacts, 0.219 m terminal error, 0.168 m route-deviation P95 and 0.055 m minimum
-exact surface clearance. There are 19 online map/planner updates. See
-[`docs/dynamic_route_reopen_pilot.json`](docs/dynamic_route_reopen_pilot.json); these are
-one-seed adapter checks, not final CVPR statistics.
+G1 self-manifold audit. The latest Ours-4 seed-31000 route-reopen pilot reaches 10/10 keyframes
+in 304 ticks with zero obstacle contacts, 0.204 m terminal error, 0.117 m online-route
+deviation P95 and 0.095 m minimum runtime self-manifold clearance. The complete four-event
+snapshot is [`docs/cvpr_dynamic_physical_pilot.json`](docs/cvpr_dynamic_physical_pilot.json);
+these are one-seed adapter checks, not final CVPR statistics.
+
+The extended dynamic pilots now include four synchronized schedules: crossing block,
+appearance/disappearance, moving wall and route reopen. The crossing and moving-wall schedules
+use a geometry-aware current-pose wait plus side-gait preference for lateral blockers; low-ceiling
+crouch logic remains reserved for a true overhead aperture. The full pilot table is in
+[`CVPR_PILOT_RESULTS.md`](CVPR_PILOT_RESULTS.md) and
+[`docs/cvpr_dynamic_physical_pilot.json`](docs/cvpr_dynamic_physical_pilot.json).
 
 ## Compound long-horizon task
 

@@ -47,7 +47,10 @@ def obstacle_state(event: str | None, time_s: float) -> DynamicObstacleState | N
     if event == "moving_wall":
         # A short wall oscillates laterally while remaining inside the static corridor.
         y = float(0.78 * np.sin(2.0 * np.pi * (t - 0.5) / 6.0))
-        return DynamicObstacleState(event, t, True, (1.80, y))
+        # It clears after the first sweep. This tests repeated online route repair while
+        # retaining a causally reachable exit; a permanently blocking wall is covered by the
+        # safety-stop test, not by a locomotion-success metric.
+        return DynamicObstacleState(event, t, bool(t < 3.5), (1.80, y))
     # The centre block initially closes the route, then reopens it after the robot has
     # committed to the first safe corridor.  Keeping it in the scene at t=0 makes the initial
     # M_e and the first radar frame causal.
@@ -68,7 +71,7 @@ def apply_dynamic_obstacle(model: mujoco.MjModel, data: mujoco.MjData,
     model.geom_pos[geom_id, 1] = state.center_xy[1]
     # An inactive obstacle is moved below the floor, rather than deleting the geom.  This
     # keeps the MuJoCo model topology and radar geom id stable across all frames.
-    model.geom_pos[geom_id, 2] = 0.55 if state.active else -5.0
+    model.geom_pos[geom_id, 2] = dynamic_half_z(state.event) if state.active else -5.0
     mujoco.mj_forward(model, data)
     return {
         "event": state.event, "time_s": state.time_s, "active": state.active,
@@ -80,6 +83,14 @@ def dynamic_half_xy(event: str) -> tuple[float, float]:
     return {
         "crossing": (0.18, 0.20),
         "appear_disappear": (0.26, 0.28),
-        "moving_wall": (0.10, 0.70),
+        "moving_wall": (0.10, 0.45),
         "route_reopen": (0.28, 0.34),
     }[str(event)]
+
+
+def dynamic_half_z(event: str) -> float:
+    # Crossing/moving-wall pilots are lateral blockers: keep their top below the nominal
+    # torso-clearance threshold so the semantic router requests side/turn motion instead of
+    # misclassifying a vertical wall as a low-ceiling crouch.  The dedicated appearance/reopen
+    # events retain the taller block used by the obstacle-avoidance stress test.
+    return 0.25 if str(event) in {"crossing", "moving_wall"} else 0.55

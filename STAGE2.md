@@ -431,7 +431,12 @@ PYTHONPATH=. python3 -m manifold_motion.incremental_dynamic_benchmark \
 
 The accepted moving-obstacle benchmark covers obstacle appearance, crossing and disappearance.
 Its JSON compares incremental latency with the previous full voxel A* and its GIF displays both
-the previous and updated routes.
+the previous and updated routes. The exact-physics Stage-2 pilot additionally covers a lateral
+moving wall and a route-reopen event; all four Ours-4 seed-31000 rows reach their keyframes with
+zero contacts and no self-manifold safety stop. See
+[`docs/cvpr_dynamic_physical_pilot.json`](docs/cvpr_dynamic_physical_pilot.json) for the
+reproduction snapshot. Dynamic route deviation is measured against the synchronized live D*
+Lite route; the offline-route deviation remains in each report as an audit field.
 
 ## Real SLAM/time/extrinsic ingress
 

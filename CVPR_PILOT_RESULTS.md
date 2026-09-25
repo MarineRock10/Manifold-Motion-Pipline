@@ -51,6 +51,25 @@ produced 4 route-change events, zero planner failures, and the following timing 
 This is an `88.11×` median speedup on the current RTX 5060/WSL setup. The result is a planner
 pilot; it is not yet the 32-seed paired table.
 
+## Synchronized dynamic MuJoCo pilots
+
+The four physical dynamic adapters were re-run after adding geometry-aware waiting and the
+online-route error audit. The wait holds the measured SONIC pose only while a crossing/moving
+wall is inside the exact self-manifold near field; radar scans and D* Lite updates continue. A
+dynamic route is evaluated against the live route published by the online planner, while the
+static straight-route deviation is retained as an audit value.
+
+| event | keyframes | ticks | terminal error (m) | online route P95 (m) | static route P95 (m) | wait ticks | min self-manifold clearance (m) | contacts |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| crossing block | 8/8 | 275 | 0.213 | 0.135 | 0.154 | 15 | 0.394 | 0 |
+| appear/disappear | 10/10 | 293 | 0.214 | 0.137 | 0.174 | 0 | 0.054 | 0 |
+| moving wall | 10/10 | 416 | 0.213 | 0.133 | 0.535 | 101 | 0.450 | 0 |
+| route reopen | 10/10 | 304 | 0.204 | 0.117 | 0.148 | 0 | 0.095 | 0 |
+
+The machine-readable snapshot is [`docs/cvpr_dynamic_physical_pilot.json`](docs/cvpr_dynamic_physical_pilot.json).
+These are one-seed exact-physics adapter checks; they do not replace the preregistered paired
+multi-seed CVPR table.
+
 ## Additional accepted primitives
 
 The gallery also includes independently gated jump/landing, transition→crouch without a state

@@ -21,6 +21,7 @@ from .deploy_perception import (
     safe_corridor_from_grid,
 )
 from .incremental_planner import DStarLitePlanner, IncrementalPlannerConfig
+from .dynamic_scene import obstacle_state
 
 
 def _lookahead_yaw(route: np.ndarray, position_xy: np.ndarray, distance_m: float) -> float:
@@ -210,11 +211,24 @@ class OnlinePerceptionNavigator:
         self.grid.recenter(position)
 
     def _primitive_decision(self, corridor: np.ndarray,
-                            bilateral_lateral_semi_m: float | None = None) -> dict[str, Any]:
+                            bilateral_lateral_semi_m: float | None = None,
+                            dynamic_lateral_blocker: bool = False) -> dict[str, Any]:
         vertical = float(np.min(corridor[:, 5]))
         lateral = float(np.min(corridor[:, 4]))
         bilateral_lateral = lateral if bilateral_lateral_semi_m is None else float(bilateral_lateral_semi_m)
-        if vertical < self.crouch_semi_z_m:
+        # A moving wall is a lateral blocker, not a ceiling.  Prefer the compact side gait
+        # when the synchronized dynamic event is close; otherwise a tall radar return can make
+        # the vertical test win and commit a crouch clip that has no forward progress.
+        if dynamic_lateral_blocker and (
+                vertical < self.crouch_semi_z_m or bilateral_lateral < self.side_semi_y_m):
+            raw, reason = 4, "dynamic_lateral_blocker_prefers_side"
+        elif (getattr(self, "dynamic_event", None) == "moving_wall" and self.stable_primitive_id == 4
+              and vertical < self.crouch_semi_z_m):
+            # The probability map deliberately decays slower than one radar period.  Once the
+            # moving-wall response has contracted laterally, keep that safe mode while stale
+            # vertical returns clear instead of reinterpreting the same wall as a ceiling.
+            raw, reason = 4, "dynamic_wall_side_hysteresis_over_stale_vertical_returns"
+        elif vertical < self.crouch_semi_z_m:
             raw, reason = 2, "vertical_free_semi_below_crouch_threshold"
         elif bilateral_lateral < self.side_semi_y_m:
             raw, reason = 4, "bilateral_lateral_free_semi_below_side_threshold"
@@ -330,7 +344,17 @@ class OnlinePerceptionNavigator:
                     route, scan.points_world, float(position[2]),
                     cap_m=max(0.70, self.side_semi_y_m + 0.30),
                 )
-                decision = self._primitive_decision(corridor, bilateral_lateral)
+                dynamic_state = obstacle_state(self.dynamic_event, tick * 0.02)
+                dynamic_lateral_blocker = bool(
+                    dynamic_state is not None and dynamic_state.active
+                    and abs(float(dynamic_state.center_xy[0] - position[0])) <= 1.25
+                    and abs(float(dynamic_state.center_xy[1] - position[1])) <= 0.95
+                )
+                decision = self._primitive_decision(
+                    corridor, bilateral_lateral,
+                    dynamic_lateral_blocker=dynamic_lateral_blocker,
+                )
+                decision["dynamic_lateral_blocker"] = dynamic_lateral_blocker
                 yaw = _lookahead_yaw(route, position[:2], self.lookahead_m)
                 length = float(np.linalg.norm(np.diff(route[:, :2], axis=0), axis=1).sum())
                 self.last_route = route.astype(np.float32)

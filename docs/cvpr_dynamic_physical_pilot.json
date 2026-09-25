@@ -1,0 +1,13 @@
+{
+  "schema": "manifold-motion.cvpr-dynamic-physical-pilot.v1",
+  "seed": 31000,
+  "method": "Ours-4",
+  "policy": "single deterministic seed; exact MuJoCo physics; synchronized radar, 3-D map, D* Lite, M_e, SONIC and self-manifold audit",
+  "note": "Pilot evidence for the runnable closed loop; not the preregistered multi-seed paper table.",
+  "runs": [
+    {"scenario": "dynamic-crossing-block", "run_id": "9dc7ad91dad1e30e", "accepted": true, "physics_ticks": 275, "keyframes": "8/8", "terminal_error_m": 0.213398, "online_route_deviation_p95_m": 0.134861, "static_route_deviation_p95_m": 0.153544, "dynamic_wait_ticks": 15, "runtime_self_manifold_clearance_min_m": 0.394029, "obstacle_contact_ticks": 0, "runtime_self_manifold_safety_stop": false},
+    {"scenario": "dynamic-appear-disappear", "run_id": "e7d107b8e0503da2", "accepted": true, "physics_ticks": 293, "keyframes": "10/10", "terminal_error_m": 0.214051, "online_route_deviation_p95_m": 0.136730, "static_route_deviation_p95_m": 0.173640, "dynamic_wait_ticks": 0, "runtime_self_manifold_clearance_min_m": 0.053613, "obstacle_contact_ticks": 0, "runtime_self_manifold_safety_stop": false},
+    {"scenario": "dynamic-moving-wall", "run_id": "c728e13c183acfdd", "accepted": true, "physics_ticks": 416, "keyframes": "10/10", "terminal_error_m": 0.212631, "online_route_deviation_p95_m": 0.133425, "static_route_deviation_p95_m": 0.535223, "dynamic_wait_ticks": 101, "runtime_self_manifold_clearance_min_m": 0.449777, "obstacle_contact_ticks": 0, "runtime_self_manifold_safety_stop": false},
+    {"scenario": "dynamic-route-reopen", "run_id": "6851b4b0cfca2000", "accepted": true, "physics_ticks": 304, "keyframes": "10/10", "terminal_error_m": 0.203593, "online_route_deviation_p95_m": 0.116602, "static_route_deviation_p95_m": 0.148212, "dynamic_wait_ticks": 0, "runtime_self_manifold_clearance_min_m": 0.095263, "obstacle_contact_ticks": 0, "runtime_self_manifold_safety_stop": false}
+  ]
+}

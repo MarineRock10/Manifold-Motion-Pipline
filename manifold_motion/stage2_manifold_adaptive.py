@@ -45,7 +45,7 @@ from .stage2_capability import CAPABILITIES, supported_ids
 from .deploy_perception import (ProbabilisticSlidingVoxelGrid, SlidingGridConfig,
                                 safe_corridor_from_grid)
 from .online_perception import OnlinePerceptionNavigator
-from .dynamic_scene import SUPPORTED_DYNAMIC_EVENTS, obstacle_state
+from .dynamic_scene import SUPPORTED_DYNAMIC_EVENTS, dynamic_half_z, obstacle_state
 
 
 BENCHMARK_METHOD_PROFILES: dict[str, dict[str, Any]] = {
@@ -514,7 +514,8 @@ def _self_manifold_safety(data: dict[str, np.ndarray], environment_corridor: np.
                 if dynamic is None or not dynamic.active:
                     continue
                 current = {**box, "center": np.array([
-                    dynamic.center_xy[0], dynamic.center_xy[1], 0.55], dtype=np.float64)}
+                    dynamic.center_xy[0], dynamic.center_xy[1],
+                    dynamic_half_z(dynamic_obstacle_event)], dtype=np.float64)}
             tick_boxes.append(current)
         for box in tick_boxes:
             exact_clearance[tick] = min(
