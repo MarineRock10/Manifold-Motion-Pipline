@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import time
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,56 @@ from .stage2_capability import CAPABILITIES, supported_ids
 from .deploy_perception import (ProbabilisticSlidingVoxelGrid, SlidingGridConfig,
                                 safe_corridor_from_grid)
 from .online_perception import OnlinePerceptionNavigator
+
+
+BENCHMARK_METHOD_PROFILES: dict[str, dict[str, Any]] = {
+    "B2": {
+        "planner": "offline_geometry_astar",
+        "online_environment_manifold": False,
+        "projection": False,
+        "shadow_gate": False,
+        "state_history_condition": False,
+    },
+    "Ours-2": {
+        "planner": "incremental_esdf_dstar_lite",
+        "online_environment_manifold": True,
+        "projection": True,
+        "shadow_gate": False,
+        "state_history_condition": False,
+    },
+    "Ours-3": {
+        "planner": "incremental_esdf_dstar_lite",
+        "online_environment_manifold": True,
+        "projection": True,
+        "shadow_gate": True,
+        "state_history_condition": False,
+    },
+    "Ours-4": {
+        "planner": "incremental_esdf_dstar_lite",
+        "online_environment_manifold": True,
+        "projection": True,
+        "shadow_gate": True,
+        "state_history_condition": True,
+    },
+}
+
+
+def _apply_benchmark_method_profile(args: argparse.Namespace) -> dict[str, Any] | None:
+    """Apply a primary-method ablation without changing the ordinary demo defaults."""
+    method = getattr(args, "benchmark_method", None)
+    if method is None:
+        args.online_semantic_shadow_gate = True
+        args.flow_state_history_conditioning = True
+        return None
+    profile = dict(BENCHMARK_METHOD_PROFILES[method])
+    args.online_perception = bool(profile["online_environment_manifold"])
+    args.online_semantic_shadow_gate = bool(profile["shadow_gate"])
+    args.flow_state_history_conditioning = bool(profile["state_history_condition"])
+    args.projection_iterations = max(1, int(args.projection_iterations)) if profile["projection"] else 0
+    # Only the full method performs the offline probe -> actual-state/history reconditioning
+    # pass. Ours-2/3 still receive live M_e semantic requests during their single rollout.
+    args.online_condition_iterations = 1 if profile["state_history_condition"] else 0
+    return profile
 
 
 def _ground_obstacles(scene: Path) -> list[Box2D]:
@@ -661,24 +712,52 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
     # 3.65 m bound was sufficient.  Extended CVPR tasks are deliberately longer.
     # Grow only the forward search bound from the requested goal; all collision,
     # inflation and lateral-bound semantics remain identical to the short tasks.
-    planner = PlannerConfig(
+    nominal_planner = PlannerConfig(
         x_bounds=(-0.05, max(3.65, float(args.goal_x) + 0.05)),
         body_radius_m=args.planner_body_radius_m,
         clearance_m=args.planner_clearance_m,
     )
+    planner = nominal_planner
+    planner_selection = "nominal"
     ground = _ground_obstacles(args.scene)
     perception_provenance: dict[str, Any] | None = None
     perception_grid: ProbabilisticSlidingVoxelGrid | None = None
+    initial_planning_started = time.perf_counter()
     if args.perception_condition is not None:
         corners, perception_grid, perception_provenance = _perception_route_and_grid(
             args.perception_condition, args.perception_simplify_tolerance_m)
         raw = corners.copy()
     else:
-        raw = _astar(np.array([0.0, 0.0]), np.array([args.goal_x, 0.0]), ground, planner)
+        try:
+            raw = _astar(np.array([0.0, 0.0]), np.array([args.goal_x, 0.0]), ground, planner)
+        except RuntimeError as error:
+            # A narrow aperture can be unreachable for the nominal spherical footprint even
+            # though the environment manifold explicitly requests the validated side gait.  A
+            # physical planner must feed that self-manifold choice back into the route search;
+            # retry once with the compact side footprint instead of silently routing around the
+            # gate.  The exact mesh/self-manifold gate below remains authoritative.
+            if getattr(args, "benchmark_method", None) is None and not args.online_perception:
+                raise
+            planner = PlannerConfig(
+                x_bounds=nominal_planner.x_bounds,
+                y_bounds=nominal_planner.y_bounds,
+                body_radius_m=args.planner_side_body_radius_m,
+                clearance_m=args.planner_clearance_m,
+                resolution_m=nominal_planner.resolution_m,
+                route_spacing_m=nominal_planner.route_spacing_m,
+            )
+            raw = _astar(np.array([0.0, 0.0]), np.array([args.goal_x, 0.0]), ground, planner)
+            planner_selection = "compact_side_fallback_after_nominal_no_route"
         corners = _simplify(raw, ground, planner)
+    initial_planning_ms = (time.perf_counter() - initial_planning_started) * 1000.0
     keyframes = _subdivide(corners, args.segment_length_m)
     route_segments, dense_route = _segments(keyframes)
-    _, obstacle_names = obstacle_pointcloud(args.scene, spacing_m=0.06)
+    try:
+        _, obstacle_names = obstacle_pointcloud(args.scene, spacing_m=0.06)
+    except ValueError as error:
+        if "has no obstacle_* geoms" not in str(error):
+            raise
+        obstacle_names = []
     physical_boxes = _physical_boxes(args.scene)
     envelope = _calibrate_envelope()
     sampler = RouteFlowSampler(args.windows, args.autoencoder, args.flow, args.device,
@@ -805,7 +884,10 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                 generated, source_index = sampler.sample(
                     primitive_id, corridor, sdf, command, args.num_candidates,
                     seed=args.seed + segment_index * 101 + primitive_id,
-                    state=sampler_condition.get("state"), history=sampler_condition.get("history"),
+                    state=(sampler_condition.get("state")
+                           if getattr(args, "flow_state_history_conditioning", True) else None),
+                    history=(sampler_condition.get("history")
+                             if getattr(args, "flow_state_history_conditioning", True) else None),
                     # Sparse semantic clips are still weakly covered by the pilot Flow corpus.
                     # Candidate zero remains a verified SEED reference while the other K-1
                     # candidates use the live state/history.  The same projection and SONIC
@@ -905,7 +987,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         generated, source_index = sampler.sample(
             primitive_id, item["corridor"], item["sdf"], item["command"],
             max(2, args.num_candidates), seed=args.seed + 900001 + tick + segment * 17,
-            state=state, history=history, raw_exemplar=False,
+            state=(state if getattr(args, "flow_state_history_conditioning", True) else None),
+            history=(history if getattr(args, "flow_state_history_conditioning", True) else None),
+            raw_exemplar=False,
         include_mean_anchor=not args.pure_stochastic_flow,
         )
         projected = []
@@ -953,7 +1037,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         generated, source_index = sampler.sample(
             primitive_id, corridor, sdf, command, max(2, args.num_candidates),
             seed=args.seed + 1_700_003 + tick * 7 + primitive_id,
-            state=state, history=history,
+            state=(state if getattr(args, "flow_state_history_conditioning", True) else None),
+            history=(history if getattr(args, "flow_state_history_conditioning", True) else None),
             raw_exemplar=(primitive_id in (4, 5) and not args.disable_anchor),
             include_mean_anchor=not args.pure_stochastic_flow,
         )
@@ -1015,7 +1100,11 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             "reason": "live_M_e_primitive_mismatch",
             "primitive": PRIMITIVE_NAMES[primitive_id], "candidate_count": len(ranked),
             "source_index": int(source_index), "candidates": candidate_rows,
-            "safety_contract": "all ranked proposals require current-state MuJoCo shadow acceptance",
+            "safety_contract": (
+                "all ranked proposals require current-state MuJoCo shadow acceptance"
+                if getattr(args, "online_semantic_shadow_gate", True)
+                else "shadow gate ablated; continuous MuJoCo and self-manifold gates remain authoritative"
+            ),
         }
 
     def new_online_perception() -> OnlinePerceptionNavigator | None:
@@ -1033,6 +1122,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             scan_ticks=args.online_perception_scan_ticks,
             lookahead_m=args.online_perception_lookahead_m,
             body_radius_m=args.planner_body_radius_m,
+            side_body_radius_m=args.planner_side_body_radius_m,
             clearance_m=args.planner_clearance_m,
             route_preference_weight=args.online_perception_route_preference_weight,
             crouch_semi_z_m=args.crouch_semi_z_m,
@@ -1087,15 +1177,19 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         execution["accepted"] = False
     if not args.skip_render:
         render(args.scene, data, execution, world_keyframes, world_route, render_corridor,
-               _boxes(args.scene), planner, args.out / "manifold_adaptive.gif", args.fps,
+               ground, planner, args.out / "manifold_adaptive.gif", args.fps,
                self_manifold=robot_manifold, safe_manifold=robot_manifold_safe)
     report = {
         "experiment": "environment-manifold-caused primitive routing",
         "scenario": args.title, "scene": str(args.scene), "obstacles": obstacle_names,
         "planner": {"body_radius_m": planner.body_radius_m,
+                    "side_body_radius_m": args.planner_side_body_radius_m,
                     "clearance_m": planner.clearance_m,
                     "inflation_m": planner.inflation_m,
-                    "resolution_m": planner.resolution_m},
+                    "resolution_m": planner.resolution_m,
+                    "nominal_body_radius_m": nominal_planner.body_radius_m,
+                    "planner_selection": planner_selection,
+                    "initial_planning_ms": float(initial_planning_ms)},
         "perception_input": perception_provenance,
         "routing_contract": "primitive is a deterministic function of measured M_e aperture and route heading change; never segment index",
         "capability_manifest": {
@@ -1118,6 +1212,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         "online_conditioning": {
             "iterations": args.online_condition_iterations,
             "contract": "probe rollout -> measured executed 69-D state and 12-frame history -> per-segment Flow reconditioning",
+            "state_history_conditioning_enabled": bool(getattr(args, "flow_state_history_conditioning", True)),
             "segments": {str(k): {"tick": v.get("tick"), "history_ticks": v.get("history_ticks")}
                          for k, v in online_overrides.items()},
             "probe_execution": probe_execution,
@@ -1125,6 +1220,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         "online_perception": (
             final_perception.summary() if final_perception is not None else {"enabled": False}
         ),
+        "benchmark_method": getattr(args, "benchmark_method", None),
+        "benchmark_method_profile": getattr(args, "benchmark_method_profile", None),
         "optimization_embedded_projection": {
             "contract": "projected-gradient feasibility layer between Flow decode and SONIC gate",
             "config": projection_config.__dict__,
@@ -1171,6 +1268,8 @@ def main() -> int:
     parser.add_argument("--scene", type=Path, required=True)
     parser.add_argument("--title", default="MANIFOLD-ADAPTIVE ROUTE")
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--benchmark-method", choices=tuple(BENCHMARK_METHOD_PROFILES), default=None,
+                        help="apply a reproducible CVPR primary-method ablation profile")
     parser.add_argument("--perception-condition", type=Path, default=None,
                         help="deploy condition.npz; use its 3-D SLAM/A* route as the Stage-2 input")
     parser.add_argument("--perception-simplify-tolerance-m", type=float, default=0.08,
@@ -1202,6 +1301,8 @@ def main() -> int:
     parser.add_argument("--side-semi-y-m", type=float, default=0.40)
     parser.add_argument("--planner-body-radius-m", type=float, default=0.46,
                         help="A* footprint radius; reduce only with a physically validated compact primitive")
+    parser.add_argument("--planner-side-body-radius-m", type=float, default=0.30,
+                        help="online D* Lite footprint radius while bilateral side gait is active")
     parser.add_argument("--planner-clearance-m", type=float, default=0.12)
     parser.add_argument("--self-manifold-clearance-m", type=float, default=0.02,
                         help="minimum exact G1 surface-to-obstacle clearance for deployment gate")
@@ -1272,6 +1373,7 @@ def main() -> int:
     parser.add_argument("--fps", type=float, default=20.0)
     parser.add_argument("--skip-render", action="store_true")
     args = parser.parse_args()
+    args.benchmark_method_profile = _apply_benchmark_method_profile(args)
     args.online_primitive_reroute = bool(
         args.online_perception and not args.disable_online_primitive_reroute)
     if (args.num_candidates < 2 or args.online_condition_iterations < 0
@@ -1283,7 +1385,8 @@ def main() -> int:
                    args.online_perception_lookahead_m,
                    args.online_perception_route_preference_weight,
                    args.min_forward_progress_m, args.max_candidate_heading_error_rad,
-                   args.planner_body_radius_m, args.planner_clearance_m,
+                   args.planner_body_radius_m, args.planner_side_body_radius_m,
+                   args.planner_clearance_m,
                    args.projection_step_size, args.projection_smooth_weight,
                    args.projection_velocity_weight, args.projection_acceleration_weight,
                    args.projection_jerk_weight, args.projection_handoff_weight,
@@ -1292,6 +1395,8 @@ def main() -> int:
         parser.error("candidate count and geometric parameters must be positive")
     if args.self_manifold_clearance_m < 0:
         parser.error("self-manifold clearance must be non-negative")
+    if args.planner_side_body_radius_m > args.planner_body_radius_m:
+        parser.error("side-gait planner radius cannot exceed nominal planner radius")
     if not (0 < args.turn_release_threshold_rad <= args.turn_threshold_rad
             < args.turn_reengage_threshold_rad):
         parser.error("turn thresholds must satisfy 0 < release <= engage < re-engage")

@@ -44,12 +44,80 @@ def _lookahead_yaw(route: np.ndarray, position_xy: np.ndarray, distance_m: float
     return float(math.atan2(delta[1], delta[0]))
 
 
+def _bilateral_lateral_free_semi_from_radar(
+    route_world_xyz: np.ndarray,
+    radar_points_world: np.ndarray,
+    root_z: float,
+    *,
+    cap_m: float = 0.70,
+    surface_margin_m: float = 0.18,
+    longitudinal_window_m: float = 0.32,
+    min_points_per_side: int = 2,
+    min_bilateral_stations: int = 4,
+) -> float:
+    """Estimate bilateral lateral aperture from the *local* radar surfaces.
+
+    ``safe_corridor_from_grid`` reports a symmetric lateral semi-axis.  Feeding that value
+    directly to the semantic router makes a one-sided pole look like a doorway, especially when
+    the sliding grid has accumulated hits from several route positions.  This query retains the
+    signed route-frame evidence: a side gait is eligible only when surfaces are observed on both
+    sides of the same short route interval.  A vertical band rejects overhead returns, while the
+    exact mesh/self-manifold gate remains authoritative after the decision.
+    """
+    route = np.asarray(route_world_xyz, dtype=np.float64).reshape(-1, 3)
+    points = np.asarray(radar_points_world, dtype=np.float64).reshape(-1, 3)
+    if len(route) < 2 or len(points) == 0:
+        return float(cap_m)
+    # Use body-level returns only.  The lower band retains side-wall feet/torso returns; the
+    # upper cutoff prevents a ceiling underside from becoming a bilateral lateral wall.
+    points = points[
+        (points[:, 2] >= float(root_z) - 0.55)
+        & (points[:, 2] <= float(root_z) + 0.08)
+    ]
+    if len(points) < 2 * min_points_per_side:
+        return float(cap_m)
+    sample_indices = np.unique(np.linspace(0, len(route) - 1,
+                                           min(32, len(route)), dtype=int))
+    candidates: list[float] = []
+    for index in sample_indices:
+        if index == 0:
+            delta = route[1, :2] - route[0, :2]
+        elif index == len(route) - 1:
+            delta = route[-1, :2] - route[-2, :2]
+        else:
+            delta = route[index + 1, :2] - route[index - 1, :2]
+        norm = float(np.linalg.norm(delta))
+        if norm <= 1.0e-8:
+            continue
+        tangent = delta / norm
+        lateral_axis = np.array([-tangent[1], tangent[0]])
+        offset = points[:, :2] - route[index, :2]
+        longitudinal = offset @ tangent
+        lateral = offset @ lateral_axis
+        nearby = ((np.abs(longitudinal) <= longitudinal_window_m)
+                  & (np.abs(lateral) <= cap_m + surface_margin_m))
+        signed = lateral[nearby]
+        left = signed[signed > 0.0]
+        right = -signed[signed < 0.0]
+        if len(left) < min_points_per_side or len(right) < min_points_per_side:
+            continue
+        left_clearance = max(0.06, float(left.min()) - surface_margin_m)
+        right_clearance = max(0.06, float(right.min()) - surface_margin_m)
+        if left_clearance < cap_m and right_clearance < cap_m:
+            candidates.append(min(left_clearance, right_clearance))
+    # A real passage persists over several adjacent route samples.  Requiring four stations
+    # rejects the momentary left/right pairing produced by two longitudinally staggered poles.
+    return (float(min(candidates))
+            if len(candidates) >= min_bilateral_stations else float(cap_m))
+
+
 class OnlinePerceptionNavigator:
     """Update P1 and provide a D* Lite route, ``M_e`` and primitive decision."""
 
     def __init__(self, scene: Path, *, seed_grid: Path | None = None,
                  scan_ticks: int = 20, lookahead_m: float = 0.45,
                  body_radius_m: float = 0.40, clearance_m: float = 0.10,
+                 side_body_radius_m: float | None = None,
                  route_preference_weight: float = 2.0,
                  crouch_semi_z_m: float = 1.12, side_semi_y_m: float = 0.40,
                  decision_confirm_updates: int = 2, seed: int = 20260923):
@@ -62,6 +130,11 @@ class OnlinePerceptionNavigator:
         self.scan_ticks = int(scan_ticks)
         self.lookahead_m = float(lookahead_m)
         self.body_radius_m = float(body_radius_m)
+        self.side_body_radius_m = float(
+            min(body_radius_m, 0.30) if side_body_radius_m is None else side_body_radius_m)
+        if not 0.0 < self.side_body_radius_m <= self.body_radius_m:
+            raise ValueError("side body radius must be positive and no larger than nominal radius")
+        self.active_body_radius_m = self.body_radius_m
         self.clearance_m = float(clearance_m)
         self.route_preference_weight = float(route_preference_weight)
         self.crouch_semi_z_m = float(crouch_semi_z_m)
@@ -98,6 +171,8 @@ class OnlinePerceptionNavigator:
         self.primitive_history: list[int] = []
         self.raw_primitive_history: list[int] = []
         self.planner_history: list[dict[str, Any]] = []
+        self.body_radius_history: list[float] = []
+        self.planner_reinitializations: list[dict[str, Any]] = []
 
     def _initialize_grid(self, position: np.ndarray) -> None:
         self.grid = ProbabilisticSlidingVoxelGrid(self.config, position)
@@ -117,13 +192,22 @@ class OnlinePerceptionNavigator:
         self.initial_update_count = int(self.grid.update_count)
         self.grid.recenter(position)
 
-    def _primitive_decision(self, corridor: np.ndarray) -> dict[str, Any]:
+    def _primitive_decision(self, corridor: np.ndarray,
+                            bilateral_lateral_semi_m: float | None = None) -> dict[str, Any]:
         vertical = float(np.min(corridor[:, 5]))
         lateral = float(np.min(corridor[:, 4]))
+        bilateral_lateral = lateral if bilateral_lateral_semi_m is None else float(bilateral_lateral_semi_m)
         if vertical < self.crouch_semi_z_m:
             raw, reason = 2, "vertical_free_semi_below_crouch_threshold"
-        elif lateral < self.side_semi_y_m:
-            raw, reason = 4, "lateral_free_semi_below_side_threshold"
+        elif bilateral_lateral < self.side_semi_y_m:
+            raw, reason = 4, "bilateral_lateral_free_semi_below_side_threshold"
+        elif (self.stable_primitive_id == 4
+              and lateral < self.side_semi_y_m + 0.12):
+            # Entry needs fresh signed evidence from both sides.  Once inside a gate, however,
+            # a forward-facing radar can temporarily lose the walls behind its field of view.
+            # Retain the compact gait until the accumulated probability-map corridor itself
+            # widens; otherwise the robot expands to nominal posture while still in the gate.
+            raw, reason = 4, "side_gait_release_hysteresis_until_corridor_widens"
         else:
             raw, reason = 5, "wide_and_tall_enough_for_nominal_walk"
         previous = int(self.stable_primitive_id)
@@ -152,8 +236,10 @@ class OnlinePerceptionNavigator:
             "confirm_updates": int(self.decision_confirm_updates),
             "vertical_free_semi_min_m": vertical,
             "lateral_free_semi_min_m": lateral,
+            "bilateral_lateral_free_semi_min_m": bilateral_lateral,
             "thresholds": {"crouch_semi_z_m": self.crouch_semi_z_m,
-                           "side_semi_y_m": self.side_semi_y_m},
+                           "side_semi_y_m": self.side_semi_y_m,
+                           "side_release_semi_y_m": self.side_semi_y_m + 0.12},
         }
 
     def __call__(self, tick: int, state: dict[str, np.ndarray], goal_world_xy: np.ndarray,
@@ -169,11 +255,33 @@ class OnlinePerceptionNavigator:
                 scan = self.radar.scan(position, quat, timestamp=float(tick) * 0.02)
                 self.grid.update_radar(position, scan)
                 goal = np.array([goal_world_xy[0], goal_world_xy[1], position[2]], dtype=np.float64)
-                if self.planner is None:
+                preferred_xyz = np.column_stack([
+                    np.asarray(preferred_world_route, dtype=np.float64)[:, :2],
+                    np.full(len(preferred_world_route), position[2]),
+                ])
+                preplan_bilateral = _bilateral_lateral_free_semi_from_radar(
+                    preferred_xyz, scan.points_world, float(position[2]),
+                    cap_m=max(0.70, self.side_semi_y_m + 0.30),
+                )
+                compact_requested = bool(
+                    preplan_bilateral < self.side_semi_y_m or self.stable_primitive_id == 4)
+                requested_radius = (self.side_body_radius_m
+                                    if compact_requested else self.body_radius_m)
+                if self.planner is None or abs(requested_radius - self.active_body_radius_m) > 1e-9:
+                    if self.planner is not None:
+                        self.planner_reinitializations.append({
+                            "tick": int(tick),
+                            "from_body_radius_m": float(self.active_body_radius_m),
+                            "to_body_radius_m": float(requested_radius),
+                            "reason": ("bilateral_side_affordance"
+                                       if compact_requested else "corridor_widened"),
+                        })
+                    self.active_body_radius_m = float(requested_radius)
                     self.planner = DStarLitePlanner(
                         self.grid.config.resolution_m,
                         IncrementalPlannerConfig(
-                            body_radius_m=self.body_radius_m, clearance_m=self.clearance_m,
+                            body_radius_m=self.active_body_radius_m,
+                            clearance_m=self.clearance_m,
                             body_half_height_m=0.78,
                             route_preference_weight=self.route_preference_weight,
                         ),
@@ -187,7 +295,11 @@ class OnlinePerceptionNavigator:
                     self.grid, route, position, quat, vertical_semi_m=1.20,
                     clearance_m=self.clearance_m, frames=48, horizon_m=0.90,
                 )
-                decision = self._primitive_decision(corridor)
+                bilateral_lateral = _bilateral_lateral_free_semi_from_radar(
+                    route, scan.points_world, float(position[2]),
+                    cap_m=max(0.70, self.side_semi_y_m + 0.30),
+                )
+                decision = self._primitive_decision(corridor, bilateral_lateral)
                 yaw = _lookahead_yaw(route, position[:2], self.lookahead_m)
                 length = float(np.linalg.norm(np.diff(route[:, :2], axis=0), axis=1).sum())
                 self.last_route = route.astype(np.float32)
@@ -208,6 +320,7 @@ class OnlinePerceptionNavigator:
                 self.sdf_history.append(self.last_sdf.copy())
                 self.primitive_history.append(int(decision["primitive_id"]))
                 self.raw_primitive_history.append(int(decision["raw_primitive_id"]))
+                self.body_radius_history.append(float(self.active_body_radius_m))
                 self.planner_history.append({**planner_report, "corridor": corridor_report})
             except RuntimeError as error:
                 # A finite sliding map can be transiently over-occupied after several noisy
@@ -272,6 +385,10 @@ class OnlinePerceptionNavigator:
             "total_map_updates": (int(self.grid.update_count) if self.grid is not None else 0),
             "planning_override_ticks": int(self.override_ticks),
             "route_preference_weight": self.route_preference_weight, "failure": self.failure,
+            "nominal_body_radius_m": self.body_radius_m,
+            "side_body_radius_m": self.side_body_radius_m,
+            "active_body_radius_m": self.body_radius_history,
+            "planner_reinitializations": self.planner_reinitializations,
             "temporary_no_route_updates": self.temporary_failures,
             "update_ticks": self.update_ticks, "route_length_m": self.route_length_history,
             "occupied_voxels": self.occupied_history,
@@ -315,6 +432,7 @@ class OnlinePerceptionNavigator:
             sdf=np.stack(self.sdf_history, axis=0),
             primitive_id=np.asarray(self.primitive_history, dtype=np.int16),
             raw_primitive_id=np.asarray(self.raw_primitive_history, dtype=np.int16),
+            active_body_radius_m=np.asarray(self.body_radius_history, dtype=np.float32),
             planning_ms=np.asarray([item["planning_ms"] for item in self.planner_history], dtype=np.float32),
             expanded_vertices=np.asarray([item["expanded_vertices"] for item in self.planner_history], dtype=np.int32),
             changed_cost_cells=np.asarray([item["changed_cost_cells"] for item in self.planner_history], dtype=np.int32),

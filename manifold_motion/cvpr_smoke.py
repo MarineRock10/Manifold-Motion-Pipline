@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 METHOD_PROFILES: dict[str, dict[str, Any]] = {
     "B2": {
-        "planner": "full_voxel_astar",
+        "planner": "offline_geometry_astar_proxy",
         "primitive_router": "offline_geometry_snapshot",
         "projection": False,
         "shadow_gate": False,
@@ -55,7 +55,7 @@ METHOD_PROFILES: dict[str, dict[str, Any]] = {
 
 
 FIXTURE_SCENARIOS = {
-    "open-center": ("data/g1_flat/scene_empty.xml", 3.6),
+    "open-center": ("data/g1_flat/scene_flat.xml", 3.6),
     "open-wide": ("data/g1_flat/scene_manifold_wide_long.xml", 5.0),
     "compound-side-low-turn": ("data/g1_flat/scene_manifold_low_side_turn.xml", 5.6),
     "compound-low-side-wide": ("data/g1_flat/scene_manifold_long_combo.xml", 5.2),

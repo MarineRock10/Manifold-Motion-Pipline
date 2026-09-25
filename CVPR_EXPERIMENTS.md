@@ -46,7 +46,7 @@ termination thresholds.
 |---|---|---|
 | B0 | fixed nominal SONIC + straight route | lower-bound behavior/collision baseline |
 | B1 | full 3-D voxel A* + fixed nominal primitive | isolates route planning |
-| B2 | full 3-D voxel A* + offline segment primitive | current pre-deploy chain |
+| B2 | offline geometry-A* proxy + offline segment primitive | current pre-deploy chain; the released smoke marks this proxy explicitly |
 | B3 | full 3-D voxel A* + online `M_e` primitive, no history | isolates online geometry |
 | Ours-1 | incremental ESDF + D* Lite + online `M_e`, no projection | planner/semantic contribution |
 | Ours-2 | + optimization-embedded projection | feasibility contribution |
@@ -73,6 +73,28 @@ The frozen manifest contains 26 scenario variants rather than only the original 
 
 The extended qualitative tasks are also part of the benchmark manifest, but their accepted GIFs
 remain pilot evidence until every predeclared method/seed row has been executed and audited.
+
+## One-seed physical executor
+
+`manifold_motion.cvpr_physical_smoke` is the executable bridge from the 104-row primary
+manifest (4 methods × 26 nominal scenarios) to MuJoCo. It does not silently skip scenarios:
+parameterized narrow/low fixtures are generated beside the run and loaded by MuJoCo, tracked
+fixtures use the committed XML, held-out fixtures are tagged `proxy_geometry`, and the four
+time-varying scenarios currently produce an explicit `scenario_adapter_not_implemented` row.
+Every row has the required result fields, a fidelity label, and a source report. `--resume` is
+safe to interrupt; `--rerun-failures` reruns only prior failures after a code/fixture fix.
+
+```bash
+PYTHONPATH=. python3 -m manifold_motion.cvpr_physical_smoke \
+  --out reports/cvpr/physical_primary_seed31000 --resume --skip-render
+```
+
+The physical runner uses the exact G1 surface/self-manifold gate. If the nominal circular
+footprint has no path through a measured narrow aperture, it performs one compact side-gait
+planner retry using the configured `M_r` footprint; it never disables the exact mesh gate.
+The one-seed output is a smoke/pilot and must not be reported as the final multi-seed paper
+table. In particular, B2 is currently an offline geometry-A* proxy until the independent
+full-voxel baseline is wired into the same MuJoCo executor.
 
 ## Metrics
 
@@ -144,6 +166,10 @@ PYTHONPATH=. python3 tests/test_extended_gallery.py
 # This checks adapters/profiles only and is not a physics-result table.
 PYTHONPATH=. python3 -m manifold_motion.cvpr_smoke \
   --out reports/cvpr/primary_smoke.jsonl
+
+# one nominal physical seed (resumable; renders can be disabled for throughput)
+PYTHONPATH=. python3 -m manifold_motion.cvpr_physical_smoke \
+  --out reports/cvpr/physical_primary_seed31000 --resume --skip-render
 
 # moving obstacle + map-change benchmark
 PYTHONPATH=. python3 -m manifold_motion.incremental_dynamic_benchmark \

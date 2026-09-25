@@ -591,12 +591,25 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                     proposals = [proposals]
                 shadow_rows = []
                 accepted_plan = None
-                for proposal in proposals:
-                    shadow = _shadow_screen_current_state(
-                        scene, env, controller, proposal, previous_q, args)
-                    shadow_rows.append({"candidate_index": proposal.candidate_index, **shadow})
-                    if shadow["accepted"] and accepted_plan is None:
-                        accepted_plan = proposal
+                shadow_enabled = bool(getattr(args, "online_semantic_shadow_gate", True))
+                if shadow_enabled:
+                    for proposal in proposals:
+                        shadow = _shadow_screen_current_state(
+                            scene, env, controller, proposal, previous_q, args)
+                        shadow_rows.append({"candidate_index": proposal.candidate_index, **shadow})
+                        if shadow["accepted"] and accepted_plan is None:
+                            accepted_plan = proposal
+                elif proposals:
+                    # CVPR Ours-2 ablation: commit the highest-ranked projected proposal
+                    # without the cloned current-state rollout. The enclosing continuous
+                    # MuJoCo/contact/self-manifold gate still records the physical outcome.
+                    accepted_plan = proposals[0]
+                    shadow_rows.append({
+                        "candidate_index": accepted_plan.candidate_index,
+                        "accepted": True,
+                        "shadow_gate_enabled": False,
+                        "reason": "benchmark_ablation_without_current_state_shadow_gate",
+                    })
                 committed = accepted_plan is not None
                 previous_id = current_id
                 if committed:
@@ -623,6 +636,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                     "from_primitive_id": previous_id, "requested_primitive_id": requested_id,
                     "committed": bool(committed), "preferred_option_index": (
                         int(preferred_index) if committed else None),
+                    "shadow_gate_enabled": shadow_enabled,
                     "shadow_candidates": shadow_rows,
                     **(semantic_report or {}),
                 })
