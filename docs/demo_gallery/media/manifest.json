@@ -37,6 +37,23 @@
       "bytes": 382919
     },
     {
+      "id": "dynamic_route_reopen",
+      "title": "Synchronized dynamic route reopen",
+      "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/cvpr/dynamic_reopen_pilot/runs/6851b4b0cfca2000/rollout",
+      "purpose": "same-tick MuJoCo obstacle, radar, D* Lite, SONIC and self-manifold audit",
+      "max_width": 480,
+      "stride": 5,
+      "preview": "docs/demo_gallery/media/dynamic_route_reopen.gif",
+      "frames_source": 363,
+      "frames_preview": 74,
+      "size": [
+        480,
+        585
+      ],
+      "sha256": "5790b999789f25e4d7688fe34f0f08cc546e175351a95c572974a22aa8c389bd",
+      "bytes": 7121081
+    },
+    {
       "id": "compound_long_horizon",
       "title": "Long horizon: walk \u2192 side \u2192 turn \u2192 walk",
       "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/stage2_long_sequence_v1/combo/manifold_adaptive.gif",
