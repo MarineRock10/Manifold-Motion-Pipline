@@ -39,5 +39,10 @@
     ]
   },
   "source": "reports/cvpr/physical_primary_seed31000/results.jsonl",
-  "reproduction": "PYTHONPATH=. python3 -m manifold_motion.cvpr_physical_smoke --out reports/cvpr/physical_primary_seed31000 --resume --skip-render --row-timeout-s 180"
+  "reproduction": "PYTHONPATH=. python3 -m manifold_motion.cvpr_physical_smoke --out reports/cvpr/physical_primary_seed31000 --resume --skip-render --row-timeout-s 180",
+  "status_after_snapshot": {
+    "note": "The counts above intentionally remain the historical one-seed snapshot from its source results.jsonl.",
+    "low_ceiling": "Overhead-aware ground projection, footprint vertical queries, upward radar layers and anticipatory M_e were added; targeted Ours-2/3/4 low-120 reruns now pass.",
+    "dynamic_adapter": "The four synchronized time-varying MuJoCo/radar adapters are now implemented. A separate accepted Ours-4 route-reopen pilot is in docs/dynamic_route_reopen_pilot.json; the complete 104-row source snapshot has not yet been regenerated."
+  }
 }

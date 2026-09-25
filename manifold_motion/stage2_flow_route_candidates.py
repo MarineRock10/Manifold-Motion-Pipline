@@ -43,6 +43,7 @@ from .reference import ReferenceBuffer
 from .sonic import SonicController
 from .seed_replay import _ContactMonitor
 from .seed_windows import _state_features
+from .dynamic_scene import apply_dynamic_obstacle
 
 
 PRIMITIVE_NAMES = {
@@ -358,6 +359,9 @@ def _shadow_screen_current_state(scene: Path, env: G1FlatEnv, controller: SonicC
     shadow.data.time = env.data.time
     shadow.time = env.time
     shadow.q_des = env.q_des.copy()
+    # Dynamic benchmark geoms are worldbody boxes whose current pose is mutable.  Copy the
+    # live model pose into the shadow so a semantic switch is screened against the same frame.
+    shadow.model.geom_pos[:] = env.model.geom_pos
     mujoco.mj_forward(shadow.model, shadow.data)
     shadow_controller = _clone_sonic_controller(controller)
     contacts = _ContactMonitor(shadow.model)
@@ -459,7 +463,10 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     hold_q = np.repeat(first.joint_pos_policy[0:1], 50, axis=0)
     hold = ReferenceBuffer(hold_q, np.zeros_like(hold_q), np.zeros((50, 3)),
                            np.repeat(np.array([[1.0, 0.0, 0.0, 0.0]]), 50, axis=0))
+    dynamic_event = getattr(args, "dynamic_obstacle_event", None)
     for _ in range(args.warmup_ticks):
+        if dynamic_event is not None:
+            apply_dynamic_obstacle(env.model, env.data, dynamic_event, 0.0)
         state = env.state()
         controller.append_state(state["q_hw"], state["dq_hw"], state["base_quat"], state["base_ang_vel"])
         _, target, _ = controller.act(hold, state["base_quat"])
@@ -490,6 +497,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "route_progress_m", "route_progress_error_m", "route_velocity_cmd_mps", "yaw_command_rad",
         "reference_phase", "body_route_yaw_error", "side_on_active",
         "runtime_self_manifold_clearance_m",
+        "dynamic_obstacle_active", "dynamic_obstacle_center_xy",
     )}
     runtime_safety_stop = False
     runtime_safety_stop_tick: int | None = None
@@ -502,6 +510,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     target_index = 1
     recent_features: list[np.ndarray] = []
     for tick in range(args.max_ticks):
+        dynamic_update = None
+        if dynamic_event is not None:
+            dynamic_update = apply_dynamic_obstacle(
+                env.model, env.data, dynamic_event, tick * C.CONTROL_DT)
+            runtime_boxes = _runtime_obstacle_boxes(env.model, env.data)
         state = env.state(); position = state["base_pos"][:2]
         feet_now, hands_now, nonfoot_now, _ = contacts.flags(env.data)
         if runtime_clearance_threshold >= 0.0:
@@ -823,6 +836,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         log["body_route_yaw_error"].append(_angle(_yaw(executed["base_quat"]) - desired_yaw))
         log["side_on_active"].append(bool(plan.screen_summary.get("side_on_semantics_passed", False)))
         log["runtime_self_manifold_clearance_m"].append(runtime_clearance)
+        log["dynamic_obstacle_active"].append(
+            bool(dynamic_update["active"]) if dynamic_update is not None else False)
+        log["dynamic_obstacle_center_xy"].append(
+            (np.asarray(dynamic_update["center_xy_m"], dtype=np.float32)
+             if dynamic_update is not None else np.array([np.nan, np.nan], dtype=np.float32)))
         previous_q = q_ref
         segment_ticks[segment] += 1
         executed_feature = _state_features({
@@ -894,6 +912,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "runtime_self_manifold_safety_stop_tick": runtime_safety_stop_tick,
         "runtime_self_manifold_safety_stop_clearance_m": runtime_safety_stop_clearance,
         "online_perception_enabled": bool(perception_callback is not None),
+        "dynamic_obstacle_event": dynamic_event,
+        "dynamic_obstacle_active_ticks": int(np.sum(data["dynamic_obstacle_active"])),
+        "dynamic_obstacle_path": (
+            data["dynamic_obstacle_center_xy"].astype(float).tolist()
+            if dynamic_event is not None else []),
         "online_perception_updates": online_perception_updates,
         "online_semantic_updates": online_semantic_updates,
         "online_semantic_switch_count": int(sum(bool(row.get("committed"))

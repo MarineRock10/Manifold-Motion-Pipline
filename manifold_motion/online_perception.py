@@ -123,7 +123,8 @@ class OnlinePerceptionNavigator:
                  decision_confirm_updates: int = 2,
                  decision_release_confirm_updates: int = 4,
                  initial_primitive_id: int = 5,
-                 vertical_lookahead_m: float = 1.20, seed: int = 20260923):
+                 vertical_lookahead_m: float = 1.20,
+                 dynamic_event: str | None = None, seed: int = 20260923):
         if scan_ticks <= 0 or lookahead_m <= 0 or body_radius_m <= 0 or clearance_m <= 0:
             raise ValueError("online perception cadence and geometry must be positive")
         if decision_confirm_updates <= 0:
@@ -152,8 +153,10 @@ class OnlinePerceptionNavigator:
         self.decision_confirm_updates = int(decision_confirm_updates)
         self.decision_release_confirm_updates = int(decision_release_confirm_updates)
         self.vertical_lookahead_m = float(vertical_lookahead_m)
+        self.dynamic_event = dynamic_event
         self.config = SlidingGridConfig()
-        self.radar = SimulatedRadar(self.scene, RadarConfig(seed=int(seed)))
+        self.radar = SimulatedRadar(
+            self.scene, RadarConfig(seed=int(seed)), dynamic_event=dynamic_event)
         self.grid: ProbabilisticSlidingVoxelGrid | None = None
         self.planner: DStarLitePlanner | None = None
         self.initial_update_count = 0
@@ -414,6 +417,7 @@ class OnlinePerceptionNavigator:
             "planning_override_ticks": int(self.override_ticks),
             "route_preference_weight": self.route_preference_weight, "failure": self.failure,
             "vertical_lookahead_m": self.vertical_lookahead_m,
+            "dynamic_event": self.dynamic_event,
             "nominal_body_radius_m": self.body_radius_m,
             "side_body_radius_m": self.side_body_radius_m,
             "active_body_radius_m": self.body_radius_history,

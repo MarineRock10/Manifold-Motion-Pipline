@@ -26,6 +26,7 @@ import mujoco
 import numpy as np
 
 from . import constants as C
+from .dynamic_scene import apply_dynamic_obstacle
 from .perception_corridor import PerceptionGridConfig, corridor_condition_sdf, validate_condition
 
 
@@ -66,12 +67,14 @@ class RadarScan:
 class SimulatedRadar:
     """MuJoCo ray fan that returns only named obstacle surfaces in world coordinates."""
 
-    def __init__(self, scene: Path, config: RadarConfig = RadarConfig()):
+    def __init__(self, scene: Path, config: RadarConfig = RadarConfig(),
+                 *, dynamic_event: str | None = None):
         config.validate()
         self.config = config
         self.model = mujoco.MjModel.from_xml_path(str(scene))
         self.data = mujoco.MjData(self.model)
         self.rng = np.random.default_rng(config.seed)
+        self.dynamic_event = dynamic_event
         self.geomgroup = np.ones(6, dtype=np.uint8)
         self.bodyexclude = mujoco.mj_name2id(
             self.model, mujoco.mjtObj.mjOBJ_BODY, "pelvis")
@@ -88,7 +91,13 @@ class SimulatedRadar:
         if self.model.nq >= 7:
             self.data.qpos[:3] = root_pos
             self.data.qpos[3:7] = quat
-        mujoco.mj_forward(self.model, self.data)
+        if self.dynamic_event is None:
+            mujoco.mj_forward(self.model, self.data)
+        else:
+            # Use the same timestamped schedule as the physical executor.  A radar frame and
+            # its MuJoCo collision geometry therefore describe exactly the same world state.
+            apply_dynamic_obstacle(
+                self.model, self.data, self.dynamic_event, float(timestamp))
         origin = root_pos + C.quat_rotate(quat, np.array([0.0, 0.0, self.config.sensor_height_m]))
         yaw = np.linspace(-self.config.horizontal_fov_rad / 2.0,
                           self.config.horizontal_fov_rad / 2.0,

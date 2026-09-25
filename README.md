@@ -66,6 +66,9 @@ remain in the reproducibility artifacts.
   <img src="docs/demo_gallery/media/moving_obstacle_replanning.gif" width="260" alt="Incremental replanning around a moving obstacle" />
 </p>
 <p>
+  <img src="docs/demo_gallery/media/dynamic_route_reopen.gif" width="420" alt="Accepted synchronized moving-obstacle MuJoCo, radar, D-star Lite and SONIC rollout" />
+</p>
+<p>
   <img src="docs/demo_gallery/media/manifold_behavior_matrix.gif" width="480" alt="Primitive matrix for wide, low and narrow manifolds" />
   <img src="docs/demo_gallery/media/wide_vs_low_counterfactual.gif" width="360" alt="Counterfactual wide versus low corridor" />
 </p>
@@ -116,6 +119,10 @@ the synchronized GIF linked from [`DEMO_GALLERY.md`](DEMO_GALLERY.md). Coordinat
 replacement points are documented in [`DEPLOY_PERCEPTION.md`](DEPLOY_PERCEPTION.md). The deploy
 layer supplies the P1 condition input; the same primitive router, Stage-2 generator, SONIC hard
 gate and MuJoCo executor continue to run while new radar frames arrive.
+The dynamic route-reopen preview above uses one timestamped obstacle schedule in the physical
+MuJoCo world, radar world, probability map, renderer and exact self-manifold audit. Its one-seed
+pilot reaches 10/10 keyframes with zero obstacle contacts; it is adapter evidence, not a final
+multi-seed paper result.
 
 Start with `ARCHITECTURE_CURRENT.md` and `STAGE2_STATUS.md` for the current runnable closed loop.
 `ARCHITECTURE.md` and `PIPELINE.md` retain the original design history and static-stage diagnosis;

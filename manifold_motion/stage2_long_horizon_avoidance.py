@@ -37,6 +37,7 @@ from .scene_pointcloud import obstacle_pointcloud
 from .seed_replay import _ContactMonitor, _roll_degrees
 from .sonic import SonicController
 from .stage2_validate import _generated_motion
+from .dynamic_scene import apply_dynamic_obstacle, obstacle_state
 
 
 @dataclass(frozen=True)
@@ -491,7 +492,9 @@ def render(scene_path: Path, data: dict[str, np.ndarray], summary: dict,
            keyframes: np.ndarray, route: np.ndarray, corridor: np.ndarray,
            boxes: list[Box2D], planner: PlannerConfig, out: Path, fps: float,
            self_manifold: np.ndarray | None = None,
-           safe_manifold: np.ndarray | None = None) -> None:
+           safe_manifold: np.ndarray | None = None,
+           dynamic_obstacle_event: str | None = None,
+           output_scale: float = 1.0) -> None:
     # The bundled G1 XML has a 640-pixel offscreen framebuffer.
     width, scene_height, plan_height, header = 640, 430, 245, 105
     env = G1FlatEnv(scene_path)
@@ -516,7 +519,11 @@ def render(scene_path: Path, data: dict[str, np.ndarray], summary: dict,
             env.data.qpos[env.body_qadr] = data["q_exec"][tick][C.ISAACLAB_TO_MUJOCO]
             env.data.qpos[env.hand_qadr] = 0.0
             env.data.qvel[:] = 0.0
-            mujoco.mj_forward(env.model, env.data)
+            if dynamic_obstacle_event is None:
+                mujoco.mj_forward(env.model, env.data)
+            else:
+                apply_dynamic_obstacle(env.model, env.data, dynamic_obstacle_event,
+                                       tick * C.CONTROL_DT)
             renderer.update_scene(env.data, camera=camera, scene_option=option)
             mjscene = renderer.scene
             for point in route[::max(1, len(route) // 45)]:
@@ -574,7 +581,15 @@ def render(scene_path: Path, data: dict[str, np.ndarray], summary: dict,
             rect = (48, plan_top + 30, width - 35, plan_top + plan_height - 25)
             bounds = (planner.x_bounds, planner.y_bounds)
             draw.rounded_rectangle(rect, radius=6, fill=(20, 28, 39), outline=(71, 83, 101), width=2)
+            dynamic_state = (obstacle_state(dynamic_obstacle_event, tick * C.CONTROL_DT)
+                             if dynamic_obstacle_event is not None else None)
             for box in boxes:
+                if box.name == "obstacle_dynamic_block" and dynamic_state is not None:
+                    if not dynamic_state.active:
+                        continue
+                    box = Box2D(box.name,
+                                np.array(dynamic_state.center_xy, dtype=np.float64),
+                                box.half)
                 corners = np.array([box.centre - box.half, box.centre + box.half])
                 pixels = _plan_pixels(corners, rect, bounds)
                 draw.rectangle((pixels[0][0], pixels[1][1], pixels[1][0], pixels[0][1]),
@@ -599,8 +614,15 @@ def render(scene_path: Path, data: dict[str, np.ndarray], summary: dict,
             frames.append(canvas)
     finally:
         renderer.close()
+    if output_scale <= 0.0 or output_scale > 1.0:
+        raise ValueError("output_scale must be in (0, 1]")
+    if output_scale < 1.0:
+        target_size = (max(1, int(round(width * output_scale))),
+                       max(1, int(round((header + scene_height + plan_height) * output_scale))))
+        resampling = getattr(Image, "Resampling", Image)
+        frames = [frame.resize(target_size, resampling.LANCZOS) for frame in frames]
     frames[0].save(out, save_all=True, append_images=frames[1:],
-                   duration=int(round(1000.0 / fps)), loop=0)
+                   duration=int(round(1000.0 / fps)), loop=0, optimize=True)
 
 
 def main() -> int:

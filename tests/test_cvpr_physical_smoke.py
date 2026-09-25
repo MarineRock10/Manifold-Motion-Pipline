@@ -20,7 +20,11 @@ def test_matrix_and_registry_are_complete() -> None:
     assert len(rows) == 104
     assert len({row["run_id"] for row in rows}) == 104
     assert {row["method"] for row in rows} == {"B2", "Ours-2", "Ours-3", "Ours-4"}
-    assert sum(row["adapter"]["fidelity"] == "unsupported" for row in rows) == 16
+    assert sum(row["adapter"]["fidelity"] == "unsupported" for row in rows) == 0
+    dynamic = [row for row in rows if row["scenario"].startswith("dynamic-")]
+    assert len(dynamic) == 16
+    assert all(row["adapter"]["kind"] == "generated_dynamic_mujoco_fixture"
+               for row in dynamic)
 
 
 def test_generated_fixtures_load_in_mujoco() -> None:
@@ -32,6 +36,9 @@ def test_generated_fixtures_load_in_mujoco() -> None:
         _xml_for_generated_fixture({
             "factory": "low_ceiling", "height_m": 1.0,
         }, root / "low.xml")
+        _xml_for_generated_fixture({
+            "factory": "dynamic_event_fixture", "event": "crossing",
+        }, root / "dynamic.xml")
 
 
 def test_report_conversion_preserves_physical_metrics() -> None:

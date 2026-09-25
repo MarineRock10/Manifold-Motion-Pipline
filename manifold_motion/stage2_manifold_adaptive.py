@@ -45,6 +45,7 @@ from .stage2_capability import CAPABILITIES, supported_ids
 from .deploy_perception import (ProbabilisticSlidingVoxelGrid, SlidingGridConfig,
                                 safe_corridor_from_grid)
 from .online_perception import OnlinePerceptionNavigator
+from .dynamic_scene import SUPPORTED_DYNAMIC_EVENTS, obstacle_state
 
 
 BENCHMARK_METHOD_PROFILES: dict[str, dict[str, Any]] = {
@@ -473,7 +474,8 @@ def _ellipsoid_surface(element: np.ndarray, theta_count: int = 18,
 
 
 def _self_manifold_safety(data: dict[str, np.ndarray], environment_corridor: np.ndarray,
-                          scene: Path, required_clearance_m: float
+                          scene: Path, required_clearance_m: float,
+                          dynamic_obstacle_event: str | None = None
                           ) -> tuple[dict[str, Any], np.ndarray, np.ndarray]:
     """Run the deployment safety gate using M_r, then an exact mesh narrow phase.
 
@@ -504,12 +506,22 @@ def _self_manifold_safety(data: dict[str, np.ndarray], environment_corridor: np.
     task_aperture_ratio = np.ones(len(base_pos), dtype=np.float32)
     for tick, (q, pos, quat) in enumerate(zip(q_exec, base_pos, base_quat)):
         points = estimator.surface_points(q, pos, quat)
+        tick_boxes = []
         for box in boxes:
+            current = box
+            if box["name"] == "obstacle_dynamic_block" and dynamic_obstacle_event is not None:
+                dynamic = obstacle_state(dynamic_obstacle_event, tick * C.CONTROL_DT)
+                if dynamic is None or not dynamic.active:
+                    continue
+                current = {**box, "center": np.array([
+                    dynamic.center_xy[0], dynamic.center_xy[1], 0.55], dtype=np.float64)}
+            tick_boxes.append(current)
+        for box in tick_boxes:
             exact_clearance[tick] = min(
                 float(exact_clearance[tick]),
                 float(_box_signed_distance(points, box["center"], box["half"]).min()))
         ellipsoid_points = _ellipsoid_surface(safe[tick])
-        for box in boxes:
+        for box in tick_boxes:
             broad_clearance[tick] = min(
                 float(broad_clearance[tick]),
                 float(_box_signed_distance(ellipsoid_points, box["center"], box["half"]).min()))
@@ -1133,6 +1145,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             initial_primitive_id=(int(decisions[0]["primitive_id"]) if decisions else 5),
             vertical_lookahead_m=float(
                 getattr(args, "online_perception_vertical_lookahead_m", 1.20)),
+            dynamic_event=getattr(args, "dynamic_obstacle_event", None),
             seed=args.seed + 7103,
         )
 
@@ -1174,7 +1187,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
     data["robot_manifold_safe"] = robot_manifold_safe
     data["measured_body_manifold_semi"] = measured_route_semi
     safety_stats, exact_clearance, corridor_radius = _self_manifold_safety(
-        data, render_corridor, args.scene, args.self_manifold_clearance_m)
+        data, render_corridor, args.scene, args.self_manifold_clearance_m,
+        getattr(args, "dynamic_obstacle_event", None))
     data["self_manifold_obstacle_clearance_m"] = exact_clearance
     data["self_manifold_environment_radius"] = corridor_radius
     if not safety_stats["accepted"]:
@@ -1183,7 +1197,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
     if not args.skip_render:
         render(args.scene, data, execution, world_keyframes, world_route, render_corridor,
                ground, planner, args.out / "manifold_adaptive.gif", args.fps,
-               self_manifold=robot_manifold, safe_manifold=robot_manifold_safe)
+               self_manifold=robot_manifold, safe_manifold=robot_manifold_safe,
+               dynamic_obstacle_event=getattr(args, "dynamic_obstacle_event", None))
     report = {
         "experiment": "environment-manifold-caused primitive routing",
         "scenario": args.title, "scene": str(args.scene), "obstacles": obstacle_names,
@@ -1225,6 +1240,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         "online_perception": (
             final_perception.summary() if final_perception is not None else {"enabled": False}
         ),
+        "dynamic_obstacle_event": getattr(args, "dynamic_obstacle_event", None),
         "benchmark_method": getattr(args, "benchmark_method", None),
         "benchmark_method_profile": getattr(args, "benchmark_method_profile", None),
         "optimization_embedded_projection": {
@@ -1281,6 +1297,8 @@ def main() -> int:
                         help="geometry-only RDP tolerance for the perception A* polyline")
     parser.add_argument("--online-perception", action="store_true",
                         help="receive simulated radar during motion and use live 3-D A* yaw")
+    parser.add_argument("--dynamic-obstacle-event", choices=SUPPORTED_DYNAMIC_EVENTS, default=None,
+                        help="synchronize a deterministic moving obstacle between MuJoCo and radar")
     parser.add_argument("--online-perception-seed-map", type=Path, default=None,
                         help="optional slam_grid.npz used before live updates; defaults beside condition.npz")
     parser.add_argument("--online-perception-scan-ticks", type=int, default=20,

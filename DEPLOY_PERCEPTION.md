@@ -16,9 +16,9 @@ world-frame returns + supplied pose stream
         │  inverse sensor model / log odds
         ▼
 global metric 3-D probabilistic voxel grid, finite robot-centred sliding window
-        │  body-radius + clearance inflation, unknown-space penalty
+        │  near-ground body-radius inflation, unknown-space penalty
         ▼
-local-window A* route in world coordinates
+incremental truncated ESDF + D* Lite route in world coordinates
         │  route tangent + four-sided free-space probes
         ▼
 root-local probability-aware safe corridor + Stage-2 SDF
@@ -44,6 +44,11 @@ SLAM estimator can replace the pose stream without changing the grid or planner 
   adapter probes all three axes in the voxel volume and emits a genuine 3-D ellipsoid
   `[centre_xyz, semi_xyz, yaw]`; the z semi-axis is no longer a fixed constant when an overhead
   or low obstacle is observed.
+- The ground-route projection intentionally uses only a 0.45 m band above the estimated floor;
+  an overhead slab remains in the 3-D map for `M_e,z` but does not become a false XY wall.
+- Five vertical radar layers and a 1.20 m anticipatory vertical corridor horizon keep a ceiling
+  observable while the pelvis pitches during crouch transitions. Posture contraction needs two
+  consistent updates; expansion back to nominal needs four.
 
 ## Reproduce in WSL
 
@@ -126,7 +131,12 @@ Keep these interfaces stable when connecting hardware or a simulator plugin:
    `ProbabilisticSlidingVoxelGrid.update_radar` at the sensor rate.
 3. Call `grid_astar` in the current window and `safe_corridor_from_grid` at the planner rate.
 4. Pass only the validated `condition.npz` arrays to Stage 2; retain the map and route files for
-   diagnostics and real-robot safety logging.
+diagnostics and real-robot safety logging.
+
+For dynamic tests, pass `--dynamic-obstacle-event crossing|appear_disappear|moving_wall|route_reopen`.
+The event clock is shared by the executor and `SimulatedRadar`; the saved rollout also records
+the obstacle position/visibility at every 50 Hz control tick. This avoids evaluating a planner
+against a radar map and collision world that disagree about where the obstacle is.
 
 For deployment, set `allow_unknown=False` (or add a configured unknown risk cost) until the
 SLAM map has enough coverage.  The demo leaves unknown space traversable with a penalty so a

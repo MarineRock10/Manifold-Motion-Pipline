@@ -24,6 +24,19 @@ The obstacle appears, crosses the route and disappears. The route changes four t
 post-initialization update time is 27.1 ms for incremental ESDF + D* Lite versus 2.14 s for the
 previous full voxel A* implementation on this machine.
 
+## Synchronized dynamic MuJoCo rollout
+
+![Dynamic route reopen](docs/demo_gallery/media/dynamic_route_reopen.gif)
+
+This is the complete physical chain rather than a map-only animation. A centre block is present
+for the first 200 control ticks and then disappears. The same timestamped pose drives MuJoCo
+contacts, simulated radar, the 3-D probability map, D* Lite, the rendered obstacle and the exact
+G1 self-manifold audit. The Ours-4 seed-31000 pilot reaches 10/10 keyframes in 363 ticks with
+zero obstacle contacts, 0.219 m terminal error, 0.168 m route-deviation P95 and 0.055 m minimum
+exact surface clearance. There are 19 online map/planner updates. See
+[`docs/dynamic_route_reopen_pilot.json`](docs/dynamic_route_reopen_pilot.json); these are
+one-seed adapter checks, not final CVPR statistics.
+
 ## Compound long-horizon task
 
 ![Compound long-horizon task](docs/demo_gallery/media/compound_long_horizon.gif)
@@ -130,6 +143,11 @@ First run the corresponding acceptance demos, then build the compact previews:
 ```bash
 ./run_stage2_extended_gallery.sh
 PYTHONPATH=. python3 -m manifold_motion.build_github_demo_gallery
+
+# Re-render an accepted saved rollout without rerunning the controller:
+PYTHONPATH=. MUJOCO_GL=egl python3 -m manifold_motion.render_stage2_report \
+  --run-dir reports/cvpr/dynamic_reopen_pilot/runs/6851b4b0cfca2000/rollout \
+  --out docs/demo_gallery/media/dynamic_route_reopen.gif --fps 10 --scale 0.75
 ```
 
 `docs/demo_gallery/media/manifest.json` records each source clip, sampling stride, output size and

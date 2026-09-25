@@ -3,17 +3,16 @@
 The committed CVPR plan is intentionally much larger than a smoke run (32 primary
 seeds plus robustness perturbations).  This module is the reproducible bridge between
 that plan and the simulator: it materializes one nominal row for every primary
-method/scenario pair, runs the scenarios that have an honest MuJoCo adapter, and
-records explicit ``unsupported`` rows for dynamic cases that still require a
-time-varying scene adapter.  Nothing is silently dropped or relabelled as success.
+method/scenario pair and runs both static fixtures and synchronized time-varying
+MuJoCo/radar adapters. Nothing is silently dropped or relabelled as success.
 
 Run from the repository root::
 
     python -m manifold_motion.cvpr_physical_smoke \
       --out reports/cvpr/physical_primary_seed31000 --resume --skip-render
 
-This is a physical smoke/pilot, not a final CVPR table.  The report records exact
-fixture, held-out proxy-fixture, and unsupported adapter fidelity separately.
+This is a physical smoke/pilot, not a final CVPR table. The report records exact
+fixture and held-out proxy-fixture fidelity separately.
 """
 
 from __future__ import annotations
@@ -33,6 +32,7 @@ import numpy as np
 
 from .cvpr_benchmark import DEFAULT_CONFIG, _read_json
 from .cvpr_smoke import DYNAMIC_SCENARIOS, FIXTURE_SCENARIOS
+from .dynamic_scene import SUPPORTED_DYNAMIC_EVENTS, dynamic_half_xy, obstacle_state
 from .stage2_manifold_adaptive import BENCHMARK_METHOD_PROFILES
 
 
@@ -65,10 +65,10 @@ def _scenario_registry(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
             }
         elif scenario_id in DYNAMIC_SCENARIOS:
             registry[scenario_id] = {
-                "kind": "unsupported_dynamic_stage2_adapter",
-                "fidelity": "unsupported",
+                "kind": "generated_dynamic_mujoco_fixture", "fidelity": "exact_physics",
+                "factory": "dynamic_event_fixture",
                 "event": DYNAMIC_SCENARIOS[scenario_id],
-                "reason": "requires a time-varying MuJoCo scene and synchronized radar frame adapter",
+                "goal_x_m": 3.6,
             }
         elif scenario_id in FIXTURE_SCENARIOS:
             relative, goal_x = FIXTURE_SCENARIOS[scenario_id]
@@ -136,6 +136,17 @@ def _xml_for_generated_fixture(adapter: dict[str, Any], output: Path) -> Path:
     <geom name=\"obstacle_low_ceiling\" type=\"box\" pos=\"1.8 0 {height + 0.04:.4f}\" size=\"1.0 0.90 0.04\" rgba=\"0.95 0.30 0.18 0.48\"/>
     <geom name=\"obstacle_boundary_left\" type=\"box\" pos=\"1.8 1.15 0.55\" size=\"1.8 0.03 0.55\" rgba=\"0.25 0.62 0.92 0.22\"/>
     <geom name=\"obstacle_boundary_right\" type=\"box\" pos=\"1.8 -1.15 0.55\" size=\"1.8 0.03 0.55\" rgba=\"0.25 0.62 0.92 0.22\"/>"""
+    elif adapter["factory"] == "dynamic_event_fixture":
+        event = str(adapter["event"])
+        if event not in SUPPORTED_DYNAMIC_EVENTS:
+            raise ValueError(f"unknown dynamic event {event}")
+        state = obstacle_state(event, 0.0)
+        hx, hy = dynamic_half_xy(event)
+        title = f"cvpr dynamic {event}"
+        walls = f"""
+    <geom name="obstacle_dynamic_block" type="box" pos="{state.center_xy[0]:.4f} {state.center_xy[1]:.4f} 0.55" size="{hx:.4f} {hy:.4f} 0.55" rgba="0.95 0.30 0.18 0.62"/>
+    <geom name="obstacle_boundary_left" type="box" pos="1.8 1.45 0.55" size="2.35 0.04 0.55" rgba="0.25 0.62 0.92 0.22"/>
+    <geom name="obstacle_boundary_right" type="box" pos="1.8 -1.45 0.55" size="2.35 0.04 0.55" rgba="0.25 0.62 0.92 0.22"/>"""
     else:
         raise ValueError(f"unknown generated fixture: {adapter}")
     xml = f"""<mujoco model=\"{title}\">\n  <include file=\"{include}\"/>\n  <statistic center=\"1.8 0 0.65\" extent=\"4.5\"/>\n  <visual><headlight diffuse=\"0.7 0.7 0.7\" ambient=\"0.35 0.35 0.35\" specular=\"0 0 0\"/><global azimuth=\"-120\" elevation=\"-28\"/></visual>\n  <asset><texture type=\"skybox\" builtin=\"gradient\" rgb1=\"0.30 0.48 0.68\" rgb2=\"0 0 0\" width=\"512\" height=\"3072\"/><texture type=\"2d\" name=\"groundplane\" builtin=\"checker\" mark=\"edge\" rgb1=\"0.22 0.29 0.36\" rgb2=\"0.10 0.14 0.18\" markrgb=\"0.8 0.8 0.8\" width=\"300\" height=\"300\"/><material name=\"groundplane\" texture=\"groundplane\" texuniform=\"true\" texrepeat=\"8 5\" reflectance=\"0.12\"/></asset>\n  <worldbody><light pos=\"1.8 0 3.5\" dir=\"0 0 -1\" directional=\"true\"/><geom name=\"floor\" size=\"0 0 0.05\" type=\"plane\" material=\"groundplane\"/>{walls}\n  </worldbody>\n</mujoco>\n"""
@@ -151,7 +162,7 @@ def _scene_for_row(row: dict[str, Any], run_dir: Path) -> tuple[Path | None, flo
         if not scene.is_file():
             return None, float(adapter["goal_x_m"]), "scene_missing"
         return scene, float(adapter["goal_x_m"]), str(adapter["fidelity"])
-    if adapter["kind"] == "generated_mujoco_fixture":
+    if adapter["kind"] in {"generated_mujoco_fixture", "generated_dynamic_mujoco_fixture"}:
         scene = _xml_for_generated_fixture(adapter, run_dir / "generated_scene.xml")
         return scene, float(adapter["goal_x_m"]), str(adapter["fidelity"])
     return None, 0.0, str(adapter["fidelity"])
@@ -215,7 +226,7 @@ def _report_to_result(row: dict[str, Any], report: dict[str, Any], fidelity: str
 
 
 def execute_row(row: dict[str, Any], out: Path, *, skip_render: bool,
-                row_timeout_s: float) -> dict[str, Any]:
+                row_timeout_s: float, max_ticks: int = 1400) -> dict[str, Any]:
     started = time.perf_counter()
     run_dir = out / "runs" / row["run_id"]
     result_path = run_dir / "result.json"
@@ -239,7 +250,9 @@ def execute_row(row: dict[str, Any], out: Path, *, skip_render: bool,
                "--planner-clearance-m",
                ("0.06" if adapter.get("factory") == "narrow_corridor" else "0.10"),
                "--self-manifold-clearance-m", "0.02",
-               "--max-ticks", "1400", "--seed", str(row["seed"])]
+               "--max-ticks", str(int(max_ticks)), "--seed", str(row["seed"])]
+    if adapter.get("event"):
+        command.extend(["--dynamic-obstacle-event", str(adapter["event"])])
     if skip_render:
         command.append("--skip-render")
     started_process = time.perf_counter()
@@ -284,9 +297,23 @@ def _read_existing(out: Path) -> dict[str, dict[str, Any]]:
 
 def run(config: Path, out: Path, *, seed: int | None, resume: bool,
         max_runs: int | None, skip_render: bool, rerun_failures: bool,
-        row_timeout_s: float) -> dict[str, Any]:
+        row_timeout_s: float,
+        only_scenarios: set[str] | None = None,
+        only_methods: set[str] | None = None,
+        max_ticks: int = 1400) -> dict[str, Any]:
     out.mkdir(parents=True, exist_ok=True)
     rows = build_rows(config, seed)
+    if only_scenarios:
+        known = {str(row["scenario"]) for row in rows}
+        unknown = sorted(only_scenarios - known)
+        if unknown:
+            raise ValueError(f"unknown scenario filters: {unknown}")
+        rows = [row for row in rows if str(row["scenario"]) in only_scenarios]
+    if only_methods:
+        unknown = sorted(only_methods - set(PRIMARY_METHODS))
+        if unknown:
+            raise ValueError(f"unknown method filters: {unknown}")
+        rows = [row for row in rows if str(row["method"]) in only_methods]
     existing = _read_existing(out) if resume else {}
     executed = 0
     results: dict[str, dict[str, Any]] = {}
@@ -298,7 +325,7 @@ def run(config: Path, out: Path, *, seed: int | None, resume: bool,
         if max_runs is not None and executed >= max_runs:
             continue
         result = execute_row(row, out, skip_render=skip_render,
-                             row_timeout_s=row_timeout_s)
+                             row_timeout_s=row_timeout_s, max_ticks=max_ticks)
         results[row["run_id"]] = result
         result_path = out / "runs" / row["run_id"] / "result.json"
         result_path.parent.mkdir(parents=True, exist_ok=True)
@@ -323,7 +350,7 @@ def run(config: Path, out: Path, *, seed: int | None, resume: bool,
         "accepted": len(rows) == len(ordered), "executed_this_call": executed,
         "successes": int(sum(bool(value.get("success")) for value in ordered)),
         "fidelity_counts": fidelity_counts,
-        "policy": "one nominal seed; explicit unsupported dynamic adapters; no seed exclusion",
+        "policy": "one nominal seed; synchronized exact-physics dynamic adapters; no seed exclusion",
         "limitation": "smoke/pilot evidence only; run the frozen multi-seed plan before paper claims",
         "results": str(results_path), "resume": bool(resume),
         "rerun_failures": bool(rerun_failures),
@@ -345,14 +372,25 @@ def main() -> int:
     parser.add_argument("--skip-render", action="store_true")
     parser.add_argument("--row-timeout-s", type=float, default=180.0,
                         help="wall-clock timeout for one MuJoCo row")
+    parser.add_argument("--only-scenario", action="append", default=None,
+                        help="run only the named scenario; repeat for multiple scenarios")
+    parser.add_argument("--only-method", action="append", default=None,
+                        help="run only the named primary method; repeat for multiple methods")
+    parser.add_argument("--max-ticks", type=int, default=1400,
+                        help="control ticks passed to Stage 2 for a bounded dynamic pilot")
     args = parser.parse_args()
     if args.max_runs is not None and args.max_runs <= 0:
         parser.error("--max-runs must be positive")
     if args.row_timeout_s <= 0:
         parser.error("--row-timeout-s must be positive")
+    if args.max_ticks <= 0:
+        parser.error("--max-ticks must be positive")
     report = run(args.config, args.out, seed=args.seed, resume=args.resume,
                  max_runs=args.max_runs, skip_render=args.skip_render,
-                 rerun_failures=args.rerun_failures, row_timeout_s=args.row_timeout_s)
+                 rerun_failures=args.rerun_failures, row_timeout_s=args.row_timeout_s,
+                 only_scenarios=(set(args.only_scenario) if args.only_scenario else None),
+                 only_methods=(set(args.only_method) if args.only_method else None),
+                 max_ticks=args.max_ticks)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0 if report["accepted"] else 2
 

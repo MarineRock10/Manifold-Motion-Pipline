@@ -1,0 +1,22 @@
+{
+  "schema": "manifold-motion.dynamic-physical-pilot.v1",
+  "scenario": "dynamic-route-reopen",
+  "event": "route_reopen",
+  "method": "Ours-4",
+  "seed": 31000,
+  "accepted": true,
+  "implementation_fidelity": "exact_physics",
+  "keyframes_reached": 10,
+  "physics_ticks": 363,
+  "dynamic_obstacle_active_ticks": 200,
+  "online_map_planner_updates": 19,
+  "online_semantic_commits": 7,
+  "obstacle_contact_ticks": 0,
+  "terminal_error_m": 0.21917441411186225,
+  "route_deviation_p95_m": 0.16842814438828754,
+  "runtime_self_manifold_clearance_min_m": 0.05467951891439519,
+  "exact_surface_obstacle_clearance_min_m": 0.05472399294376373,
+  "task_manifold_aperture_violation_ticks": 0,
+  "limitation": "One nominal seed used to validate the synchronized adapter and physical chain; not a final multi-seed CVPR result.",
+  "reproduction": "PYTHONPATH=. MUJOCO_GL=egl python3 -m manifold_motion.cvpr_physical_smoke --out reports/cvpr/dynamic_reopen_pilot --only-scenario dynamic-route-reopen --only-method Ours-4 --skip-render --row-timeout-s 240 --max-ticks 700"
+}
