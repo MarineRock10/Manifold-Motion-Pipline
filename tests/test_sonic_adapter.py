@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import torch
 
-from manifold_motion.sonic_adapter import SonicAdapterConfig, SonicConditionAdapter
+from manifold_motion.stage2.sonic_adapter import SonicAdapterConfig, SonicConditionAdapter
 
 
 def test_zero_init_is_base_exact() -> None:

@@ -1,0 +1,36 @@
+{
+  "schema": "manifold-motion.targeted-seed-supplement.v1",
+  "metadata": "/mnt/c/Users/Xiyuan Wang/Downloads/metadata/seed_metadata_v004.csv",
+  "excluded_manifests": [
+    "data/seed_capability_v1/seed_capability_manifest_v1.csv",
+    "data/seed_capability_v1/seed_capability_supported_v1.csv"
+  ],
+  "families": [
+    "crouch_walk",
+    "crouch_transition",
+    "side_hop",
+    "jump_forward",
+    "broad_jump",
+    "high_jump",
+    "box_jump",
+    "all_fours",
+    "ladder",
+    "roll_recovery"
+  ],
+  "per_family": 3,
+  "rows": 30,
+  "available_unseen": {
+    "crouch_walk": 269,
+    "crouch_transition": 528,
+    "side_hop": 4,
+    "jump_forward": 3952,
+    "broad_jump": 4,
+    "high_jump": 444,
+    "box_jump": 4,
+    "all_fours": 775,
+    "ladder": 38,
+    "roll_recovery": 26
+  },
+  "output": "data/seed_capability_v1/seed_failure_supplement_v1.csv",
+  "admission_rule": "only frozen SONIC/MuJoCo accepted rows may enter adapter training"
+}

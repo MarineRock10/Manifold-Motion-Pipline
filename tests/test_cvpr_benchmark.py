@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from manifold_motion.cvpr_benchmark import audit, build_plan
+from manifold_motion.evaluation.cvpr_benchmark import audit, build_plan
 
 
 def _tiny_config(source: Path, destination: Path) -> None:

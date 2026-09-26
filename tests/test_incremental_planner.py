@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
-from manifold_motion.deploy_perception import ProbabilisticSlidingVoxelGrid, SlidingGridConfig
-from manifold_motion.incremental_planner import (
+from manifold_motion.perception.deploy import ProbabilisticSlidingVoxelGrid, SlidingGridConfig
+from manifold_motion.planning.incremental import (
     DStarLitePlanner,
     IncrementalPlannerConfig,
     IncrementalTruncatedESDF,

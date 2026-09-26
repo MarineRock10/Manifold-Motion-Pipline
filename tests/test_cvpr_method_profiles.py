@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from manifold_motion.stage2_manifold_adaptive import (
+from manifold_motion.stage2.manifold_adaptive import (
     BENCHMARK_METHOD_PROFILES,
     _apply_benchmark_method_profile,
 )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from manifold_motion.real_slam import SlamSyncConfig, TimeSynchronizedSlamAdapter
+from manifold_motion.perception.real_slam import SlamSyncConfig, TimeSynchronizedSlamAdapter
 
 
 def test_interpolation_and_extrinsic() -> None:

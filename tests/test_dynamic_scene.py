@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from manifold_motion.dynamic_scene import dynamic_half_xy, dynamic_half_z, obstacle_state
+from manifold_motion.perception.dynamic_scene import dynamic_half_xy, dynamic_half_z, obstacle_state
 
 
 def test_crossing_moves_across_route() -> None:

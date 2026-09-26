@@ -1,0 +1,57 @@
+{
+  "schema": "manifold-motion.seed-conditioned-pipeline-result.v1",
+  "date": "2026-09-27",
+  "capability_gate": {
+    "families_tested": 30,
+    "families_supported": 21,
+    "selected_clips_tested": 194,
+    "selected_clips_accepted": 187,
+    "acceptance_rate": 0.9639175258,
+    "executor": "frozen NVIDIA GEAR-SONIC ONNX in MuJoCo"
+  },
+  "windows": {
+    "total": 3988,
+    "train": 2610,
+    "validation": 651,
+    "test": 727,
+    "split_contract": "actor-disjoint stable actor_uid hash",
+    "environment_provenance": "reverse_synthesized_from_R_exec"
+  },
+  "state_conditioned_latent_prior": {
+    "test_prior_mse": 1.1702057542,
+    "test_zero_baseline_mse": 1.6294127703,
+    "relative_improvement": 0.2818236523,
+    "latent_dim": 32
+  },
+  "environment_self_manifold_composer": {
+    "supported_family_count": 21,
+    "test_top1_accuracy": 0.5777166437,
+    "test_top3_accuracy": 0.7895460798,
+    "test_macro_f1": 0.5847174520,
+    "primitive_input_leakage": false
+  },
+  "constrained_handoff_smoke": {
+    "true_family": "hands_back_walk",
+    "selected_family": "hands_back_walk",
+    "composer_probability": 0.9851588607,
+    "latent_mahalanobis_before": 3.4999997616,
+    "latent_mahalanobis_after": 3.0,
+    "projection_objective_before": 0.0352362812,
+    "projection_objective_after": 0.0270000924,
+    "sonic_mujoco_accepted": true,
+    "physical_selector_score": 2.2258977919
+  },
+  "failure_mining": {
+    "unique_failed_clips": 16,
+    "tracking_instability": 7,
+    "jump_phase": 6,
+    "nonfoot_contact": 3,
+    "policy": "targeted SEED supplementation before SONIC adapter fine-tuning",
+    "supplement_clips": 30,
+    "supplement_accepted": 17,
+    "supplement_action_rows": 4154,
+    "adapter_base_test_mse": 5.7329225540,
+    "adapter_fitted_test_mse": 5.6830539703,
+    "adapter_local_body_mask": true
+  }
+}

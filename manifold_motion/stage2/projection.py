@@ -1,0 +1,197 @@
+"""Small optimization-embedded projection layer for Stage-2 references.
+
+The frozen SONIC controller remains unchanged.  This layer is deliberately placed between
+latent Flow decoding and the SONIC physical gate: it unrolls a few projected-gradient steps on
+the decoded reference, enforcing the same quantities that matter at execution time (joint
+limits, temporal smoothness, handoff continuity and route-corridor consistency).  It is not
+claimed to be a learned differentiable MPC solver; the report records the objective before and
+after projection so the effect is auditable.
+"""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from functools import lru_cache
+
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import functional as F
+
+from manifold_motion.core import constants as C
+from manifold_motion.simulation.env import G1FlatEnv
+
+
+@dataclass(frozen=True)
+class ProjectionConfig:
+    """Conservative defaults: smooth a decoded clip without erasing its gait semantics."""
+
+    iterations: int = 1
+    step_size: float = 0.08
+    smooth_weight: float = 0.01
+    velocity_weight: float = 0.002
+    acceleration_weight: float = 0.01
+    jerk_weight: float = 0.004
+    handoff_weight: float = 0.35
+    corridor_weight: float = 0.85
+    root_blend: float = 0.85
+    max_joint_step: float = 0.005
+    max_root_step_m: float = 0.05
+
+
+class OptimizationEmbeddedProjection(nn.Module):
+    """Differentiable unrolled feasibility layer for a generated reference.
+
+    This is the train-time counterpart of :func:`project_reference`.  It performs a small fixed
+    number of projected-gradient-like updates inside the network: temporal joint smoothing,
+    physical joint clipping, and a soft ellipsoid-corridor correction on the root.  The layer is
+    intentionally conservative; the frozen SONIC replay gate remains the final authority.
+    """
+
+    def __init__(self, lower: np.ndarray, upper: np.ndarray, iterations: int = 2,
+                 step_size: float = 0.08, corridor_strength: float = 0.35):
+        super().__init__()
+        if iterations < 1 or step_size <= 0 or corridor_strength < 0:
+            raise ValueError("projection iterations/step/corridor strength are invalid")
+        self.iterations = int(iterations)
+        self.step_size = float(step_size)
+        self.corridor_strength = float(corridor_strength)
+        self.register_buffer("lower", torch.as_tensor(np.asarray(lower, dtype=np.float32)))
+        self.register_buffer("upper", torch.as_tensor(np.asarray(upper, dtype=np.float32)))
+
+    def forward(self, trajectory: torch.Tensor, corridor: torch.Tensor) -> torch.Tensor:
+        if trajectory.ndim != 3 or trajectory.shape[-1] != 38:
+            raise ValueError("trajectory must have shape [B,T,38]")
+        if corridor.shape[:2] != trajectory.shape[:2] or corridor.shape[-1] != 7:
+            raise ValueError("corridor must have shape [B,T,7] matching trajectory")
+        original = trajectory
+        value = trajectory
+        for _ in range(self.iterations):
+            q = value[..., :29]
+            if q.shape[1] > 2:
+                acceleration = q[:, :-2] - 2.0 * q[:, 1:-1] + q[:, 2:]
+                q = q.clone()
+                q[:, 1:-1] = q[:, 1:-1] - self.step_size * 0.02 * acceleration
+            q = torch.maximum(torch.minimum(q, self.upper), self.lower)
+            root = value[..., 29:32]
+            centre = corridor[..., :3]
+            semi = corridor[..., 3:6].clamp_min(1e-3)
+            normalized = (root - centre) / semi
+            radius = torch.linalg.vector_norm(normalized, dim=-1, keepdim=True).clamp_min(1e-6)
+            excess = F.relu(radius - 1.0)
+            root = root - self.step_size * self.corridor_strength * excess * (root - centre) / radius
+            value = torch.cat((q, root, value[..., 32:]), dim=-1)
+        # Keep this a feasibility layer rather than a retargeter: one residual blend limits the
+        # amount of movement away from the network proposal while gradients still pass through.
+        blended = original + 0.85 * (value - original)
+        q = torch.maximum(torch.minimum(blended[..., :29], self.upper), self.lower)
+        return torch.cat((q, blended[..., 29:]), dim=-1)
+
+
+@lru_cache(maxsize=1)
+def _policy_joint_bounds() -> tuple[np.ndarray, np.ndarray]:
+    env = G1FlatEnv()
+    joint_ids = env.model.actuator_trnid[env.body_act, 0]
+    lower = env.model.jnt_range[joint_ids, 0][C.MUJOCO_TO_ISAACLAB].astype(np.float32)
+    upper = env.model.jnt_range[joint_ids, 1][C.MUJOCO_TO_ISAACLAB].astype(np.float32)
+    return lower, upper
+
+
+def _objective(q: np.ndarray, root: np.ndarray, corridor: np.ndarray,
+               lower: np.ndarray, upper: np.ndarray,
+               original_q0: np.ndarray, config: ProjectionConfig) -> dict[str, float]:
+    d2 = q[:-2] - 2.0 * q[1:-1] + q[2:] if len(q) > 2 else np.zeros((0, q.shape[1]))
+    d1 = q[1:] - q[:-1] if len(q) > 1 else np.zeros((0, q.shape[1]))
+    d3 = (q[:-3] - 3.0 * q[1:-2] + 3.0 * q[2:-1] - q[3:]
+          if len(q) > 3 else np.zeros((0, q.shape[1])))
+    smooth = float(np.mean(d2 * d2)) if d2.size else 0.0
+    velocity = float(np.mean(d1 * d1)) if d1.size else 0.0
+    jerk = float(np.mean(d3 * d3)) if d3.size else 0.0
+    violation = np.maximum(lower[None] - q, 0.0) + np.maximum(q - upper[None], 0.0)
+    limit = float(np.mean(violation * violation))
+    handoff = float(np.mean((q[0] - original_q0) ** 2))
+    target = np.asarray(corridor[:len(root), :3], dtype=np.float64)
+    corridor_error = float(np.mean((root - target) ** 2)) if len(root) else 0.0
+    total = (config.smooth_weight * smooth + config.velocity_weight * velocity
+             + config.acceleration_weight * smooth + config.jerk_weight * jerk + 10.0 * limit
+             + config.handoff_weight * handoff + config.corridor_weight * corridor_error)
+    return {"total": total, "smoothness": smooth, "joint_limit": limit,
+            "velocity": velocity, "acceleration": smooth, "jerk": jerk,
+            "handoff": handoff, "corridor": corridor_error}
+
+
+def project_reference(trajectory: np.ndarray, corridor: np.ndarray,
+                      config: ProjectionConfig | None = None,
+                      handoff_q: np.ndarray | None = None) -> tuple[np.ndarray, dict[str, object]]:
+    """Project one decoded ``[T,38]`` reference and return an audit report.
+
+    The root position is route-local and is not consumed by the current SONIC action head, but
+    retaining it on the route center makes the dynamic-model target internally consistent.  Joint
+    limits and smoothness are applied to the actual 29-DOF reference SONIC receives.
+    """
+    config = ProjectionConfig() if config is None else config
+    value = np.asarray(trajectory, dtype=np.float64)
+    corridor = np.asarray(corridor, dtype=np.float64)
+    if value.ndim != 2 or value.shape[1] != 38:
+        raise ValueError(f"projection expects [T,38], got {value.shape}")
+    if corridor.ndim != 2 or corridor.shape[1] != 7 or len(corridor) != len(value):
+        raise ValueError(f"projection corridor must be [{len(value)},7], got {corridor.shape}")
+    if (config.iterations < 0 or config.step_size <= 0 or config.max_joint_step <= 0
+            or config.max_root_step_m <= 0):
+        raise ValueError("projection iterations/step sizes must be positive")
+    lower, upper = _policy_joint_bounds()
+    # Keep a small numerical interior margin.  Exact float32 values at an MJCF boundary can
+    # round outside after the policy-order -> hardware-order conversion and create a false
+    # joint-limit failure even though the bounded-logit decoder was mathematically valid.
+    lower = lower.astype(np.float64) + 1e-4
+    upper = upper.astype(np.float64) - 1e-4
+    q_original = value[:, :29].copy()
+    q = q_original.copy()
+    root_original = value[:, 29:32].copy()
+    root = root_original.copy()
+    original_q0 = q_original[0].copy()
+    if handoff_q is not None:
+        handoff_q = np.asarray(handoff_q, dtype=np.float64).reshape(29)
+        original_q0 = handoff_q.copy()
+    before = _objective(q, root, corridor, lower, upper, original_q0, config)
+    for _ in range(int(config.iterations)):
+        if len(q) > 2:
+            d2 = q[:-2] - 2.0 * q[1:-1] + q[2:]
+            q[1:-1] -= config.step_size * (config.smooth_weight + config.acceleration_weight) * 2.0 * d2
+        if len(q) > 1 and config.velocity_weight > 0:
+            d1 = q[1:] - q[:-1]
+            correction = config.step_size * config.velocity_weight * 2.0 * d1
+            q[:-1] += correction
+            q[1:] -= correction
+        if len(q) > 3 and config.jerk_weight > 0:
+            d3 = q[:-3] - 3.0 * q[1:-2] + 3.0 * q[2:-1] - q[3:]
+            correction = config.step_size * config.jerk_weight * 2.0 * d3
+            q[:-3] -= correction
+            q[1:-2] += 3.0 * correction
+            q[2:-1] -= 3.0 * correction
+            q[3:] += correction
+        q = np.clip(q, lower[None], upper[None])
+        # Keep each projected frame close to the decoded Flow proposal.  This makes the layer
+        # a feasibility correction rather than a hidden motion retargeter.
+        q = q_original + np.clip(q - q_original, -config.max_joint_step, config.max_joint_step)
+        q[0] = (1.0 - config.handoff_weight) * q_original[0] + config.handoff_weight * original_q0
+        q[0] = np.clip(q[0], lower, upper)
+        target = corridor[:, :3]
+        delta = config.root_blend * (target - root_original)
+        delta = np.clip(delta, -config.max_root_step_m, config.max_root_step_m)
+        root = root_original + delta
+    after = _objective(q, root, corridor, lower, upper, original_q0, config)
+    projected = value.copy()
+    projected[:, :29] = q
+    projected[:, 29:32] = root
+    report = {
+        "contract": "projected-gradient joint limits + temporal smoothness + route-center root consistency",
+        "config": asdict(config),
+        "objective_before": before,
+        "objective_after": after,
+        "joint_delta_max_rad": float(np.max(np.abs(q - q_original))),
+        "root_delta_max_m": float(np.max(np.abs(root - root_original))),
+        "root_step_limit_m": float(config.max_root_step_m),
+        "handoff_q_used": bool(handoff_q is not None),
+    }
+    return projected.astype(np.float32), report

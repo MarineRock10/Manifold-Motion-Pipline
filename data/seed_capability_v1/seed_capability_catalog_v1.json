@@ -1,0 +1,682 @@
+{
+  "schema": "manifold-motion.seed-capability-catalog.v1",
+  "metadata": "/mnt/c/Users/Xiyuan Wang/Downloads/metadata/seed_metadata_v004.csv",
+  "family_count": 30,
+  "families_with_candidates": 30,
+  "families_with_pilot": 30,
+  "selected_rows": 270,
+  "pilot_rows": 30,
+  "requested_per_split": {
+    "train": 6,
+    "validation": 2,
+    "test": 2
+  },
+  "seed": 20260927,
+  "max_frames": 1800,
+  "manifest": "data/seed_capability_v1/seed_capability_manifest_v1.csv",
+  "pilot_manifest": "data/seed_capability_v1/seed_capability_pilot_v1.csv",
+  "families": [
+    {
+      "family_id": 0,
+      "name": "walk_forward",
+      "pattern": "(?:neutral_walk|walk_ff|walk_forward|loop_forward_walk)",
+      "gate_profile": "walk_nominal",
+      "environment_trigger": "open corridor / nominal progress",
+      "body_mask": "legs+pelvis",
+      "risk": "low",
+      "exclude": "(?:crouch|jog|crate|handbag)",
+      "available": {
+        "train": 4981,
+        "validation": 467,
+        "test": 526
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 156
+    },
+    {
+      "family_id": 1,
+      "name": "jog_forward",
+      "pattern": "(?:jog_ff|jog_forward)",
+      "gate_profile": "walk_nominal",
+      "environment_trigger": "time-critical open corridor",
+      "body_mask": "legs+pelvis",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 5838,
+        "validation": 655,
+        "test": 666
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 442
+    },
+    {
+      "family_id": 2,
+      "name": "hands_back_walk",
+      "pattern": "walk_hands_on_back",
+      "gate_profile": "walk_nominal",
+      "environment_trigger": "arm-constrained passage / reduced arm sweep",
+      "body_mask": "legs+pelvis",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 472,
+        "validation": 45,
+        "test": 73
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 74
+    },
+    {
+      "family_id": 3,
+      "name": "walk_lateral",
+      "pattern": "(?:walk_sideway|sideway_walk|lateral_speed_step)",
+      "gate_profile": "walk_lateral_reverse",
+      "environment_trigger": "narrow or lateral aperture",
+      "body_mask": "pelvis+legs+arms",
+      "risk": "low",
+      "exclude": "",
+      "available": {
+        "train": 9,
+        "validation": 0,
+        "test": 3
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 4
+    },
+    {
+      "family_id": 4,
+      "name": "walk_curve",
+      "pattern": "(?:walk_arc|arc_walk)",
+      "gate_profile": "walk_turn",
+      "environment_trigger": "curved route",
+      "body_mask": "pelvis+legs",
+      "risk": "low",
+      "exclude": "",
+      "available": {
+        "train": 651,
+        "validation": 74,
+        "test": 70
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 103
+    },
+    {
+      "family_id": 5,
+      "name": "turn_in_place",
+      "pattern": "(?:idle_turn|step_rotate_idle|neutral_turning_around)",
+      "gate_profile": "walk_turn",
+      "environment_trigger": "heading discontinuity",
+      "body_mask": "pelvis+legs",
+      "risk": "low",
+      "exclude": "",
+      "available": {
+        "train": 1104,
+        "validation": 133,
+        "test": 123
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 164
+    },
+    {
+      "family_id": 6,
+      "name": "crouch_walk",
+      "pattern": "crouch_ff_loop",
+      "gate_profile": "crouch",
+      "environment_trigger": "long low ceiling",
+      "body_mask": "trunk+hips+knees",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 228,
+        "validation": 22,
+        "test": 29
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 24
+    },
+    {
+      "family_id": 7,
+      "name": "crouch_transition",
+      "pattern": "(?:idle_crouch_(?:start|stop|to_|right_to_)|crouch_ff_(?:start|stop))",
+      "gate_profile": "low_transition",
+      "environment_trigger": "enter or leave low clearance",
+      "body_mask": "trunk+hips+knees",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 442,
+        "validation": 40,
+        "test": 56
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 24
+    },
+    {
+      "family_id": 8,
+      "name": "bend_duck_walk",
+      "pattern": "(?:bend_down.*walk|duck.*walk|avoid_obstacle_bend)",
+      "gate_profile": "crouch",
+      "environment_trigger": "short overhead obstacle",
+      "body_mask": "trunk+hips",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 44,
+        "validation": 7,
+        "test": 4
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 12
+    },
+    {
+      "family_id": 9,
+      "name": "dodge_lateral",
+      "pattern": "(?:dodge|avoid_car|evad)",
+      "gate_profile": "walk_lateral_reverse",
+      "environment_trigger": "fast crossing obstacle",
+      "body_mask": "trunk+pelvis+legs",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 45,
+        "validation": 0,
+        "test": 60
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 6
+    },
+    {
+      "family_id": 10,
+      "name": "forward_lunge",
+      "pattern": "(?:forward_lunge|lunge_forward)",
+      "gate_profile": "low_transition",
+      "environment_trigger": "push recovery / extended reach",
+      "body_mask": "legs+trunk",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 9,
+        "validation": 0,
+        "test": 3
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 4
+    },
+    {
+      "family_id": 11,
+      "name": "side_hop",
+      "pattern": "(?:lateral_hop|side_hop)",
+      "gate_profile": "jump",
+      "environment_trigger": "small lateral ground hazard",
+      "body_mask": "legs+pelvis",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 9,
+        "validation": 0,
+        "test": 3
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 4
+    },
+    {
+      "family_id": 12,
+      "name": "jump_forward",
+      "pattern": "jump_ff",
+      "gate_profile": "jump",
+      "environment_trigger": "short ground gap",
+      "body_mask": "legs+pelvis",
+      "risk": "high",
+      "exclude": "(?:high_jump|box_jump|broad_jump)",
+      "available": {
+        "train": 3084,
+        "validation": 414,
+        "test": 464
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 406
+    },
+    {
+      "family_id": 13,
+      "name": "broad_jump",
+      "pattern": "broad_jump",
+      "gate_profile": "jump",
+      "environment_trigger": "wide ground gap",
+      "body_mask": "legs+pelvis+arms",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 9,
+        "validation": 0,
+        "test": 3
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 4
+    },
+    {
+      "family_id": 14,
+      "name": "high_jump",
+      "pattern": "high_jump",
+      "gate_profile": "jump",
+      "environment_trigger": "tall ground obstacle",
+      "body_mask": "legs+pelvis+arms",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 363,
+        "validation": 44,
+        "test": 47
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 174
+    },
+    {
+      "family_id": 15,
+      "name": "box_jump",
+      "pattern": "box_jump(?!_down)",
+      "gate_profile": "jump",
+      "environment_trigger": "raised platform",
+      "body_mask": "legs+pelvis+arms",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 9,
+        "validation": 0,
+        "test": 3
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 4
+    },
+    {
+      "family_id": 16,
+      "name": "step_up_box",
+      "pattern": "(?:come_up_50cm_box|step_up|climb_(?:on_)?box)",
+      "gate_profile": "walk_nominal",
+      "environment_trigger": "step or platform ascent",
+      "body_mask": "swing_leg+pelvis",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 796,
+        "validation": 101,
+        "test": 150
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 359
+    },
+    {
+      "family_id": 17,
+      "name": "step_down_box",
+      "pattern": "(?:come_down_50cm_box|box_jump_down|step_down)",
+      "gate_profile": "walk_nominal",
+      "environment_trigger": "step or platform descent",
+      "body_mask": "legs+pelvis",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 503,
+        "validation": 66,
+        "test": 97
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 321
+    },
+    {
+      "family_id": 18,
+      "name": "kneel",
+      "pattern": "(?:kneel|kneeling)",
+      "gate_profile": "low_transition",
+      "environment_trigger": "very low stationary clearance",
+      "body_mask": "trunk+hips+knees",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 502,
+        "validation": 52,
+        "test": 63
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 69
+    },
+    {
+      "family_id": 19,
+      "name": "crawl",
+      "pattern": "crawl_ff",
+      "gate_profile": "crawl",
+      "environment_trigger": "long very-low tunnel",
+      "body_mask": "whole_body",
+      "risk": "high",
+      "exclude": "spider",
+      "available": {
+        "train": 492,
+        "validation": 55,
+        "test": 36
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 20
+    },
+    {
+      "family_id": 20,
+      "name": "all_fours",
+      "pattern": "(?:all_fours|on_all_fours)",
+      "gate_profile": "all_fours",
+      "environment_trigger": "four-contact low passage",
+      "body_mask": "whole_body",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 592,
+        "validation": 124,
+        "test": 69
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 32
+    },
+    {
+      "family_id": 21,
+      "name": "spider_crawl",
+      "pattern": "spider_crawl",
+      "gate_profile": "crawl",
+      "environment_trigger": "low passage with inverted support",
+      "body_mask": "whole_body",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 7,
+        "validation": 0,
+        "test": 3
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 4
+    },
+    {
+      "family_id": 22,
+      "name": "inchworm",
+      "pattern": "inchworm",
+      "gate_profile": "crawl",
+      "environment_trigger": "low passage / recovery",
+      "body_mask": "whole_body",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 9,
+        "validation": 0,
+        "test": 3
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 4
+    },
+    {
+      "family_id": 23,
+      "name": "get_up_recovery",
+      "pattern": "(?:stand_up_(?:lying|prone|supine)|crutch_get_up|faint_stand_up|get_up)",
+      "gate_profile": "low_transition",
+      "environment_trigger": "fall recovery",
+      "body_mask": "whole_body",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 33,
+        "validation": 5,
+        "test": 3
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 12
+    },
+    {
+      "family_id": 24,
+      "name": "vault",
+      "pattern": "vault_over",
+      "gate_profile": "jump",
+      "environment_trigger": "waist-height obstacle",
+      "body_mask": "whole_body",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 2,
+        "validation": 0,
+        "test": 0
+      },
+      "selected": {
+        "train": 2,
+        "validation": 0,
+        "test": 0
+      },
+      "pilot_selected": true,
+      "actor_count": 1
+    },
+    {
+      "family_id": 25,
+      "name": "door_interaction",
+      "pattern": "(?:door_handle.*open|open.*door|door.*open)",
+      "gate_profile": "low_transition",
+      "environment_trigger": "doorway interaction",
+      "body_mask": "arms+trunk+pelvis",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 265,
+        "validation": 77,
+        "test": 0
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 0
+      },
+      "pilot_selected": true,
+      "actor_count": 8
+    },
+    {
+      "family_id": 26,
+      "name": "ladder",
+      "pattern": "ladder_climbing",
+      "gate_profile": "all_fours",
+      "environment_trigger": "vertical traversal",
+      "body_mask": "whole_body",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 44,
+        "validation": 0,
+        "test": 0
+      },
+      "selected": {
+        "train": 6,
+        "validation": 0,
+        "test": 0
+      },
+      "pilot_selected": true,
+      "actor_count": 2
+    },
+    {
+      "family_id": 27,
+      "name": "button_lever",
+      "pattern": "(?:high_button|horizontal_handle.*lever|vertical_lever|push_button)",
+      "gate_profile": "low_transition",
+      "environment_trigger": "reachable environment control",
+      "body_mask": "arm+trunk",
+      "risk": "medium",
+      "exclude": "",
+      "available": {
+        "train": 172,
+        "validation": 69,
+        "test": 39
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 8
+    },
+    {
+      "family_id": 28,
+      "name": "carry_object",
+      "pattern": "(?:carry.*(?:box|object)|(?:box|object).*carry|lift_crate.*walk|handbag_walk)",
+      "gate_profile": "walk_nominal",
+      "environment_trigger": "navigation with changed self-manifold",
+      "body_mask": "arms+trunk+legs",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 422,
+        "validation": 152,
+        "test": 206
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 25
+    },
+    {
+      "family_id": 29,
+      "name": "roll_recovery",
+      "pattern": "(?:safety_roll|forward_roll|backward_roll)",
+      "gate_profile": "low_transition",
+      "environment_trigger": "impact dissipation / recovery",
+      "body_mask": "whole_body",
+      "risk": "high",
+      "exclude": "",
+      "available": {
+        "train": 27,
+        "validation": 3,
+        "test": 6
+      },
+      "selected": {
+        "train": 6,
+        "validation": 2,
+        "test": 2
+      },
+      "pilot_selected": true,
+      "actor_count": 12
+    }
+  ],
+  "semantic_labels_are_capabilities": false,
+  "admission_rule": "Only SONIC/MuJoCo accepted replays may train the latent prior."
+}

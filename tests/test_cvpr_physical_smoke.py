@@ -5,11 +5,11 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from manifold_motion.cvpr_benchmark import DEFAULT_CONFIG
-from manifold_motion.cvpr_physical_smoke import (
+from manifold_motion.evaluation.cvpr_benchmark import DEFAULT_CONFIG
+from manifold_motion.evaluation.cvpr_physical_smoke import (
     _report_to_result, _scenario_registry, _xml_for_generated_fixture, build_rows,
 )
-from manifold_motion.cvpr_benchmark import _read_json
+from manifold_motion.evaluation.cvpr_benchmark import _read_json
 
 
 def test_matrix_and_registry_are_complete() -> None:

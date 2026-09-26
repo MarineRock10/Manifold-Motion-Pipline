@@ -1,0 +1,31 @@
+motion_id,family_id,skill_family,pilot_stratum,move_g1_path,move_name,actor_uid,selection_role,environment_trigger,body_mask,risk
+supp_06_crouch_walk_test_00,6,crouch_walk,crouch,g1/csv/230125/crouch_ff_loop_315_002__A145.csv,crouch_ff_loop_315_R_002__A145,A145,failure_directed_test,long low ceiling,trunk+hips+knees,medium
+supp_06_crouch_walk_test_01,6,crouch_walk,crouch,g1/csv/230306/crouch_ff_loop_270_R_003__A247.csv,crouch_ff_loop_270_R_003__A247,A247,failure_directed_test,long low ceiling,trunk+hips+knees,medium
+supp_06_crouch_walk_validation_00,6,crouch_walk,crouch,g1/csv/230119/crouch_ff_loop_360_002__A129.csv,crouch_ff_loop_360_R_002__A129,A129,failure_directed_validation,long low ceiling,trunk+hips+knees,medium
+supp_07_crouch_transition_test_00,7,crouch_transition,low_transition,g1/csv/230125/crouch_ff_stop_270_002__A145.csv,crouch_ff_stop_270_R_002__A145,A145,failure_directed_test,enter or leave low clearance,trunk+hips+knees,medium
+supp_07_crouch_transition_test_01,7,crouch_transition,low_transition,g1/csv/230306/crouch_ff_start_360_R_001__A247.csv,crouch_ff_start_360_R_001__A247,A247,failure_directed_test,enter or leave low clearance,trunk+hips+knees,medium
+supp_07_crouch_transition_validation_00,7,crouch_transition,low_transition,g1/csv/230119/crouch_ff_start_225_102__A129.csv,crouch_ff_start_225_R_102__A129,A129,failure_directed_validation,enter or leave low clearance,trunk+hips+knees,medium
+supp_11_side_hop_test_00,11,side_hop,jump,g1/csv/230509/lateral_hop_R_003__A362.csv,lateral_hop_R_003__A362,A362,failure_directed_test,small lateral ground hazard,legs+pelvis,high
+supp_11_side_hop_train_00,11,side_hop,jump,g1/csv/230509/lateral_hop_R_003__A361.csv,lateral_hop_R_003__A361,A361,failure_directed_train,small lateral ground hazard,legs+pelvis,high
+supp_11_side_hop_train_01,11,side_hop,jump,g1/csv/230509/lateral_hop_R_003__A359.csv,lateral_hop_R_003__A359,A359,failure_directed_train,small lateral ground hazard,legs+pelvis,high
+supp_12_jump_forward_test_00,12,jump_forward,jump,g1/csv/230414/jump_ff_180_R_003__A321.csv,jump_ff_180_R_003__A321,A321,failure_directed_test,short ground gap,legs+pelvis,high
+supp_12_jump_forward_test_01,12,jump_forward,jump,g1/csv/230131/jump_ff_360_002__A160.csv,jump_ff_360_R_002__A160,A160,failure_directed_test,short ground gap,legs+pelvis,high
+supp_12_jump_forward_test_02,12,jump_forward,jump,g1/csv/230201/jump_ff_360_004__A168.csv,jump_ff_360_R_004__A168,A168,failure_directed_test,short ground gap,legs+pelvis,high
+supp_13_broad_jump_test_00,13,broad_jump,jump,g1/csv/230509/broad_jump_002__A362.csv,broad_jump_002__A362,A362,failure_directed_test,wide ground gap,legs+pelvis+arms,high
+supp_13_broad_jump_train_00,13,broad_jump,jump,g1/csv/230509/broad_jump_003__A359.csv,broad_jump_003__A359,A359,failure_directed_train,wide ground gap,legs+pelvis+arms,high
+supp_13_broad_jump_train_01,13,broad_jump,jump,g1/csv/230509/broad_jump_002__A360.csv,broad_jump_002__A360,A360,failure_directed_train,wide ground gap,legs+pelvis+arms,high
+supp_14_high_jump_test_00,14,high_jump,jump,g1/csv/230512/high_jump_R_003__A363.csv,high_jump_R_opt_1_003__A363,A363,failure_directed_test,tall ground obstacle,legs+pelvis+arms,high
+supp_14_high_jump_test_01,14,high_jump,jump,g1/csv/230524/high_jump_R_002__A396.csv,high_jump_R_opt_1_002__A396,A396,failure_directed_test,tall ground obstacle,legs+pelvis+arms,high
+supp_14_high_jump_test_02,14,high_jump,jump,g1/csv/230530/high_jump_R_001__A411.csv,high_jump_R_opt_1_001__A411,A411,failure_directed_test,tall ground obstacle,legs+pelvis+arms,high
+supp_15_box_jump_test_00,15,box_jump,jump,g1/csv/230509/box_jump_003__A362.csv,box_jump_on_180_003__A362,A362,failure_directed_test,raised platform,legs+pelvis+arms,high
+supp_15_box_jump_train_00,15,box_jump,jump,g1/csv/230509/box_jump_002__A359.csv,box_jump_on_180_002__A359,A359,failure_directed_train,raised platform,legs+pelvis+arms,high
+supp_15_box_jump_train_01,15,box_jump,jump,g1/csv/230509/box_jump_001__A360.csv,box_jump_on_180_001__A360,A360,failure_directed_train,raised platform,legs+pelvis+arms,high
+supp_20_all_fours_test_00,20,all_fours,all_fours,g1/csv/230216/on_all_fours_backward_loop_R_004__A201.csv,on_all_fours_360_loop_R_004__A201,A201,failure_directed_test,four-contact low passage,whole_body,high
+supp_20_all_fours_test_01,20,all_fours,all_fours,g1/csv/220720/mohak_backward_start_003__A032.csv,on_all_fours_360_start_R_003__A032,A032,failure_directed_test,four-contact low passage,whole_body,high
+supp_20_all_fours_test_02,20,all_fours,all_fours,g1/csv/231010/jog_ff_start_270_R_get_here_both_hands_R_on_all_fours_idle_R_002__A472.csv,jog_ff_start_270_R_get_here_both_hands_R_on_all_fours_idle_R_002__A472,A472,failure_directed_test,four-contact low passage,whole_body,high
+supp_26_ladder_train_00,26,ladder,all_fours,g1/csv/230323/ladder_climbing_up_start_R_006_ns__A300.csv,ladder_climbing_up_asymmetrical_start_R_006__A300,A300,failure_directed_train,vertical traversal,whole_body,high
+supp_26_ladder_train_01,26,ladder,all_fours,g1/csv/230323/ladder_climbing_down_stop_R_102__A301.csv,ladder_climbing_down_stop_R_102__A301,A301,failure_directed_train,vertical traversal,whole_body,high
+supp_26_ladder_train_02,26,ladder,all_fours,g1/csv/230323/ladder_climbing_jumpdown_R_101__A301.csv,ladder_climbing_jumpdown_R_101__A301,A301,failure_directed_train,vertical traversal,whole_body,high
+supp_29_roll_recovery_test_00,29,roll_recovery,low_transition,g1/csv/230302/safety_roll_315_R_007__A236.csv,safety_roll_315_L_007__A236,A236,failure_directed_test,impact dissipation / recovery,whole_body,high
+supp_29_roll_recovery_test_01,29,roll_recovery,low_transition,g1/csv/230302/safety_roll_315_R_009__A234.csv,safety_roll_315_L_009__A234,A234,failure_directed_test,impact dissipation / recovery,whole_body,high
+supp_29_roll_recovery_validation_00,29,roll_recovery,low_transition,g1/csv/231110/jump_form_box_to_safety_roll_180_R_001__A502.csv,jump_from_box_to_safety_roll_180_R_001__A502,A502,failure_directed_validation,impact dissipation / recovery,whole_body,high

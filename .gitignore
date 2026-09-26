@@ -23,6 +23,12 @@ data/g1_flat/*
 !data/g1_flat/scene_manifold_block_right.xml
 !data/g1_flat/scene_manifold_long_combo.xml
 !data/g1_flat/scene_manifold_long_low_cycle.xml
+# Small, reproducible SEED retrieval manifests are versioned.  The extracted G1 CSVs and the
+# downloaded tar archive remain local-only because they are large and licensed dataset content.
+!data/seed_capability_v1/
+data/seed_capability_v1/*
+!data/seed_capability_v1/*.csv
+!data/seed_capability_v1/*.json
 reports/
 artifacts/
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from manifold_motion.cvpr_smoke import run_smoke
+from manifold_motion.evaluation.cvpr_smoke import run_smoke
 
 
 def test_primary_smoke_has_explicit_104_row_coverage(tmp_path: Path) -> None:

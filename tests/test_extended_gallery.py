@@ -12,8 +12,8 @@ from pathlib import Path
 
 import numpy as np
 
-from manifold_motion.stage2_long_horizon_avoidance import PlannerConfig, _astar, _simplify
-from manifold_motion.stage2_manifold_adaptive import (
+from manifold_motion.stage2.long_horizon_avoidance import PlannerConfig, _astar, _simplify
+from manifold_motion.stage2.manifold_adaptive import (
     _adaptive_segment_condition,
     _bilateral_lateral_free_semi,
     _calibrate_envelope,

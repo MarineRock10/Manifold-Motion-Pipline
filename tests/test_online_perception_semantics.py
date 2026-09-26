@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from manifold_motion.deploy_perception import (
+from manifold_motion.perception.deploy import (
     ProbabilisticSlidingVoxelGrid, SlidingGridConfig, _vertical_free_half_extent,
 )
-from manifold_motion.online_perception import (
+from manifold_motion.perception.online import (
     OnlinePerceptionNavigator, _bilateral_lateral_free_semi_from_radar,
 )
 
