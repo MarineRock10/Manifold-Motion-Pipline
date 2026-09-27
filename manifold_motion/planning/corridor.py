@@ -156,9 +156,12 @@ def execution_corridor_radius(q_policy: np.ndarray, base_pos: np.ndarray, base_q
                               corridor: np.ndarray) -> dict[str, float]:
     """Measure the replayed robot surface against its input safe corridor.
 
-    The returned radius is the maximum of the exact mesh-sample ellipsoid implicit value,
-    not a base-point proxy.  A value <= 1 means every sampled G1 surface point remained in its
-    assigned corridor ellipsoid at that tick.
+    Two radii are reported. ``corridor_radius_temporal`` pairs a surface with the ellipsoid
+    at the same time index and is useful for moving obstacles. ``corridor_radius_spatial``
+    measures the same surface against the nearest ellipsoid anywhere on a static corridor.
+    A static safe corridor is a union of ellipsoids, so using the temporal pairing as the hard
+    gate would incorrectly reject a robot that is safe but progresses more slowly than its
+    reference.  ``corridor_radius_max`` is kept as the backwards-compatible static-union value.
     """
     q_policy, base_pos, base_quat = (np.asarray(value) for value in (q_policy, base_pos, base_quat))
     if not (len(q_policy) == len(base_pos) == len(base_quat)):
@@ -166,16 +169,29 @@ def execution_corridor_radius(q_policy: np.ndarray, base_pos: np.ndarray, base_q
     corridor = _resample_corridor(corridor, len(q_policy))
     origin_pos, origin_rotation = base_pos[0], C.quat_to_matrix(base_quat[0])
     estimator = ExecutedEnvelopeEstimator()
-    maxima = []
+    temporal_maxima = []
+    spatial_maxima = []
     for q, pos, quat, element in zip(q_policy, base_pos, base_quat, corridor):
         local_points = (estimator.surface_points(q, pos, quat) - origin_pos) @ origin_rotation
-        delta = local_points - element[:3]
-        cos, sin = np.cos(element[6]), np.sin(element[6])
-        aligned = np.column_stack([delta[:, 0] * cos + delta[:, 1] * sin,
-                                   -delta[:, 0] * sin + delta[:, 1] * cos,
-                                   delta[:, 2]])
-        maxima.append(float(np.linalg.norm(aligned / element[3:6], axis=1).max()))
-    values = np.asarray(maxima)
-    return {"corridor_radius_max": float(values.max()),
-            "corridor_radius_p95": float(np.quantile(values, 0.95)),
-            "corridor_radius_mean": float(values.mean())}
+        def radii(elements: np.ndarray) -> np.ndarray:
+            delta = local_points[:, None, :] - elements[None, :, :3]
+            cos, sin = np.cos(elements[:, 6]), np.sin(elements[:, 6])
+            aligned = np.stack([delta[:, :, 0] * cos[None, :] + delta[:, :, 1] * sin[None, :],
+                                -delta[:, :, 0] * sin[None, :] + delta[:, :, 1] * cos[None, :],
+                                delta[:, :, 2]], axis=2)
+            return np.linalg.norm(aligned / elements[None, :, 3:6], axis=2)
+        all_radii = radii(corridor)
+        temporal_maxima.append(float(radii(element[None])[..., 0].max()))
+        # Every mesh point may be covered by a different tube element.  This is the
+        # conservative implicit-distance test for the union, not a centroid-only proxy.
+        spatial_maxima.append(float(all_radii.min(axis=1).max()))
+    temporal = np.asarray(temporal_maxima)
+    spatial = np.asarray(spatial_maxima)
+    return {"corridor_radius_max": float(spatial.max()),
+            "corridor_radius_p95": float(np.quantile(spatial, 0.95)),
+            "corridor_radius_mean": float(spatial.mean()),
+            "corridor_radius_spatial_union_max": float(spatial.max()),
+            "corridor_radius_spatial_union_p95": float(np.quantile(spatial, 0.95)),
+            "corridor_radius_temporal_max": float(temporal.max()),
+            "corridor_radius_temporal_p95": float(np.quantile(temporal, 0.95)),
+            "corridor_radius_temporal_mean": float(temporal.mean())}

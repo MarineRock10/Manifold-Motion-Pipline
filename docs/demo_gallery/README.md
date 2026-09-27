@@ -4,6 +4,18 @@ These previews are generated only from accepted MuJoCo reports. They are compact
 previews; the full-resolution GIF, NPZ trajectory, candidate audit and JSON metrics remain in
 `reports/manifold_motion/` after reproduction.
 
+## Environment-conditioned latent skills
+
+![Eight latent skill families](media/latent_skill_atlas_v6.gif)
+
+This is the first gallery item produced by the environment-conditioned latent prior rather than
+the deterministic geometry router. Each panel decodes a SEED family, passes the latent barrier,
+projection and frozen SONIC/MuJoCo mesh gate, and shows cyan `M_e` versus orange `M_self`. The
+eight accepted short probes cover crouch walk, lateral walk, dodge, lunge, side hop, jump, kneel
+and all-fours. Machine-readable metrics are in
+[`latent_skill_atlas_v6.json`](media/latent_skill_atlas_v6.json); interpretation and reproduction
+commands are in [`LATENT_SKILL_PRIOR.md`](../stage2/LATENT_SKILL_PRIOR.md).
+
 ## Online closed loop
 
 ![Online 3-D SLAM to SONIC](docs/demo_gallery/media/online_closed_loop.gif)

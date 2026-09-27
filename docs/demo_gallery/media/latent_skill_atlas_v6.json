@@ -1,0 +1,80 @@
+{
+  "schema": "manifold-motion.latent-skill-atlas.v1",
+  "out": "docs/demo_gallery/media/latent_skill_atlas_v6.gif",
+  "frames": 48,
+  "fps": 12.0,
+  "cases": [
+    {
+      "label": "crouch_walk",
+      "sample": "reports/manifold_motion/latent_env_v6_exec_crouch_union_candidates/candidate_0.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.828938712137522,
+      "corridor_radius_temporal_max": 1.4146081594963087,
+      "track_err_mean_rad": 0.10162165264598007
+    },
+    {
+      "label": "lateral_walk",
+      "sample": "reports/manifold_motion/latent_env_v6_exec_walk_lateral_candidates/candidate_0.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.9244529824887051,
+      "corridor_radius_temporal_max": 1.230059290488233,
+      "track_err_mean_rad": 0.07019515257855917
+    },
+    {
+      "label": "dodge",
+      "sample": "reports/manifold_motion/latent_env_v6_exec_dodge_lateral_candidates/candidate_0.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.7575147475566465,
+      "corridor_radius_temporal_max": 1.2599983753547754,
+      "track_err_mean_rad": 0.049374542040529656
+    },
+    {
+      "label": "forward_lunge",
+      "sample": "reports/manifold_motion/latent_env_v6_exec_forward_lunge_candidates/candidate_0.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.7220461831466678,
+      "corridor_radius_temporal_max": 1.0136464846216684,
+      "track_err_mean_rad": 0.07654502212062385
+    },
+    {
+      "label": "side_hop",
+      "sample": "reports/manifold_motion/latent_env_v6_exec_side_hop_candidates/candidate_0.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.8757412111294832,
+      "corridor_radius_temporal_max": 0.9580975417391212,
+      "track_err_mean_rad": 0.13052581276690414
+    },
+    {
+      "label": "high_jump",
+      "sample": "reports/manifold_motion/latent_env_v6_exec_high_jump_candidates/candidate_0.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.8657718872138841,
+      "corridor_radius_temporal_max": 1.3221666097318676,
+      "track_err_mean_rad": 0.0954156311092866
+    },
+    {
+      "label": "kneel",
+      "sample": "reports/manifold_motion/latent_env_v6_exec_kneel_candidates/candidate_0.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.7705152482460697,
+      "corridor_radius_temporal_max": 0.8293570717811446,
+      "track_err_mean_rad": 0.04084920246488185
+    },
+    {
+      "label": "all_fours",
+      "sample": "reports/manifold_motion/latent_env_v6_exec_all_fours_candidates/candidate_0.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.7559518113781327,
+      "corridor_radius_temporal_max": 0.762292268878063,
+      "track_err_mean_rad": 0.16027095439463593
+    }
+  ]
+}

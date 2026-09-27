@@ -3,6 +3,20 @@
   "generated_from": "accepted reports only; no rollout is performed",
   "items": [
     {
+      "id": "latent_skill_atlas_v6",
+      "title": "Environment-conditioned latent skill atlas",
+      "source": "reports/manifold_motion/latent_skill_atlas_v6/",
+      "purpose": "eight decoded SEED skill families after latent barrier, projection and SONIC/MuJoCo mesh gate",
+      "max_width": 1440,
+      "stride": 1,
+      "preview": "docs/demo_gallery/media/latent_skill_atlas_v6.gif",
+      "frames_source": 48,
+      "frames_preview": 48,
+      "size": [1440, 602],
+      "sha256": "f3ea9e8aef301e535cdd80fa9cf776392c427568c770161957edb28cef0c4554",
+      "bytes": 11733760
+    },
+    {
       "id": "online_closed_loop",
       "title": "Online 3-D SLAM \u2192 M_e \u2192 primitive \u2192 SONIC",
       "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif",

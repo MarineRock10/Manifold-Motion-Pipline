@@ -23,6 +23,7 @@ GR00T-WholeBodyControl trees were removed.
 | [`STAGE2.md`](/docs/stage2/STAGE2.md) | **the dynamic-data implementation**: selected BONES-SEED G1 CSV → frozen SONIC replay/gate → actor-disjoint windows → bounded latent Flow Matching → SONIC validation |
 | [`SEED_CAPABILITY.md`](/docs/stage2/SEED_CAPABILITY.md) | **the 30-family capability gate**: metadata retrieval → actor-disjoint slice → MuJoCo/SONIC physical admission → positive/negative evidence |
 | [`ONLINE_COMPOSER.md`](/docs/stage2/ONLINE_COMPOSER.md) | **live high-level composition**: rolling SLAM `M_e`, measured `M_self`, state/history, 21-family inference, hysteresis and geometry safety override |
+| [`LATENT_SKILL_PRIOR.md`](/docs/stage2/LATENT_SKILL_PRIOR.md) | **actual environment-conditioned latent execution**: `target_exec` prior, latent barrier, candidate screening and the multi-skill MuJoCo atlas |
 | [`ROADMAP.md`](/docs/ROADMAP.md) | **the current boundary and next algorithmic gates**: what is physically verified, what still uses anchors, and the order of the remaining work |
 | [`STAGE2_DIVERSE_DEMOS.md`](/docs/stage2/DIVERSE_DEMOS.md) | **additional visual cases**: short-low, left-offset-block, and right-offset-block action changes |
 | [`STAGE2_LONG_SEQUENCES.md`](/docs/stage2/LONG_SEQUENCES.md) | **long-horizon cases**: repeated manifold changes in one continuous rollout |
@@ -61,6 +62,10 @@ windows and executes three online-radar long routes with `M_e + M_self + state/h
 For the clearest causal visualization, run `./scripts/render_stage2_online_composer_counterfactual.sh`;
 it pairs the same long task under a wide manifold and a low manifold so the walk-to-crouch change
 is visible rather than hidden in a single route replay.
+For the first non-router LATENT execution audit, run the v6 prior training command and then the
+candidate probe documented in [`LATENT_SKILL_PRIOR.md`](/docs/stage2/LATENT_SKILL_PRIOR.md). The
+checked-in atlas below shows eight distinct decoded skill families after the frozen SONIC/MuJoCo
+mesh gate; it is deliberately separate from the older deterministic wide/low counterfactual.
 
 ### Visual results (accepted MuJoCo + SONIC simulations)
 
@@ -70,6 +75,9 @@ remain in the reproducibility artifacts.
 
 <p>
   <img src="docs/demo_gallery/media/online_composer_wide_vs_low.gif" width="700" alt="Counterfactual safety baseline: wide normal walk versus low crouch walk" />
+</p>
+<p>
+  <img src="docs/demo_gallery/media/latent_skill_atlas_v6.gif" width="1000" alt="Eight environment-conditioned latent skill families executed and mesh-gated in MuJoCo" />
 </p>
 <p>
   <img src="docs/demo_gallery/media/online_closed_loop.gif" width="360" alt="Online 3-D SLAM to environment manifold to SONIC" />
@@ -212,7 +220,7 @@ Viewer keys and what each number on screen means: [`PIPELINE.md`](/docs/architec
 | ③ in-loop | achieved pose inside the perturbed envelope | success **1.00**, r **0.82** |
 | gate | `verify_sonic` | **6/10** inside, r(sonic) median 0.976 |
 | SEED capability gate | frozen SONIC/MuJoCo accepted families | **21/30** families; **187/194** selected clips |
-| state-conditioned latent prior | test MSE improvement over zero baseline | **28.2%** (727 actor-disjoint windows) |
+| state-conditioned environment prior v6 | test MSE improvement over zero baseline | **49.9%** (727 actor-disjoint windows; target_exec) |
 | SLAM/self-manifold composer | test Top-1 / Top-3 / macro-F1 | **57.8% / 79.0% / 58.5%** across 21 executable families |
 | failure-directed supplement | accepted / selected; local adapter test MSE | **17/30**; **5.733 → 5.683** |
 

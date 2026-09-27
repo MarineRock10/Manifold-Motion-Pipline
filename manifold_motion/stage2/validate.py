@@ -102,6 +102,7 @@ def _joint_limit_report(runner: SeedReplayRunner, motion: SeedMotion) -> dict:
 def validate_trajectory(trajectory: np.ndarray, *, source: Path, source_hz: float,
                         config: ReplayConfig, corridor: np.ndarray | None = None,
                         max_corridor_radius: float = 1.0,
+                        corridor_mode: str = "static_union",
                         stratum: str = "generated",
                         runner: SeedReplayRunner | None = None) -> tuple[dict[str, np.ndarray], dict]:
     """Replay one candidate and return its executed arrays and complete hard-gate report.
@@ -111,6 +112,8 @@ def validate_trajectory(trajectory: np.ndarray, *, source: Path, source_hz: floa
     validation.
     """
     runner = runner or SeedReplayRunner()
+    if corridor_mode not in {"static_union", "temporal"}:
+        raise ValueError("corridor_mode must be static_union or temporal")
     motion = _motion_from_trajectory(trajectory, source, source_hz, 1.0 / C.CONTROL_DT)
     limits = _joint_limit_report(runner, motion)
     data, summary = runner.replay(motion, config, stratum=stratum)
@@ -120,7 +123,11 @@ def validate_trajectory(trajectory: np.ndarray, *, source: Path, source_hz: floa
         corridor_metrics = execution_corridor_radius(data["q_exec"], data["base_pos"], data["base_quat"], corridor)
         summary.update(corridor_metrics)
         summary["conditioned_corridor_shape"] = list(corridor.shape)
-        if corridor_metrics["corridor_radius_max"] > max_corridor_radius:
+        gate_key = ("corridor_radius_spatial_union_max" if corridor_mode == "static_union"
+                    else "corridor_radius_temporal_max")
+        summary["corridor_gate_mode"] = corridor_mode
+        summary["corridor_gate_radius"] = corridor_metrics[gate_key]
+        if corridor_metrics[gate_key] > max_corridor_radius:
             failed_checks.append("corridor_violation")
     if limits["joint_limit_violations"]:
         failed_checks.append("joint_limit_violation")
@@ -144,6 +151,9 @@ def main() -> int:
     parser.add_argument("--min-progress-ratio", type=float, default=ReplayConfig.min_progress_ratio)
     parser.add_argument("--max-corridor-radius", type=float, default=1.0,
                         help="maximum mesh-surface implicit radius in the conditioned corridor")
+    parser.add_argument("--corridor-mode", choices=("static_union", "temporal"),
+                        default="static_union",
+                        help="static tube union, or time-indexed ellipsoids for moving obstacles")
     parser.add_argument("--candidate-index", type=int, default=0,
                         help="candidate in generated_ref_candidates (0 for legacy one-sample files)")
     parser.add_argument("--trajectory-key", default="generated_ref",
@@ -177,7 +187,8 @@ def main() -> int:
             trajectory = np.asarray(sample[args.trajectory_key])
     data, summary = validate_trajectory(trajectory, source=args.sample, source_hz=args.source_hz,
                                         config=config, corridor=corridor,
-                                        max_corridor_radius=args.max_corridor_radius, stratum=stratum)
+                                        max_corridor_radius=args.max_corridor_radius,
+                                        corridor_mode=args.corridor_mode, stratum=stratum)
     summary.update({"sample": str(args.sample), "source_hz": args.source_hz,
                     "candidate_index": args.candidate_index,
                     "trajectory_key": args.trajectory_key,

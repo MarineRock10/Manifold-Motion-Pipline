@@ -79,6 +79,29 @@ def _kl_to_prior(post_mean: torch.Tensor, post_logvar: torch.Tensor,
     return 0.5 * value.sum(dim=-1).mean()
 
 
+def _trajectory_weights(target_shape: tuple[int, int], *, root_weight: float,
+                        lower_body_weight: float) -> torch.Tensor:
+    """Loss weights for the physical quantities that decide corridor feasibility.
+
+    The first 15 policy coordinates cover legs and waist, while columns 29:32 are local root
+    translation.  Treating them like every arm/orientation scalar allowed a low average MSE to
+    hide a large body-envelope/corridor error.
+    """
+    if target_shape[1] != 38 or root_weight <= 0 or lower_body_weight <= 0:
+        raise ValueError("trajectory shape/physical reconstruction weights are invalid")
+    weights = torch.ones(target_shape, dtype=torch.float32)
+    weights[:, :15] *= float(lower_body_weight)
+    weights[:, 29:32] *= float(root_weight)
+    return weights.flatten()
+
+
+def _weighted_reconstruction(prediction: torch.Tensor, target: torch.Tensor,
+                             weights: torch.Tensor) -> torch.Tensor:
+    if prediction.shape != target.shape or prediction.shape[-1] != len(weights):
+        raise ValueError("prediction/target/trajectory weights disagree")
+    return torch.mean((prediction - target).square() * weights[None])
+
+
 def _loader_loss(model: StateConditionedSkillVAE, data: WindowData, indices: np.ndarray,
                  device: torch.device, batch_size: int, beta: float, sample: bool) -> tuple[float, float, float]:
     if not len(indices): return float("nan"), float("nan"), float("nan")
@@ -132,6 +155,9 @@ def train(args: argparse.Namespace) -> int:
     if not len(train_idx): raise ValueError("windows have no training split")
     model=StateConditionedSkillVAE(data.target.shape[1],data.condition.shape[1],args.latent_dim,args.condition_hidden,args.hidden).to(device)
     optimizer=torch.optim.AdamW(model.parameters(),lr=args.learning_rate,weight_decay=args.weight_decay)
+    trajectory_weights = _trajectory_weights(
+        data.target_shape, root_weight=args.root_weight,
+        lower_body_weight=args.lower_body_weight).to(device)
     rng=np.random.default_rng(args.seed); args.out.mkdir(parents=True,exist_ok=True)
     history=[]; best=float("inf")
     for epoch in range(1,args.epochs+1):
@@ -139,32 +165,60 @@ def train(args: argparse.Namespace) -> int:
         for batch in _batches(train_idx,args.batch_size,rng):
             target=torch.as_tensor(data.target[batch],device=device); condition=torch.as_tensor(data.condition[batch],device=device)
             reconstruction,prior_mean,prior_logvar,post_mean,post_logvar=model(target,condition)
-            recon=torch.mean((reconstruction-target).square()); kl=_kl_to_prior(post_mean,post_logvar,prior_mean,prior_logvar)
-            loss=recon+args.beta*kl
+            recon=_weighted_reconstruction(reconstruction,target,trajectory_weights)
+            # Deployment samples from the state-conditioned prior, not from a posterior that
+            # has privileged access to the future target.  Directly supervising the prior mean
+            # prevents a good posterior reconstruction from masking an unusable online prior.
+            prior_prediction=model.decode(prior_mean,condition)
+            prior_recon=_weighted_reconstruction(prior_prediction,target,trajectory_weights)
+            kl=_kl_to_prior(post_mean,post_logvar,prior_mean,prior_logvar)
+            loss=recon+args.prior_reconstruction_weight*prior_recon+args.beta*kl
             optimizer.zero_grad(set_to_none=True); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(),5.0); optimizer.step()
-            losses.append((float(loss.detach().cpu()),float(recon.detach().cpu()),float(kl.detach().cpu())))
+            losses.append((float(loss.detach().cpu()),float(recon.detach().cpu()),
+                           float(prior_recon.detach().cpu()),float(kl.detach().cpu())))
         train_metrics=_loader_loss(model,data,train_idx,device,args.batch_size,args.beta,False)
         val_metrics=_loader_loss(model,data,val_idx if len(val_idx) else test_idx,device,args.batch_size,args.beta,False)
-        row={"epoch":epoch,"train_loss":float(np.mean([x[0] for x in losses])),"train_recon":train_metrics[0],"train_prior_recon":train_metrics[1],"train_kl":train_metrics[2],"val_recon":val_metrics[0],"val_prior_recon":val_metrics[1],"val_kl":val_metrics[2]}
+        row={"epoch":epoch,"train_loss":float(np.mean([x[0] for x in losses])),
+             "train_weighted_posterior_recon":float(np.mean([x[1] for x in losses])),
+             "train_weighted_prior_recon":float(np.mean([x[2] for x in losses])),
+             "train_recon":train_metrics[0],"train_prior_recon":train_metrics[1],
+             "train_kl":train_metrics[2],"val_recon":val_metrics[0],
+             "val_prior_recon":val_metrics[1],"val_kl":val_metrics[2]}
         history.append(row)
         score=val_metrics[1]
         if score < best:
             best=score
-            torch.save({"schema":"manifold-motion.state-conditioned-skill-prior.v1","architecture":model.architecture(),"model_state":model.state_dict(),"normalizer":data.normalizer.state_dict(),"primitive_count":data.primitive_count,"primitive_names":data.raw.get("primitive_names"),"target_shape":data.target_shape,"condition_dim":data.condition.shape[1],"model_target_field":args.model_target_field,"beta":args.beta,"epoch":epoch},args.out/"skill_prior.pt")
+            torch.save({"schema":"manifold-motion.state-conditioned-skill-prior.v2",
+                        "architecture":model.architecture(),"model_state":model.state_dict(),
+                        "normalizer":data.normalizer.state_dict(),"primitive_count":data.primitive_count,
+                        "primitive_names":data.raw.get("primitive_names"),"target_shape":data.target_shape,
+                        "condition_dim":data.condition.shape[1],"model_target_field":args.model_target_field,
+                        "beta":args.beta,"prior_reconstruction_weight":args.prior_reconstruction_weight,
+                        "root_weight":args.root_weight,"lower_body_weight":args.lower_body_weight,
+                        "epoch":epoch},args.out/"skill_prior.pt")
         if epoch==1 or epoch%max(1,args.log_every)==0 or epoch==args.epochs: print(json.dumps(row),flush=True)
     checkpoint=_torch_load(args.out/"skill_prior.pt",device); model.load_state_dict(checkpoint["model_state"])
     test_metrics=_loader_loss(model,data,test_idx,device,args.batch_size,args.beta,False)
     diagnostics={"train":_split_diagnostics(model,data,train_idx,device),
                  "validation":_split_diagnostics(model,data,val_idx,device),
                  "test":_split_diagnostics(model,data,test_idx,device)}
-    report={"schema":"manifold-motion.state-conditioned-skill-prior-report.v1","windows":str(args.windows),"epochs":args.epochs,"best_epoch":checkpoint["epoch"],"primitive_count":data.primitive_count,"primitive_names":data.raw.get("primitive_names").tolist() if "primitive_names" in data.raw else None,"train_windows":len(train_idx),"validation_windows":len(val_idx),"test_windows":len(test_idx),"test_recon":test_metrics[0],"test_prior_recon":test_metrics[1],"test_kl":test_metrics[2],"diagnostics":diagnostics,"history":history,"checkpoint":"skill_prior.pt"}
+    report={"schema":"manifold-motion.state-conditioned-skill-prior-report.v2",
+            "windows":str(args.windows),"epochs":args.epochs,"best_epoch":checkpoint["epoch"],
+            "primitive_count":data.primitive_count,
+            "primitive_names":data.raw.get("primitive_names").tolist() if "primitive_names" in data.raw else None,
+            "train_windows":len(train_idx),"validation_windows":len(val_idx),"test_windows":len(test_idx),
+            "test_recon":test_metrics[0],"test_prior_recon":test_metrics[1],"test_kl":test_metrics[2],
+            "training_objective":{"prior_reconstruction_weight":args.prior_reconstruction_weight,
+                                  "root_weight":args.root_weight,
+                                  "lower_body_weight":args.lower_body_weight},
+            "diagnostics":diagnostics,"history":history,"checkpoint":"skill_prior.pt"}
     (args.out/"report.json").write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps({k:report[k] for k in ("primitive_count","train_windows","validation_windows","test_windows","best_epoch","test_prior_recon","test_kl")},indent=2)); return 0
 
 
 def main() -> int:
     parser=argparse.ArgumentParser(description=__doc__); sub=parser.add_subparsers(dest="command",required=True)
-    train_parser=sub.add_parser("train"); train_parser.add_argument("--windows",type=Path,required=True); train_parser.add_argument("--out",type=Path,default=Path("reports/manifold_motion/skill_prior_v1")); train_parser.add_argument("--epochs",type=int,default=40); train_parser.add_argument("--batch-size",type=int,default=64); train_parser.add_argument("--latent-dim",type=int,default=32); train_parser.add_argument("--condition-hidden",type=int,default=128); train_parser.add_argument("--hidden",type=int,default=256); train_parser.add_argument("--learning-rate",type=float,default=3e-4); train_parser.add_argument("--weight-decay",type=float,default=1e-5); train_parser.add_argument("--beta",type=float,default=1e-3); train_parser.add_argument("--model-target-field",choices=("target_ref","target_exec"),default="target_ref"); train_parser.add_argument("--seed",type=int,default=20260927); train_parser.add_argument("--log-every",type=int,default=5); train_parser.add_argument("--device",default="cpu"); train_parser.set_defaults(handler=train)
+    train_parser=sub.add_parser("train"); train_parser.add_argument("--windows",type=Path,required=True); train_parser.add_argument("--out",type=Path,default=Path("reports/manifold_motion/skill_prior_v1")); train_parser.add_argument("--epochs",type=int,default=40); train_parser.add_argument("--batch-size",type=int,default=64); train_parser.add_argument("--latent-dim",type=int,default=32); train_parser.add_argument("--condition-hidden",type=int,default=128); train_parser.add_argument("--hidden",type=int,default=256); train_parser.add_argument("--learning-rate",type=float,default=3e-4); train_parser.add_argument("--weight-decay",type=float,default=1e-5); train_parser.add_argument("--beta",type=float,default=1e-3); train_parser.add_argument("--prior-reconstruction-weight",type=float,default=0.0); train_parser.add_argument("--root-weight",type=float,default=1.0); train_parser.add_argument("--lower-body-weight",type=float,default=1.0); train_parser.add_argument("--model-target-field",choices=("target_ref","target_exec"),default="target_ref"); train_parser.add_argument("--seed",type=int,default=20260927); train_parser.add_argument("--log-every",type=int,default=5); train_parser.add_argument("--device",default="cpu"); train_parser.set_defaults(handler=train)
     args=parser.parse_args(); return int(args.handler(args))
 
 

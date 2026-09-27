@@ -1,35 +1,69 @@
 {
-  "schema": "manifold-motion.latent-ablation-audit.v0",
-  "status": "not_yet_a_valid_LATENT_result",
-  "reason": "the former demo's crouch was selected directly by deterministic geometry routing, so disabling the latent branch produces the same crouch primitive",
-  "old_skill_prior": {
-    "checkpoint": "reports/manifold_motion/skill_prior_v3/skill_prior.pt",
-    "training_windows": "reports/manifold_motion/seed_capability_windows_v2/seed_stage2_windows.npz",
-    "condition_dim": 942,
-    "contains_corridor_sdf_self_manifold": false,
-    "test_prior_mse": 1.1702057123184204
-  },
-  "corrected_environment_prior": {
-    "checkpoint": "reports/manifold_motion/skill_prior_environment_v4/skill_prior.pt",
-    "training_windows": "reports/manifold_motion/seed_capability_windows_corridor_v1/seed_stage2_windows.npz",
+  "schema": "manifold-motion.latent-ablation-audit.v1",
+  "status": "environment_conditioned_prior_physically_screened",
+  "supersedes": "v0: deterministic geometry-router crouch was not a LATENT result",
+  "training": {
+    "checkpoint": "reports/manifold_motion/skill_prior_environment_v6_exec/skill_prior.pt",
+    "windows": "reports/manifold_motion/seed_capability_windows_corridor_v1/seed_stage2_windows.npz",
+    "model_target_field": "target_exec",
     "condition_dim": 2102,
-    "contains_corridor_sdf_self_manifold": true,
-    "test_prior_mse": 1.071324348449707,
-    "zero_baseline_mse": 1.6294126510620117,
-    "relative_improvement": 0.34250888026955983
+    "condition": "state + 12-frame history + family + M_e corridor/SDF + M_self + command",
+    "best_epoch": 54,
+    "test_windows": 727,
+    "test_prior_mse": 0.6742249131202698,
+    "zero_baseline_mse": 1.3458056449890137,
+    "relative_improvement": 0.4990176214294496,
+    "objective": {
+      "direct_prior_reconstruction_weight": 1.0,
+      "root_weight": 4.0,
+      "lower_body_weight": 2.0
+    }
   },
-  "first_physical_latent_probe": {
-    "family": "crouch_walk",
-    "flat_mujoco_fell": false,
-    "flat_mujoco_obstacle_contact_ratio": 0.0,
-    "conditioned_corridor_radius_max": 1.633344079574082,
-    "conditioned_corridor_gate": "failed",
-    "interpretation": "latent posture is physically stable on flat ground but its generated root/reference leaves the requested M_e; do not deploy"
+  "crouch_candidate_probe": {
+    "source_index": 1278,
+    "actor_split": "test",
+    "sample_count": 8,
+    "accepted_count": 8,
+    "static_union_radius_range": [
+      0.8204343953583091,
+      0.8382282210998724
+    ],
+    "mean_joint_tracking_error_range_rad": [
+      0.09967060619942375,
+      0.10260473326551205
+    ],
+    "falls": 0,
+    "obstacle_contacts": 0
   },
-  "required_before_claiming_LATENT_effect": [
-    "environment-conditioned latent training with explicit root/corridor consistency loss",
-    "candidate-level M_e/M_self physical screening after latent decode",
-    "same-task no-latent versus latent ablation with a sequence absent from training",
-    "accepted composite task with at least two non-crouch family switches"
-  ]
+  "skill_atlas": {
+    "preview": "docs/demo_gallery/media/latent_skill_atlas_v6.gif",
+    "metrics": "docs/demo_gallery/media/latent_skill_atlas_v6.json",
+    "families": [
+      "crouch_walk",
+      "walk_lateral",
+      "dodge_lateral",
+      "forward_lunge",
+      "side_hop",
+      "high_jump",
+      "kneel",
+      "all_fours"
+    ],
+    "accepted": "8/8",
+    "static_union_radius_max": 0.9244529824887051,
+    "tracking_error_max_rad": 0.16027095439463593
+  },
+  "corridor_gate_correction": {
+    "static_scene": "max over mesh points of min ellipsoid radius across the static corridor union",
+    "dynamic_scene": "time-indexed ellipsoid radius remains available as corridor_mode=temporal",
+    "reason": "the old time-index pairing confused SONIC root-progress lag with collision",
+    "crouch_temporal_radius_example": 1.4146081594963087,
+    "crouch_static_union_radius_example": 0.828938712137522
+  },
+  "claims_not_yet_made": [
+    "the eight short skills are not yet one autonomous long-horizon composition",
+    "the reverse-synthesized corridor is not real LiDAR/SLAM",
+    "the preview is not final multi-seed CVPR statistics",
+    "high_jump and all_fours labels do not by themselves prove task completion beyond the recorded physical gates"
+  ],
+  "next_gate": "same-task no-latent versus latent long-horizon ablation with multiple family switches and temporal dynamic-obstacle screening"
 }
