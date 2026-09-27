@@ -26,6 +26,13 @@ physical gate; the online router never silently treats a classifier label as pro
 
 ## Current measured result
 
+Important scope note: the accepted wide/low GIF is a geometry-routing safety baseline, not yet a
+valid LATENT-effect claim. The former `skill_prior_v3` was trained without corridor/SDF/M_self,
+and the low-corridor crouch was already available through the deterministic safety router. The
+corrected environment-conditioned prior is now trained as `skill_prior_environment_v4`, but its
+first generated crouch candidate is physically stable on flat ground while violating the requested
+corridor (`max implicit radius 1.63`), so it is deliberately not deployed.
+
 Held-out actor split, replayed clip-by-clip as rolling perception updates:
 
 | Quantity | Result |

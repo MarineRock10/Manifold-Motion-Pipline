@@ -69,7 +69,7 @@ on GitHub. They are generated only from accepted reports; the full-resolution cl
 remain in the reproducibility artifacts.
 
 <p>
-  <img src="docs/demo_gallery/media/online_composer_wide_vs_low.gif" width="700" alt="Counterfactual wide versus low environment manifold: normal walk versus crouch walk" />
+  <img src="docs/demo_gallery/media/online_composer_wide_vs_low.gif" width="700" alt="Counterfactual safety baseline: wide normal walk versus low crouch walk" />
 </p>
 <p>
   <img src="docs/demo_gallery/media/online_closed_loop.gif" width="360" alt="Online 3-D SLAM to environment manifold to SONIC" />

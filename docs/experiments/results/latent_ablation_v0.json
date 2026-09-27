@@ -1,0 +1,35 @@
+{
+  "schema": "manifold-motion.latent-ablation-audit.v0",
+  "status": "not_yet_a_valid_LATENT_result",
+  "reason": "the former demo's crouch was selected directly by deterministic geometry routing, so disabling the latent branch produces the same crouch primitive",
+  "old_skill_prior": {
+    "checkpoint": "reports/manifold_motion/skill_prior_v3/skill_prior.pt",
+    "training_windows": "reports/manifold_motion/seed_capability_windows_v2/seed_stage2_windows.npz",
+    "condition_dim": 942,
+    "contains_corridor_sdf_self_manifold": false,
+    "test_prior_mse": 1.1702057123184204
+  },
+  "corrected_environment_prior": {
+    "checkpoint": "reports/manifold_motion/skill_prior_environment_v4/skill_prior.pt",
+    "training_windows": "reports/manifold_motion/seed_capability_windows_corridor_v1/seed_stage2_windows.npz",
+    "condition_dim": 2102,
+    "contains_corridor_sdf_self_manifold": true,
+    "test_prior_mse": 1.071324348449707,
+    "zero_baseline_mse": 1.6294126510620117,
+    "relative_improvement": 0.34250888026955983
+  },
+  "first_physical_latent_probe": {
+    "family": "crouch_walk",
+    "flat_mujoco_fell": false,
+    "flat_mujoco_obstacle_contact_ratio": 0.0,
+    "conditioned_corridor_radius_max": 1.633344079574082,
+    "conditioned_corridor_gate": "failed",
+    "interpretation": "latent posture is physically stable on flat ground but its generated root/reference leaves the requested M_e; do not deploy"
+  },
+  "required_before_claiming_LATENT_effect": [
+    "environment-conditioned latent training with explicit root/corridor consistency loss",
+    "candidate-level M_e/M_self physical screening after latent decode",
+    "same-task no-latent versus latent ablation with a sequence absent from training",
+    "accepted composite task with at least two non-crouch family switches"
+  ]
+}
