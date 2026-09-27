@@ -1,0 +1,56 @@
+{
+  "schema": "manifold-motion.online-composer-result.v1",
+  "date": "2026-09-27",
+  "branch": "deploy",
+  "input_contract": "live radar -> 3-D sliding map -> D* Lite -> M_e/SDF + measured M_self + 69-D state/12-frame history -> 21-family composer -> geometry shield -> frozen SONIC",
+  "heldout_actor_split": {
+    "clips": 36,
+    "windows": 727,
+    "raw_top1_accuracy": 0.547455295735901,
+    "raw_top3_accuracy": 0.7771664374140302,
+    "mean_cpu_latency_ms": 1.7843262269615388
+  },
+  "online_mujoco_sonic": [
+    {
+      "scene": "scene_manifold_block_left.xml",
+      "accepted": true,
+      "keyframes": "10/10",
+      "physics_ticks": 258,
+      "obstacle_contact_ticks": 0,
+      "online_composer_updates": 13,
+      "mean_composer_latency_ms": 3.418333076926781
+    },
+    {
+      "scene": "scene_manifold_block_right.xml",
+      "accepted": true,
+      "keyframes": "9/9",
+      "physics_ticks": 248,
+      "obstacle_contact_ticks": 0,
+      "online_composer_updates": 13,
+      "mean_composer_latency_ms": 2.806746846142862
+    },
+    {
+      "scene": "scene_manifold_wide_long.xml",
+      "accepted": true,
+      "keyframes": "8/8",
+      "physics_ticks": 246,
+      "obstacle_contact_ticks": 0,
+      "online_composer_updates": 13,
+      "mean_composer_latency_ms": 2.903210846170623
+    }
+  ],
+  "negative_safety_audit": {
+    "scene": "scene_manifold_long_combo.xml",
+    "composer_failed_checks": [
+      "goal_or_keyframe_not_reached",
+      "runtime_self_manifold_clearance_stop",
+      "terminal_keyframe_error",
+      "self_manifold_obstacle_clearance"
+    ],
+    "deterministic_baseline_same_stop": true,
+    "stop_clearance_m": 0.014522573305617126,
+    "interpretation": "P1/corridor-controller coverage failure; exact self-manifold gate stopped before contact, not a composer regression"
+  },
+  "sonic_adapter_loaded": false,
+  "tests": "33 passed"
+}

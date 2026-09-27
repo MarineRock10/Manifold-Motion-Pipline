@@ -22,6 +22,7 @@ GR00T-WholeBodyControl trees were removed.
 | [`PIPELINE.md`](/docs/architecture/PIPELINE.md) | **what is built**: only Phase 1–3 (`M → pose`, no time dimension) — the three stages, their measured numbers, the bugs that were fixed, what is still unsolved |
 | [`STAGE2.md`](/docs/stage2/STAGE2.md) | **the dynamic-data implementation**: selected BONES-SEED G1 CSV → frozen SONIC replay/gate → actor-disjoint windows → bounded latent Flow Matching → SONIC validation |
 | [`SEED_CAPABILITY.md`](/docs/stage2/SEED_CAPABILITY.md) | **the 30-family capability gate**: metadata retrieval → actor-disjoint slice → MuJoCo/SONIC physical admission → positive/negative evidence |
+| [`ONLINE_COMPOSER.md`](/docs/stage2/ONLINE_COMPOSER.md) | **live high-level composition**: rolling SLAM `M_e`, measured `M_self`, state/history, 21-family inference, hysteresis and geometry safety override |
 | [`ROADMAP.md`](/docs/ROADMAP.md) | **the current boundary and next algorithmic gates**: what is physically verified, what still uses anchors, and the order of the remaining work |
 | [`STAGE2_DIVERSE_DEMOS.md`](/docs/stage2/DIVERSE_DEMOS.md) | **additional visual cases**: short-low, left-offset-block, and right-offset-block action changes |
 | [`STAGE2_LONG_SEQUENCES.md`](/docs/stage2/LONG_SEQUENCES.md) | **long-horizon cases**: repeated manifold changes in one continuous rollout |
@@ -55,6 +56,8 @@ manifold regions.
 `./scripts/run_stage2_extended_gallery.sh` adds four longer tasks that are not variants of the original
 center/low/narrow/wide fixtures: an alternating chicane, a low-to-side-to-turn compound route,
 a repeated low/side gate cycle, and a multi-turn slalom.
+`./scripts/run_stage2_online_composer_long.sh` evaluates the 21-family composer on held-out rolling
+windows and executes three online-radar long routes with `M_e + M_self + state/history` routing.
 
 ### Visual results (accepted MuJoCo + SONIC simulations)
 
@@ -62,6 +65,9 @@ These compact previews are checked into the repository so they render directly b
 on GitHub. They are generated only from accepted reports; the full-resolution clips and metrics
 remain in the reproducibility artifacts.
 
+<p>
+  <img src="docs/demo_gallery/media/online_composer_live_slam.gif" width="420" alt="Live SLAM environment and self manifold conditioned SEED skill composer with frozen SONIC" />
+</p>
 <p>
   <img src="docs/demo_gallery/media/online_closed_loop.gif" width="360" alt="Online 3-D SLAM to environment manifold to SONIC" />
   <img src="docs/demo_gallery/media/moving_obstacle_replanning.gif" width="260" alt="Incremental replanning around a moving obstacle" />

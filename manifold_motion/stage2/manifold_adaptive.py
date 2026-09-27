@@ -46,6 +46,7 @@ from manifold_motion.perception.deploy import (ProbabilisticSlidingVoxelGrid, Sl
                                 safe_corridor_from_grid)
 from manifold_motion.perception.online import OnlinePerceptionNavigator
 from manifold_motion.perception.dynamic_scene import SUPPORTED_DYNAMIC_EVENTS, dynamic_half_z, obstacle_state
+from manifold_motion.stage2.online_composer import OnlineSkillComposer
 
 
 BENCHMARK_METHOD_PROFILES: dict[str, dict[str, Any]] = {
@@ -1150,16 +1151,41 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             seed=args.seed + 7103,
         )
 
+    def new_online_composer() -> OnlineSkillComposer | None:
+        if not args.online_perception or args.composer_checkpoint is None:
+            return None
+        return OnlineSkillComposer(
+            args.composer_checkpoint, device=args.device,
+            switch_margin=args.composer_switch_margin,
+            min_dwell_updates=args.composer_min_dwell_updates,
+            confidence_floor=args.composer_confidence_floor,
+        )
+
+    def composer_callback_for(composer: OnlineSkillComposer | None):
+        if composer is None:
+            return None
+        def _callback(tick: int, state: dict[str, np.ndarray], state_feature: np.ndarray,
+                      history: np.ndarray, corridor: np.ndarray, sdf: np.ndarray,
+                      safety_primitive_id: int):
+            return composer.update_runtime(
+                state=state, state_feature=state_feature, history=history,
+                corridor=corridor, sdf=sdf,
+                safety_primitive_id=safety_primitive_id, tick=tick,
+            )
+        return _callback
+
     probe_execution: dict[str, Any] | None = None
     online_overrides: dict[int, dict[str, Any]] = {}
     for online_iteration in range(args.online_condition_iterations):
         probe_perception = new_online_perception()
+        probe_composer = new_online_composer()
         probe_data, probe_execution = execute_plan(
             args.scene, keyframes, dense_route, plan_options, args,
             replan_callback=(receding_replan if args.receding_horizon_ticks > 0 else None),
             perception_callback=probe_perception,
             semantic_replan_callback=(semantic_replan
                                       if getattr(args, "online_primitive_reroute", False) else None),
+            composer_callback=composer_callback_for(probe_composer),
         )
         online_overrides = _online_condition_overrides(probe_data, probe_execution, len(segment_inputs))
         plan_options, evidence = build_plan_options(online_overrides)
@@ -1167,12 +1193,14 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             # The next loop iteration probes the newly reconditioned candidates.
             continue
     final_perception = new_online_perception()
+    final_composer = new_online_composer()
     data, execution = execute_plan(
         args.scene, keyframes, dense_route, plan_options, args,
         replan_callback=(receding_replan if args.receding_horizon_ticks > 0 else None),
         perception_callback=final_perception,
         semantic_replan_callback=(semantic_replan
                                   if getattr(args, "online_primitive_reroute", False) else None),
+        composer_callback=composer_callback_for(final_composer),
     )
     if final_perception is not None:
         final_perception.save(args.out / "online_perception.npz")
@@ -1240,6 +1268,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         },
         "online_perception": (
             final_perception.summary() if final_perception is not None else {"enabled": False}
+        ),
+        "online_composer": (
+            final_composer.summary() if final_composer is not None else {"enabled": False}
         ),
         "dynamic_obstacle_event": getattr(args, "dynamic_obstacle_event", None),
         "benchmark_method": getattr(args, "benchmark_method", None),
@@ -1311,6 +1342,14 @@ def main() -> int:
                         help="soft hysteresis toward the last accepted global route")
     parser.add_argument("--disable-online-primitive-reroute", action="store_true",
                         help="ablation: keep online route yaw but do not let live M_e switch primitives")
+    parser.add_argument("--composer-checkpoint", type=Path, default=None,
+                        help="trained 21-family SEED composer used on every live M_e update")
+    parser.add_argument("--composer-switch-margin", type=float, default=0.08,
+                        help="probability margin required before the online family can switch")
+    parser.add_argument("--composer-min-dwell-updates", type=int, default=2,
+                        help="consecutive live SLAM updates required before a family switch")
+    parser.add_argument("--composer-confidence-floor", type=float, default=0.35,
+                        help="minimum family probability for a nominal-space contraction")
     parser.add_argument("--online-primitive-confirm-updates", type=int, default=2,
                         help="consecutive radar updates required before committing an M_e class")
     parser.add_argument("--online-primitive-release-confirm-updates", type=int, default=4,
@@ -1423,6 +1462,9 @@ def main() -> int:
         parser.error("candidate count and geometric parameters must be positive")
     if args.self_manifold_clearance_m < 0:
         parser.error("self-manifold clearance must be non-negative")
+    if args.composer_switch_margin < 0 or args.composer_min_dwell_updates < 1 \
+            or not 0.0 <= args.composer_confidence_floor <= 1.0:
+        parser.error("online composer hysteresis parameters are invalid")
     if args.planner_side_body_radius_m > args.planner_body_radius_m:
         parser.error("side-gait planner radius cannot exceed nominal planner radius")
     if not (0 < args.turn_release_threshold_rad <= args.turn_threshold_rad

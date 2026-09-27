@@ -472,7 +472,8 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                  plan_options: list[list[CandidatePlan]], args: argparse.Namespace,
                  replan_callback: Any | None = None,
                  perception_callback: Any | None = None,
-                 semantic_replan_callback: Any | None = None
+                 semantic_replan_callback: Any | None = None,
+                 composer_callback: Any | None = None
                  ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     env = G1FlatEnv(scene)
     controller = SonicController()
@@ -554,7 +555,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                 runtime_safety_stop_clearance = float(pre_step_clearance)
                 break
         current_feature = _state_features({
-            "q_exec": state["q_hw"][None, :], "dq_exec": state["dq_hw"][None, :],
+            # SEED/Flow state features are in policy (IsaacLab) order. MuJoCo exposes the
+            # hardware order, so convert both position and velocity before the 69-D encoder;
+            # using raw hardware order silently swaps legs/arms in every online window.
+            "q_exec": state["q_hw"][C.MUJOCO_TO_ISAACLAB][None, :],
+            "dq_exec": state["dq_hw"][C.MUJOCO_TO_ISAACLAB][None, :],
             "base_quat": state["base_quat"][None, :], "base_lin_vel": state["base_lin_vel"][None, :],
             "foot_contact": np.atleast_1d(np.asarray(feet_now, dtype=np.float32))[None, :],
             "hand_contact": np.atleast_1d(np.asarray(hands_now, dtype=np.float32))[None, :],
@@ -587,6 +592,34 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                     "failure": str(online_navigation.get("failure", "unknown online perception failure")),
                 }
                 break
+        if (composer_callback is not None
+                and bool(online_navigation.get("updated", False))
+                and "corridor" in online_navigation and "sdf" in online_navigation
+                and "primitive_id" in online_navigation):
+            # Consume exactly one fresh rolling SLAM frame. The geometry shield is independent;
+            # the richer SEED family and hysteresis decisions remain in the audit trail.
+            composer_result = composer_callback(
+                int(tick), state, current_feature.copy(),
+                np.asarray(recent_features, dtype=np.float32),
+                np.asarray(online_navigation["corridor"], dtype=np.float32),
+                np.asarray(online_navigation["sdf"], dtype=np.float32),
+                int(online_navigation["primitive_id"]),
+            )
+            if composer_result is not None:
+                online_navigation["composer_decision"] = dict(composer_result)
+                selected_legacy = composer_result.get("selected_legacy_id")
+                if selected_legacy in (2, 4, 5):
+                    online_navigation["primitive_id"] = int(selected_legacy)
+                    online_navigation["primitive"] = str(
+                        {2: "crouch", 4: "walk_lateral_reverse", 5: "walk_nominal"}[selected_legacy]
+                    )
+                # The perception update was appended before the learned decision so that a
+                # perception exception can still be audited. Enrich that same row here rather
+                # than leaving the model output only in an aggregate summary.
+                if online_perception_updates:
+                    online_perception_updates[-1]["composer_decision"] = dict(composer_result)
+                    online_perception_updates[-1]["executed_request_primitive_id"] = int(
+                        online_navigation["primitive_id"])
         route_progress_m, _ = _route_progress(position, world_route)
         while target_index < len(world_keyframes):
             error = float(np.linalg.norm(world_keyframes[target_index] - position))
