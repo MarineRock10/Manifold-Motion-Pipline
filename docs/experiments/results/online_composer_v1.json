@@ -37,6 +37,23 @@
       "obstacle_contact_ticks": 0,
       "online_composer_updates": 13,
       "mean_composer_latency_ms": 2.903210846170623
+    },
+    {
+      "scene": "scene_manifold_low_long.xml",
+      "accepted": true,
+      "keyframes": "8/8",
+      "obstacle_contact_ticks": 0,
+      "routed_primitives": [
+        "walk_nominal",
+        "crouch",
+        "crouch",
+        "crouch",
+        "crouch",
+        "crouch",
+        "crouch",
+        "crouch"
+      ],
+      "counterfactual_pair": "scene_manifold_wide_long.xml"
     }
   ],
   "negative_safety_audit": {

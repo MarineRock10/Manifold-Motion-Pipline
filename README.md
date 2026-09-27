@@ -58,6 +58,9 @@ center/low/narrow/wide fixtures: an alternating chicane, a low-to-side-to-turn c
 a repeated low/side gate cycle, and a multi-turn slalom.
 `./scripts/run_stage2_online_composer_long.sh` evaluates the 21-family composer on held-out rolling
 windows and executes three online-radar long routes with `M_e + M_self + state/history` routing.
+For the clearest causal visualization, run `./scripts/render_stage2_online_composer_counterfactual.sh`;
+it pairs the same long task under a wide manifold and a low manifold so the walk-to-crouch change
+is visible rather than hidden in a single route replay.
 
 ### Visual results (accepted MuJoCo + SONIC simulations)
 
@@ -66,7 +69,7 @@ on GitHub. They are generated only from accepted reports; the full-resolution cl
 remain in the reproducibility artifacts.
 
 <p>
-  <img src="docs/demo_gallery/media/online_composer_live_slam.gif" width="420" alt="Live SLAM environment and self manifold conditioned SEED skill composer with frozen SONIC" />
+  <img src="docs/demo_gallery/media/online_composer_wide_vs_low.gif" width="700" alt="Counterfactual wide versus low environment manifold: normal walk versus crouch walk" />
 </p>
 <p>
   <img src="docs/demo_gallery/media/online_closed_loop.gif" width="360" alt="Online 3-D SLAM to environment manifold to SONIC" />

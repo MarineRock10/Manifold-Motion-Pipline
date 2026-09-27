@@ -58,3 +58,19 @@ failure, not a composer regression, and is intentionally not counted as an accep
 The trained adapter in `targeted_sonic_adapter_v2` is not loaded by this command. SONIC stays
 frozen; the adapter remains only a warm-start artifact for the later failure-driven fine-tuning
 stage.
+
+## How to read the GIF
+
+`online_composer_wide_vs_low.gif` is the intentionally simple counterfactual demo. The left and
+right panels are matched by normalized route progress:
+
+- **WIDE**: `M_e` has a tall vertical semi-axis, so `M_self` stays tall and SONIC receives
+  `walk_nominal`.
+- **LOW CEILING**: the vertical `M_e` semi-axis contracts below the crouch threshold; the
+  measured `M_self` contracts with it, the composer settles on `crouch_walk`, and SONIC receives
+  `crouch`.
+
+The cards at the bottom show blue `M_e` height, orange measured `M_self` height, the learned
+family/probability, the independent geometry decision, and the primitive actually executed. The
+old single-run `online_composer_live_slam.gif` is retained as a raw sensor/planner diagnostic;
+it is not intended to prove an action switch by itself.
