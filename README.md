@@ -73,6 +73,19 @@ These compact previews are checked into the repository so they render directly b
 on GitHub. They are generated only from accepted reports; the full-resolution clips and metrics
 remain in the reproducibility artifacts.
 
+Current trained autonomous suite (static, dynamic and flying-object response):
+
+<p>
+  <img src="docs/demo_gallery/media/trained_autonomous_static.gif" width="360" alt="Trained composer navigating a static obstacle" />
+  <img src="docs/demo_gallery/media/trained_autonomous_dynamic.gif" width="360" alt="Trained composer responding to a dynamic crossing obstacle" />
+  <img src="docs/demo_gallery/media/trained_autonomous_projectile.gif" width="360" alt="Trained composer handling a lateral projectile near miss" />
+  <img src="docs/demo_gallery/media/trained_autonomous_projectile_overhead.gif" width="360" alt="Trained reactive hazard head ducking under an incoming projectile" />
+</p>
+
+These are observation-conditioned decisions, not fixed route/action scripts. See the exact
+acceptance metrics in [`trained_autonomous_acceptance.json`](docs/demo_gallery/trained_autonomous_acceptance.json)
+and the training protocol in [`TRAINED_AUTONOMOUS_EXPERIMENTS.md`](docs/experiments/TRAINED_AUTONOMOUS_EXPERIMENTS.md).
+
 <p>
   <img src="docs/demo_gallery/media/online_composer_wide_vs_low.gif" width="700" alt="Counterfactual safety baseline: wide normal walk versus low crouch walk" />
 </p>

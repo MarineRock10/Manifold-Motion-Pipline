@@ -11,6 +11,7 @@ import numpy as np
 
 SUPPORTED_DYNAMIC_EVENTS = (
     "crossing", "appear_disappear", "moving_wall", "route_reopen",
+    "projectile", "projectile_grazing", "projectile_overhead",
 )
 
 
@@ -20,6 +21,7 @@ class DynamicObstacleState:
     time_s: float
     active: bool
     center_xy: tuple[float, float]
+    center_z: float | None = None
 
 
 def obstacle_state(event: str | None, time_s: float) -> DynamicObstacleState | None:
@@ -51,6 +53,27 @@ def obstacle_state(event: str | None, time_s: float) -> DynamicObstacleState | N
         # retaining a causally reachable exit; a permanently blocking wall is covered by the
         # safety-stop test, not by a locomotion-success metric.
         return DynamicObstacleState(event, t, bool(t < 3.5), (1.80, y))
+    if event in {"projectile", "projectile_grazing", "projectile_overhead"}:
+        # A torso-height object is launched only after the online estimator has observed an
+        # initially clear route.  The robot never receives this schedule as a command: radar
+        # sees the moving geom, while the reactive policy estimates relative velocity from
+        # consecutive observations and selects its own avoidance action.
+        launch_s = 0.55
+        flight_s = t - launch_s
+        if event == "projectile_grazing":
+            active = 0.0 <= flight_s < 3.10
+            x = 3.40 - 1.35 * max(0.0, flight_s)
+            # A close lateral miss is the nominal visual demo: the learned route/action
+            # decision changes the body envelope enough to preserve a measurable gap.
+            y = float(0.55 + 0.08 * np.sin(2.4 * max(0.0, flight_s)))
+        else:
+            active = 0.0 <= flight_s < 4.20
+            # A 0.90 m/s centreline launch is within the lateral acceleration envelope of the
+            # frozen SONIC side gait. Faster launches are retained for the pressure sweep.
+            x = 3.40 - 0.90 * max(0.0, flight_s)
+            y = float(0.08 * np.sin(2.4 * max(0.0, flight_s)))
+        center_z = 1.48 if event == "projectile_overhead" else 1.02
+        return DynamicObstacleState(event, t, bool(active), (float(x), y), center_z)
     # The centre block initially closes the route, then reopens it after the robot has
     # committed to the first safe corridor.  Keeping it in the scene at t=0 makes the initial
     # M_e and the first radar frame causal.
@@ -71,11 +94,13 @@ def apply_dynamic_obstacle(model: mujoco.MjModel, data: mujoco.MjData,
     model.geom_pos[geom_id, 1] = state.center_xy[1]
     # An inactive obstacle is moved below the floor, rather than deleting the geom.  This
     # keeps the MuJoCo model topology and radar geom id stable across all frames.
-    model.geom_pos[geom_id, 2] = dynamic_half_z(state.event) if state.active else -5.0
+    center_z = dynamic_half_z(state.event) if state.center_z is None else float(state.center_z)
+    model.geom_pos[geom_id, 2] = center_z if state.active else -5.0
     mujoco.mj_forward(model, data)
     return {
         "event": state.event, "time_s": state.time_s, "active": state.active,
         "center_xy_m": [float(state.center_xy[0]), float(state.center_xy[1])],
+        "center_z_m": float(center_z),
     }
 
 
@@ -85,6 +110,8 @@ def dynamic_half_xy(event: str) -> tuple[float, float]:
         "appear_disappear": (0.26, 0.28),
         "moving_wall": (0.10, 0.45),
         "route_reopen": (0.28, 0.34),
+        "projectile": (0.12, 0.12), "projectile_grazing": (0.12, 0.12),
+        "projectile_overhead": (0.12, 0.12),
     }[str(event)]
 
 
@@ -93,4 +120,13 @@ def dynamic_half_z(event: str) -> float:
     # torso-clearance threshold so the semantic router requests side/turn motion instead of
     # misclassifying a vertical wall as a low-ceiling crouch.  The dedicated appearance/reopen
     # events retain the taller block used by the obstacle-avoidance stress test.
+    if str(event) in {"projectile", "projectile_grazing", "projectile_overhead"}:
+        return 0.12
     return 0.25 if str(event) in {"crossing", "moving_wall"} else 0.55
+
+
+def dynamic_center_z(event: str, state: DynamicObstacleState | None = None) -> float:
+    """World-frame obstacle centre height, distinct from its half-height."""
+    if state is not None and state.center_z is not None:
+        return float(state.center_z)
+    return dynamic_half_z(event)

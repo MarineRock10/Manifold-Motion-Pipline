@@ -171,10 +171,20 @@ class EnvironmentSkillComposer(nn.Module):
 
 def _forward(model: EnvironmentSkillComposer, data: ComposerData, indices: np.ndarray,
              device: torch.device) -> torch.Tensor:
-    value = data.inputs
+    return _forward_inputs(model, data.inputs, indices, device)
+
+
+def _forward_inputs(model: EnvironmentSkillComposer, value: dict[str, np.ndarray],
+                    indices: np.ndarray, device: torch.device) -> torch.Tensor:
     tensors = [torch.as_tensor(value[key][indices], device=device) for key in
                ("state", "history", "corridor", "sdf", "self_manifold", "manifold", "command")]
     return model(*tensors)
+
+
+def _batch_forward(model: EnvironmentSkillComposer, value: dict[str, np.ndarray],
+                   device: torch.device) -> torch.Tensor:
+    count = len(value["state"])
+    return _forward_inputs(model, value, np.arange(count), device)
 
 
 def _metrics(model: EnvironmentSkillComposer, data: ComposerData, indices: np.ndarray,
@@ -215,6 +225,51 @@ def _metrics(model: EnvironmentSkillComposer, data: ComposerData, indices: np.nd
             "macro_f1": float(np.mean(f1_values)), "families": per_family}
 
 
+def _environment_ablation(model: EnvironmentSkillComposer, data: ComposerData,
+                          indices: np.ndarray, device: torch.device,
+                          batch_size: int, seed: int) -> dict[str, Any]:
+    """Quantify whether predictions actually depend on M_e/M_self rather than proprioception.
+
+    Zero is the train-split normalized mean.  The shuffled case preserves every marginal but
+    breaks the state-to-environment pairing, which is a stronger leakage test than deleting one
+    scalar aperture feature.
+    """
+    if not len(indices):
+        return {"windows": 0}
+
+    def shadow(inputs: dict[str, np.ndarray]) -> Any:
+        return type("_ComposerAblation", (), {
+            "inputs": inputs, "labels": data.labels, "supported_mask": data.supported_mask,
+            "primitive_count": data.primitive_count, "primitive_names": data.primitive_names,
+        })()
+
+    geometry_keys = ("corridor", "sdf", "self_manifold", "manifold")
+    masked = {key: value.copy() for key, value in data.inputs.items()}
+    for key in geometry_keys:
+        masked[key][indices] = 0.0
+    environment_only = {key: value.copy() for key, value in data.inputs.items()}
+    environment_only["state"][indices] = 0.0
+    environment_only["history"][indices] = 0.0
+    rng = np.random.default_rng(seed)
+    donor = rng.permutation(indices)
+    shuffled = {key: value.copy() for key, value in data.inputs.items()}
+    for key in geometry_keys:
+        shuffled[key][indices] = data.inputs[key][donor]
+    full = _metrics(model, data, indices, device, batch_size)
+    no_geometry = _metrics(model, shadow(masked), indices, device, batch_size)
+    environment = _metrics(model, shadow(environment_only), indices, device, batch_size)
+    permuted = _metrics(model, shadow(shuffled), indices, device, batch_size)
+    return {
+        "windows": int(len(indices)),
+        "full_top1": full["top1_accuracy"],
+        "geometry_masked_top1": no_geometry["top1_accuracy"],
+        "environment_only_top1": environment["top1_accuracy"],
+        "geometry_permuted_top1": permuted["top1_accuracy"],
+        "full_minus_masked": full["top1_accuracy"] - no_geometry["top1_accuracy"],
+        "full_minus_permuted": full["top1_accuracy"] - permuted["top1_accuracy"],
+    }
+
+
 def train(args: argparse.Namespace) -> int:
     device = _device(args.device)
     torch.manual_seed(args.seed); np.random.seed(args.seed)
@@ -237,12 +292,36 @@ def train(args: argparse.Namespace) -> int:
         model.train(); losses = []
         for batch in _batches(train_idx, args.batch_size, rng):
             logits = _forward(model, data, batch, device)
-            loss = criterion(logits, torch.as_tensor(data.labels[batch], device=device))
+            target = torch.as_tensor(data.labels[batch], device=device)
+            full_loss = criterion(logits, target)
+            # Counterfactual pairing keeps the receiver's proprioceptive state/history while
+            # replacing its geometry and task command with a donor window.  The donor family
+            # becomes the target.  This explicitly prevents a classifier from treating M_e as
+            # decorative context while memorising motion phase from state alone.
+            donor = rng.permutation(batch)
+            counterfactual = {key: data.inputs[key][batch].copy() for key in data.inputs}
+            for key in ("corridor", "sdf", "self_manifold", "manifold", "command"):
+                counterfactual[key] = data.inputs[key][donor].copy()
+            counterfactual_logits = _batch_forward(model, counterfactual, device)
+            counterfactual_loss = criterion(
+                counterfactual_logits, torch.as_tensor(data.labels[donor], device=device))
+            environment_only = {key: data.inputs[key][batch].copy() for key in data.inputs}
+            environment_only["state"][:] = 0.0
+            environment_only["history"][:] = 0.0
+            environment_logits = _batch_forward(model, environment_only, device)
+            environment_loss = criterion(environment_logits, target)
+            loss = (full_loss + args.counterfactual_weight * counterfactual_loss
+                    + args.environment_only_weight * environment_loss)
             optimizer.zero_grad(set_to_none=True); loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0); optimizer.step()
-            losses.append(float(loss.detach().cpu()))
+            losses.append((float(loss.detach().cpu()), float(full_loss.detach().cpu()),
+                           float(counterfactual_loss.detach().cpu()),
+                           float(environment_loss.detach().cpu())))
         validation = _metrics(model, data, val_idx if len(val_idx) else test_idx, device, args.batch_size)
-        row = {"epoch": epoch, "train_loss": float(np.mean(losses)),
+        row = {"epoch": epoch, "train_loss": float(np.mean([value[0] for value in losses])),
+               "train_full_loss": float(np.mean([value[1] for value in losses])),
+               "train_counterfactual_loss": float(np.mean([value[2] for value in losses])),
+               "train_environment_only_loss": float(np.mean([value[3] for value in losses])),
                "validation_top1": validation.get("top1_accuracy"),
                "validation_top3": validation.get("top3_accuracy"),
                "validation_macro_f1": validation.get("macro_f1")}
@@ -250,10 +329,12 @@ def train(args: argparse.Namespace) -> int:
         score = float(validation.get("macro_f1", -float("inf")))
         if score > best:
             best = score
-            torch.save({"schema": "manifold-motion.environment-skill-composer.v1",
+            torch.save({"schema": "manifold-motion.environment-skill-composer.v2",
                         "architecture": model.architecture(), "model_state": model.state_dict(),
                         "normalizer": data.normalizer.state_dict(), "primitive_names": data.primitive_names,
                         "supported_mask": data.supported_mask, "epoch": epoch,
+                        "counterfactual_weight": args.counterfactual_weight,
+                        "environment_only_weight": args.environment_only_weight,
                         "input_contract": "state+history+M_e(corridor,SDF)+M_self+command; no primitive input"},
                        args.out / "composer.pt")
         if epoch == 1 or epoch % max(1, args.log_every) == 0 or epoch == args.epochs:
@@ -263,12 +344,19 @@ def train(args: argparse.Namespace) -> int:
     metrics = {"train": _metrics(model, data, train_idx, device, args.batch_size),
                "validation": _metrics(model, data, val_idx, device, args.batch_size),
                "test": _metrics(model, data, test_idx, device, args.batch_size)}
-    report = {"schema": "manifold-motion.environment-skill-composer-report.v1",
+    report = {"schema": "manifold-motion.environment-skill-composer-report.v2",
               "windows": str(args.windows), "environment_provenance": "reverse_synthesized_from_R_exec",
               "best_epoch": int(checkpoint["epoch"]), "epochs": args.epochs,
               "primitive_count": data.primitive_count, "supported_family_count": int(data.supported_mask.sum()),
               "supported_families": [data.primitive_names[i] for i in np.flatnonzero(data.supported_mask)],
               "split_counts": {"train": len(train_idx), "validation": len(val_idx), "test": len(test_idx)},
+              "training_objective": {
+                  "counterfactual_weight": args.counterfactual_weight,
+                  "environment_only_weight": args.environment_only_weight,
+                  "counterfactual_contract": "hold state/history; swap M_e/SDF/M_self/manifold/command and donor label",
+              },
+              "environment_ablation": _environment_ablation(
+                  model, data, test_idx, device, args.batch_size, args.seed + 17),
               "metrics": metrics, "history": history, "checkpoint": "composer.pt"}
     (args.out / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({"best_epoch": report["best_epoch"], "supported_family_count": report["supported_family_count"],
@@ -287,6 +375,8 @@ def main() -> int:
     train_parser.add_argument("--hidden", type=int, default=96)
     train_parser.add_argument("--learning-rate", type=float, default=3e-4)
     train_parser.add_argument("--weight-decay", type=float, default=1e-4)
+    train_parser.add_argument("--counterfactual-weight", type=float, default=0.0)
+    train_parser.add_argument("--environment-only-weight", type=float, default=0.0)
     train_parser.add_argument("--seed", type=int, default=20260927)
     train_parser.add_argument("--log-every", type=int, default=5)
     train_parser.add_argument("--device", default="cpu")

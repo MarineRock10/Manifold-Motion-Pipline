@@ -1,0 +1,59 @@
+{
+  "schema": "manifold-motion.trained-autonomous-acceptance.v1",
+  "composer_checkpoint": "reports/manifold_motion/composer_v2_counterfactual/composer.pt",
+  "reactive_checkpoint": "reports/manifold_motion/reactive_hazard_policy_v4/reactive_policy.pt",
+  "models_are_gitignored": true,
+  "runs": {
+    "static_block": {
+      "report": "reports/manifold_motion/autonomous_v2/static_block_right_nav/report.json",
+      "gif": "media/trained_autonomous_static.gif",
+      "accepted": true,
+      "keyframes": 9,
+      "physics_ticks": 285,
+      "obstacle_contact_ticks": 0,
+      "runtime_self_manifold_clearance_min_m": 0.030357,
+      "route_deviation_p95_m": 0.187240,
+      "composer_updates": 15
+    },
+    "dynamic_crossing": {
+      "report": "reports/manifold_motion/autonomous_v2/dynamic_crossing_nav/report.json",
+      "gif": "media/trained_autonomous_dynamic.gif",
+      "accepted": true,
+      "keyframes": 8,
+      "physics_ticks": 264,
+      "obstacle_contact_ticks": 0,
+      "runtime_self_manifold_clearance_min_m": 0.570617,
+      "route_deviation_p95_m": 0.148860,
+      "composer_updates": 14,
+      "dynamic_wait_ticks": 9
+    },
+    "projectile_grazing": {
+      "report": "reports/manifold_motion/autonomous_v2/projectile_grazing_dodge_v4/report.json",
+      "gif": "media/trained_autonomous_projectile.gif",
+      "accepted": true,
+      "keyframes": 8,
+      "physics_ticks": 317,
+      "obstacle_contact_ticks": 0,
+      "runtime_self_manifold_clearance_min_m": 0.164589,
+      "route_deviation_p95_m": 0.076786,
+      "reactive_updates": 16
+    },
+    "projectile_overhead": {
+      "report": "reports/manifold_motion/autonomous_v2/projectile_overhead_duck_v4/report.json",
+      "gif": "media/trained_autonomous_projectile_overhead.gif",
+      "accepted": true,
+      "keyframes": 8,
+      "physics_ticks": 316,
+      "obstacle_contact_ticks": 0,
+      "runtime_self_manifold_clearance_min_m": 0.035139,
+      "reactive_action": "crouch",
+      "reactive_decision_ticks": [90, 100, 110, 120, 130]
+    }
+  },
+  "guardrails": [
+    "radar track is converted to relative position/velocity by finite differences",
+    "action-family hysteresis prevents release before impact",
+    "current-state SONIC/MuJoCo shadow gate remains authoritative",
+    "exact measured self-manifold surface clearance remains a hard gate"
+  ]
+}

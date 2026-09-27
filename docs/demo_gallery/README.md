@@ -16,6 +16,26 @@ and all-fours. Machine-readable metrics are in
 [`latent_skill_atlas_v6.json`](media/latent_skill_atlas_v6.json); interpretation and reproduction
 commands are in [`LATENT_SKILL_PRIOR.md`](../stage2/LATENT_SKILL_PRIOR.md).
 
+## Trained autonomous response suite
+
+![Trained autonomous static obstacle](media/trained_autonomous_static.gif)
+
+![Trained autonomous dynamic crossing](media/trained_autonomous_dynamic.gif)
+
+![Trained lateral projectile response](media/trained_autonomous_projectile.gif)
+
+![Trained reactive projectile duck](media/trained_autonomous_projectile_overhead.gif)
+
+These clips are the current trained chain rather than fixed route/action demos. The static
+and crossing clips use the counterfactual-trained environment composer. Two incoming-object
+variants show a lateral near-miss and an overhead trajectory; the latter adds a learned
+relative-motion hazard head, which selects a crouch family from radar-tracked position and
+velocity and releases it only after the threat passes. Every switch is checked against the
+current MuJoCo state/history and the measured G1 self-manifold. Metrics and exact report paths
+are in [`trained_autonomous_acceptance.json`](trained_autonomous_acceptance.json), with training
+and limitations documented in
+[`TRAINED_AUTONOMOUS_EXPERIMENTS.md`](../experiments/TRAINED_AUTONOMOUS_EXPERIMENTS.md).
+
 ## Online closed loop
 
 ![Online 3-D SLAM to SONIC](docs/demo_gallery/media/online_closed_loop.gif)

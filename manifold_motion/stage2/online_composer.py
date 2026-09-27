@@ -24,6 +24,7 @@ from manifold_motion.planning.corridor import ExecutedEnvelopeEstimator
 from manifold_motion.stage2.composer import ComposerNormalizer, EnvironmentSkillComposer, _forward
 from manifold_motion.stage2.flow_route_candidates import RouteFlowSampler
 from manifold_motion.stage2.flow import _device, _torch_load
+from manifold_motion.stage2.reactive_policy import ACTION_NAMES, ReactivePolicy
 
 
 # The frozen Flow/SONIC route executor exposes eight verified legacy tokens. Several richer
@@ -34,6 +35,23 @@ FAMILY_TO_LEGACY: dict[str, int] = {
     "dodge_lateral": 4, "forward_lunge": 5, "side_hop": 4, "high_jump": 5,
     "box_jump": 5, "step_up_box": 5, "step_down_box": 5, "kneel": 2, "all_fours": 2,
     "door_interaction": 5, "ladder": 2, "button_lever": 5, "carry_object": 5,
+}
+
+# Action availability is a task contract, not a scripted action sequence.  The network still
+# selects the action from the live state/M_e/M_self observation, while interaction-only SEED
+# families (door/button/ladder/...) are excluded from collision-avoidance experiments whose
+# executor currently has no matching low-level reference.
+ACTION_PROFILES: dict[str, frozenset[str] | None] = {
+    "all": None,
+    "navigation": frozenset({
+        "walk_forward", "jog_forward", "hands_back_walk", "walk_lateral",
+        "walk_curve", "turn_in_place", "crouch_walk", "crouch_transition",
+        "dodge_lateral", "forward_lunge", "side_hop", "high_jump", "kneel",
+    }),
+    "reactive": frozenset({
+        "walk_forward", "walk_lateral", "walk_curve", "turn_in_place",
+        "crouch_walk", "dodge_lateral", "forward_lunge", "side_hop", "high_jump",
+    }),
 }
 
 
@@ -84,7 +102,10 @@ class OnlineSkillComposer:
 
     def __init__(self, checkpoint: Path, *, device: str = "cpu", switch_margin: float = 0.08,
                  min_dwell_updates: int = 2, confidence_floor: float = 0.35,
-                 allow_family_contraction: bool = True):
+                 allow_family_contraction: bool = True,
+                 geometry_override_enabled: bool = True,
+                 action_profile: str = "all",
+                 reactive_checkpoint: Path | None = None):
         if switch_margin < 0 or min_dwell_updates < 1 or not 0 <= confidence_floor <= 1:
             raise ValueError("online composer hysteresis parameters are invalid")
         self.device = _device(device); self.checkpoint_path = Path(checkpoint)
@@ -97,6 +118,22 @@ class OnlineSkillComposer:
         self.switch_margin = float(switch_margin); self.min_dwell_updates = int(min_dwell_updates)
         self.confidence_floor = float(confidence_floor)
         self.allow_family_contraction = bool(allow_family_contraction)
+        self.geometry_override_enabled = bool(geometry_override_enabled)
+        if action_profile not in ACTION_PROFILES:
+            raise ValueError(f"unknown composer action profile {action_profile!r}; "
+                             f"choose from {sorted(ACTION_PROFILES)}")
+        allowed_names = ACTION_PROFILES[action_profile]
+        self.action_profile = str(action_profile)
+        self.inference_mask = self.supported.copy()
+        if allowed_names is not None:
+            self.inference_mask &= np.asarray([name in allowed_names for name in self.names], dtype=bool)
+        if not np.any(self.inference_mask):
+            raise ValueError(f"action profile {action_profile!r} has no supported checkpoint families")
+        self.reactive = (ReactivePolicy.load(reactive_checkpoint, device=str(self.device))
+                         if reactive_checkpoint is not None else None)
+        self.reactive_decisions: list[dict[str, Any]] = []
+        self.reactive_latched_legacy: int | None = None
+        self.reactive_latched_until_tick = -1
         self.stable_family_id: int | None = None; self.pending_family_id: int | None = None
         self.pending_updates = 0; self.update_count = 0; self.switch_count = 0
         self.override_count = 0; self.latencies_ms: list[float] = []; self.decisions: list[dict[str, Any]] = []
@@ -105,7 +142,8 @@ class OnlineSkillComposer:
     def reset(self) -> None:
         self.stable_family_id = None; self.pending_family_id = None; self.pending_updates = 0
         self.update_count = 0; self.switch_count = 0; self.override_count = 0
-        self.latencies_ms.clear(); self.decisions.clear()
+        self.latencies_ms.clear(); self.decisions.clear(); self.reactive_decisions.clear()
+        self.reactive_latched_legacy = None; self.reactive_latched_until_tick = -1
 
     def _predict(self, state: np.ndarray, history: np.ndarray, corridor: np.ndarray,
                  sdf: np.ndarray, self_manifold: np.ndarray, manifold: np.ndarray,
@@ -124,7 +162,7 @@ class OnlineSkillComposer:
         data = type("_LiveData", (), {"inputs": normalized, "supported_mask": self.supported})()
         with torch.no_grad():
             logits = _forward(self.model, data, np.asarray([0]), self.device)
-            supported = torch.as_tensor(self.supported, device=self.device, dtype=torch.bool)
+            supported = torch.as_tensor(self.inference_mask, device=self.device, dtype=torch.bool)
             logits[:, ~supported] = -1e9
             probability = torch.softmax(logits, dim=-1)[0].cpu().numpy()
         return probability, (time.perf_counter() - started) * 1000.0
@@ -169,7 +207,7 @@ class OnlineSkillComposer:
                     switch_reason = "pending_family_dwell"; switched = False
         stable_name = self.names[int(self.stable_family_id)]; stable_legacy = _family_legacy(stable_name)
         geometry_override = False; selected = stable_legacy if stable_legacy in (2, 4, 5) else None
-        if safety_primitive_id in (2, 4):
+        if getattr(self, "geometry_override_enabled", True) and safety_primitive_id in (2, 4):
             if selected != safety_primitive_id: geometry_override = True; self.override_count += 1
             selected = safety_primitive_id; selected_reason = "geometry_safety_override"
         elif selected is None or not self.allow_family_contraction:
@@ -195,7 +233,8 @@ class OnlineSkillComposer:
 
     def update_runtime(self, *, state: dict[str, np.ndarray], state_feature: np.ndarray,
                        history: np.ndarray, corridor: np.ndarray, sdf: np.ndarray,
-                       safety_primitive_id: int, tick: int) -> dict[str, Any]:
+                       safety_primitive_id: int, tick: int,
+                       hazard_track: dict[str, Any] | None = None) -> dict[str, Any]:
         """Build M_self from the current MuJoCo state and classify a live perception update."""
         q_policy = np.asarray(state["q_hw"], dtype=np.float64)[C.MUJOCO_TO_ISAACLAB]
         self_semi = self.envelope.sequence(
@@ -203,8 +242,68 @@ class OnlineSkillComposer:
             np.asarray(state["base_quat"], dtype=np.float64)[None],
         )[0]
         self_window = np.repeat(self_semi[None], 36, axis=0).astype(np.float32)
-        return self.update(state=state_feature, history=history, corridor=corridor, sdf=sdf,
-                           self_manifold=self_window, safety_primitive_id=safety_primitive_id, tick=tick)
+        result = self.update(state=state_feature, history=history, corridor=corridor, sdf=sdf,
+                             self_manifold=self_window, safety_primitive_id=safety_primitive_id, tick=tick)
+        if self.reactive is not None and hazard_track is not None and float(hazard_track.get("age_s", 99.0)) <= 0.45:
+            relative = np.asarray(hazard_track["relative_position"], dtype=np.float32)
+            velocity = np.asarray(hazard_track["relative_velocity"], dtype=np.float32)
+            local_robot_velocity = C.quat_rotate(
+                C.quat_conj(np.asarray(state["base_quat"], dtype=np.float32)),
+                np.asarray(state["base_lin_vel"], dtype=np.float32))[:2]
+            corridor_value = _resample_corridor(corridor)
+            lateral = float(np.clip(np.min(corridor_value[:, 4]), 0.20, 1.25))
+            vertical = float(np.clip(np.min(corridor_value[:, 5]), 0.18, 1.25))
+            radius = float(hazard_track.get("radius_m", 0.12))
+            closing = max(-float(velocity[0]), 0.0)
+            ttc = float(np.clip(float(relative[0]) / max(closing, 0.05), 0.0, 8.0))
+            features = np.concatenate([
+                relative, velocity, local_robot_velocity, self_semi,
+                np.asarray([lateral, lateral, vertical, 0.60], dtype=np.float32),
+                np.asarray([radius, ttc, closing], dtype=np.float32),
+            ]).astype(np.float32)
+            reactive = self.reactive.predict(features)
+            action_to_legacy = {"keep": 5, "sidestep": 4, "crouch": 2}
+            legacy = action_to_legacy.get(str(reactive["action"]))
+            threat = bool(closing > 0.20 and 0.0 < ttc < 1.60 and relative[0] > -0.25)
+            # The low-level SONIC interface currently exposes side/crouch/nominal references,
+            # so an unsupported teacher action is projected to the most likely supported
+            # emergency family.  Once a threat commits, retain that family through the short
+            # impact window; otherwise a single noisy frame can release the dodge before the
+            # projectile reaches the measured self-manifold.
+            if threat and legacy is None:
+                probabilities = np.asarray(reactive["probabilities"], dtype=np.float32)
+                supported_ids = [1, 2] if np.max(probabilities[[1, 2]]) > 0.08 else [0]
+                best = supported_ids[int(np.argmax(probabilities[supported_ids]))]
+                legacy = {0: 5, 1: 4, 2: 2}[best]
+                reactive["projected_action"] = ACTION_NAMES[best]
+            if threat and legacy is not None:
+                if self.reactive_latched_legacy in (2, 4) and legacy == 5:
+                    legacy = self.reactive_latched_legacy
+                    self.reactive_latched_until_tick = int(tick) + 6
+                    reactive["projected_action"] = {2: "crouch", 4: "sidestep"}[legacy]
+                elif self.reactive_latched_legacy is None or tick >= self.reactive_latched_until_tick:
+                    self.reactive_latched_legacy = int(legacy)
+                    self.reactive_latched_until_tick = int(tick) + 12
+                else:
+                    legacy = self.reactive_latched_legacy
+                legacy = self.reactive_latched_legacy
+            elif self.reactive_latched_legacy is not None and tick < self.reactive_latched_until_tick:
+                legacy = self.reactive_latched_legacy
+            elif ttc > 1.8 or relative[0] < -0.35:
+                self.reactive_latched_legacy = None
+            reactive.update({"features": features.tolist(), "threat": threat,
+                             "low_level_supported": legacy is not None,
+                             "selected_legacy_id": legacy,
+                             "latched_legacy_id": self.reactive_latched_legacy,
+                             "latched_until_tick": self.reactive_latched_until_tick})
+            if threat and legacy is not None:
+                result["selected_legacy_id"] = int(legacy)
+                result["selected_reason"] = "learned_reactive_hazard_policy"
+                result["switch_reason"] = "learned_reactive_hazard_policy"
+                result["decision_source"] = "reactive_hazard_policy"
+            result["reactive_hazard"] = reactive
+            self.reactive_decisions.append({"tick": int(tick), **reactive})
+        return result
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -214,6 +313,12 @@ class OnlineSkillComposer:
             "geometry_overrides": int(self.override_count),
             "mean_latency_ms": (float(np.mean(self.latencies_ms)) if self.latencies_ms else None),
             "p95_latency_ms": (float(np.percentile(self.latencies_ms, 95)) if self.latencies_ms else None),
+            "geometry_override_enabled": getattr(self, "geometry_override_enabled", True),
+            "action_profile": getattr(self, "action_profile", "all"),
+            "inference_families": [self.names[i] for i, value in enumerate(self.inference_mask) if value],
+            "reactive_policy_enabled": self.reactive is not None,
+            "reactive_checkpoint": (str(self.reactive.checkpoint) if self.reactive is not None else None),
+            "reactive_decisions": self.reactive_decisions,
             "selected_legacy_ids": [int(row["selected_legacy_id"]) for row in self.decisions],
             "families": [str(row["family"]) for row in self.decisions],
         }

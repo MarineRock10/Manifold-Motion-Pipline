@@ -604,6 +604,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                 np.asarray(online_navigation["corridor"], dtype=np.float32),
                 np.asarray(online_navigation["sdf"], dtype=np.float32),
                 int(online_navigation["primitive_id"]),
+                online_navigation.get("hazard_track"),
             )
             if composer_result is not None:
                 online_navigation["composer_decision"] = dict(composer_result)

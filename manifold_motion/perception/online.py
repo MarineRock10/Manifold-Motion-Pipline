@@ -13,6 +13,7 @@ from typing import Any
 
 import numpy as np
 
+from manifold_motion.core import constants as C
 from manifold_motion.perception.deploy import (
     ProbabilisticSlidingVoxelGrid,
     RadarConfig,
@@ -191,6 +192,10 @@ class OnlinePerceptionNavigator:
         self.planner_history: list[dict[str, Any]] = []
         self.body_radius_history: list[float] = []
         self.planner_reinitializations: list[dict[str, Any]] = []
+        self._hazard_track_position: np.ndarray | None = None
+        self._hazard_track_velocity = np.zeros(3, dtype=np.float32)
+        self._hazard_track_time: float | None = None
+        self.hazard_track_history: list[dict[str, Any]] = []
 
     def _initialize_grid(self, position: np.ndarray) -> None:
         self.grid = ProbabilisticSlidingVoxelGrid(self.config, position)
@@ -294,6 +299,28 @@ class OnlinePerceptionNavigator:
         if updated:
             try:
                 scan = self.radar.scan(position, quat, timestamp=float(tick) * 0.02)
+                # Instance-level association is available in the simulated radar and is the
+                # stand-in for a real point-cloud tracker.  The policy receives only the
+                # filtered centroid/finite-difference velocity, never the scripted event name.
+                dynamic_points = np.asarray([
+                    point for point, name in zip(scan.points_world, scan.geom_names)
+                    if name == "obstacle_dynamic_block"
+                ], dtype=np.float32).reshape(-1, 3)
+                if len(dynamic_points):
+                    observed = np.median(dynamic_points, axis=0).astype(np.float32)
+                    timestamp = float(tick) * 0.02
+                    if self._hazard_track_position is not None and self._hazard_track_time is not None:
+                        dt = max(timestamp - self._hazard_track_time, 1e-3)
+                        raw_velocity = (observed - self._hazard_track_position) / dt
+                        self._hazard_track_velocity = (0.55 * self._hazard_track_velocity
+                                                       + 0.45 * raw_velocity).astype(np.float32)
+                    self._hazard_track_position = observed
+                    self._hazard_track_time = timestamp
+                    self.hazard_track_history.append({
+                        "tick": int(tick), "position_world_m": observed.tolist(),
+                        "velocity_world_mps": self._hazard_track_velocity.tolist(),
+                        "points": int(len(dynamic_points)),
+                    })
                 self.grid.update_radar(position, scan)
                 goal = np.array([goal_world_xy[0], goal_world_xy[1], position[2]], dtype=np.float64)
                 preferred_xyz = np.column_stack([
@@ -403,6 +430,7 @@ class OnlinePerceptionNavigator:
                             "primitive": str(self.last_decision["primitive"]),
                             "primitive_changed": False,
                             "primitive_decision": dict(self.last_decision),
+                            "hazard_track": self._hazard_track(position, quat, tick),
                         }
                 self.failure = f"{type(error).__name__}: {error}"
                 return {"updated": True, "hard_stop": True, "failure": self.failure}
@@ -428,7 +456,21 @@ class OnlinePerceptionNavigator:
             "primitive_changed": bool(self.last_decision["primitive_changed"] if updated else False),
             "primitive_decision": dict(self.last_decision),
             "planner_report": (dict(self.planner_history[-1]) if updated else None),
+            "hazard_track": self._hazard_track(position, quat, tick),
         }
+
+    def _hazard_track(self, position: np.ndarray, quat: np.ndarray, tick: int) -> dict[str, Any] | None:
+        if self._hazard_track_position is None:
+            return None
+        position = np.asarray(position, dtype=np.float32)
+        local_position = C.quat_rotate(C.quat_conj(np.asarray(quat, dtype=np.float32)),
+                                       self._hazard_track_position - position).astype(np.float32)
+        local_velocity = C.quat_rotate(C.quat_conj(np.asarray(quat, dtype=np.float32)),
+                                       self._hazard_track_velocity).astype(np.float32)
+        age = (float(tick) * 0.02 - float(self._hazard_track_time or 0.0))
+        return {"relative_position": local_position.tolist(),
+                "relative_velocity": local_velocity.tolist(), "age_s": float(max(age, 0.0)),
+                "radius_m": 0.12, "track_points": int(self.hazard_track_history[-1]["points"])}
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -449,6 +491,8 @@ class OnlinePerceptionNavigator:
             "temporary_no_route_updates": self.temporary_failures,
             "update_ticks": self.update_ticks, "route_length_m": self.route_length_history,
             "occupied_voxels": self.occupied_history,
+            "hazard_track_updates": int(len(self.hazard_track_history)),
+            "hazard_track_history": self.hazard_track_history,
             "primitive_ids": self.primitive_history,
             "raw_primitive_ids": self.raw_primitive_history,
             "primitive_switches": (int(np.sum(np.diff(self.primitive_history) != 0))

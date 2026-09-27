@@ -33,7 +33,7 @@ import numpy as np
 from manifold_motion.evaluation.cvpr_benchmark import DEFAULT_CONFIG, _read_json
 from manifold_motion.evaluation.cvpr_smoke import DYNAMIC_SCENARIOS, FIXTURE_SCENARIOS
 from manifold_motion.perception.dynamic_scene import (
-    SUPPORTED_DYNAMIC_EVENTS, dynamic_half_xy, dynamic_half_z, obstacle_state,
+    SUPPORTED_DYNAMIC_EVENTS, dynamic_center_z, dynamic_half_xy, dynamic_half_z, obstacle_state,
 )
 from manifold_motion.stage2.manifold_adaptive import BENCHMARK_METHOD_PROFILES
 
@@ -146,8 +146,9 @@ def _xml_for_generated_fixture(adapter: dict[str, Any], output: Path) -> Path:
         hx, hy = dynamic_half_xy(event)
         hz = dynamic_half_z(event)
         title = f"cvpr dynamic {event}"
+        center_z = dynamic_center_z(event, state)
         walls = f"""
-    <geom name="obstacle_dynamic_block" type="box" pos="{state.center_xy[0]:.4f} {state.center_xy[1]:.4f} {hz:.4f}" size="{hx:.4f} {hy:.4f} {hz:.4f}" rgba="0.95 0.30 0.18 0.62"/>
+    <geom name="obstacle_dynamic_block" type="box" pos="{state.center_xy[0]:.4f} {state.center_xy[1]:.4f} {center_z:.4f}" size="{hx:.4f} {hy:.4f} {hz:.4f}" rgba="0.95 0.30 0.18 0.62"/>
     <geom name="obstacle_boundary_left" type="box" pos="1.8 2.00 0.55" size="2.35 0.04 0.55" rgba="0.25 0.62 0.92 0.22"/>
     <geom name="obstacle_boundary_right" type="box" pos="1.8 -2.00 0.55" size="2.35 0.04 0.55" rgba="0.25 0.62 0.92 0.22"/>"""
     else:

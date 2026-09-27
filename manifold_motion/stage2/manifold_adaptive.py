@@ -45,7 +45,9 @@ from manifold_motion.stage2.capability import CAPABILITIES, supported_ids
 from manifold_motion.perception.deploy import (ProbabilisticSlidingVoxelGrid, SlidingGridConfig,
                                 safe_corridor_from_grid)
 from manifold_motion.perception.online import OnlinePerceptionNavigator
-from manifold_motion.perception.dynamic_scene import SUPPORTED_DYNAMIC_EVENTS, dynamic_half_z, obstacle_state
+from manifold_motion.perception.dynamic_scene import (
+    SUPPORTED_DYNAMIC_EVENTS, dynamic_center_z, obstacle_state,
+)
 from manifold_motion.stage2.online_composer import OnlineSkillComposer
 
 
@@ -516,7 +518,7 @@ def _self_manifold_safety(data: dict[str, np.ndarray], environment_corridor: np.
                     continue
                 current = {**box, "center": np.array([
                     dynamic.center_xy[0], dynamic.center_xy[1],
-                    dynamic_half_z(dynamic_obstacle_event)], dtype=np.float64)}
+                    dynamic_center_z(dynamic_obstacle_event, dynamic)], dtype=np.float64)}
             tick_boxes.append(current)
         for box in tick_boxes:
             exact_clearance[tick] = min(
@@ -1159,6 +1161,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             switch_margin=args.composer_switch_margin,
             min_dwell_updates=args.composer_min_dwell_updates,
             confidence_floor=args.composer_confidence_floor,
+            geometry_override_enabled=not getattr(args, "disable_composer_geometry_override", False),
+            action_profile=getattr(args, "composer_action_profile", "all"),
+            reactive_checkpoint=getattr(args, "reactive_policy_checkpoint", None),
         )
 
     def composer_callback_for(composer: OnlineSkillComposer | None):
@@ -1166,11 +1171,12 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             return None
         def _callback(tick: int, state: dict[str, np.ndarray], state_feature: np.ndarray,
                       history: np.ndarray, corridor: np.ndarray, sdf: np.ndarray,
-                      safety_primitive_id: int):
+                      safety_primitive_id: int, hazard_track: dict[str, Any] | None):
             return composer.update_runtime(
                 state=state, state_feature=state_feature, history=history,
                 corridor=corridor, sdf=sdf,
                 safety_primitive_id=safety_primitive_id, tick=tick,
+                hazard_track=hazard_track,
             )
         return _callback
 
@@ -1344,12 +1350,19 @@ def main() -> int:
                         help="ablation: keep online route yaw but do not let live M_e switch primitives")
     parser.add_argument("--composer-checkpoint", type=Path, default=None,
                         help="trained 21-family SEED composer used on every live M_e update")
+    parser.add_argument("--reactive-policy-checkpoint", type=Path, default=None,
+                        help="optional learned relative-motion hazard head layered above the composer")
     parser.add_argument("--composer-switch-margin", type=float, default=0.08,
                         help="probability margin required before the online family can switch")
     parser.add_argument("--composer-min-dwell-updates", type=int, default=2,
                         help="consecutive live SLAM updates required before a family switch")
     parser.add_argument("--composer-confidence-floor", type=float, default=0.35,
                         help="minimum family probability for a nominal-space contraction")
+    parser.add_argument("--composer-action-profile", choices=("all", "navigation", "reactive"),
+                        default="all",
+                        help="task-level learned action availability; masks interaction-only SEED families")
+    parser.add_argument("--disable-composer-geometry-override", action="store_true",
+                        help="ablation/experiment mode: learned composer decides the family; geometry remains a physical gate")
     parser.add_argument("--online-primitive-confirm-updates", type=int, default=2,
                         help="consecutive radar updates required before committing an M_e class")
     parser.add_argument("--online-primitive-release-confirm-updates", type=int, default=4,

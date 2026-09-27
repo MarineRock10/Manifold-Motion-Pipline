@@ -511,3 +511,28 @@ controller until privileged PPO/distillation and the complete MuJoCo acceptance 
 
 The simulation paper protocol, baselines, ablations and statistics are specified in
 `CVPR_EXPERIMENTS.md` and `configs/cvpr_simulation_protocol.json`.
+
+## Trained autonomous static/dynamic/projectile suite
+
+The current trained closed loop adds two learned components above frozen SONIC:
+
+1. `composer_v2_counterfactual` classifies the live `M_e`, measured `M_self`, state and history;
+   its environment ablation drops held-out Top-1 from 0.644 to 0.252.
+2. `reactive_hazard_policy_v4` consumes radar-tracked relative position/velocity and selects
+   keep, sidestep, crouch, retreat or hop from a swept self-manifold teacher. Unsupported hop or
+   retreat outputs are projected to an available SONIC family and still require the same shadow
+   and exact surface gates.
+
+The accepted physical examples are linked in
+[`docs/demo_gallery/README.md`](../demo_gallery/README.md): static block, dynamic crossing,
+lateral projectile near-miss and overhead projectile duck. Reproduce the bounded CPU suite with:
+
+```bash
+./scripts/run_trained_autonomous_suite.sh
+```
+
+The three experiment categories are not fixed route/action scripts: radar updates the 3-D
+probability map, D* Lite rebuilds the local route/corridor, the learned heads select the family,
+and the current-state MuJoCo/self-manifold gates decide whether the proposal is committed. A
+centreline high-speed projectile is retained as a stress case and is counted as a safe stop when
+the frozen controller cannot create enough clearance, never as a success.
