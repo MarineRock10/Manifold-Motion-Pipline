@@ -17,6 +17,20 @@
       "bytes": 11733760
     },
     {
+      "id": "latent_environment_counterfactual",
+      "title": "Same-state low versus wide latent environment counterfactual",
+      "source": "reports/manifold_motion/latent_env_counterfactual_v2/",
+      "purpose": "hold state/history/family fixed and replace only M_e/SDF/M_self",
+      "max_width": 960,
+      "stride": 1,
+      "preview": "docs/demo_gallery/media/latent_environment_counterfactual.gif",
+      "frames_source": 48,
+      "frames_preview": 48,
+      "size": [960, 682],
+      "sha256": "9d2858946ada49e66896629689bc045f3d33098d7c694b5e299bcee6e24f6f4f",
+      "bytes": 4147141
+    },
+    {
       "id": "online_closed_loop",
       "title": "Online 3-D SLAM \u2192 M_e \u2192 primitive \u2192 SONIC",
       "source": "/home/xiyuan/Manifold-Motion-Pipline/reports/manifold_motion/deploy_perception_demo/deploy_sonic_mujoco_comprehensive.gif",

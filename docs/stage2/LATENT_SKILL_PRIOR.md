@@ -64,6 +64,28 @@ short probes pass their static corridor and physical gates; the largest mesh rad
 the largest mean tracking error is 0.160 rad. Exact rows are in
 [`latent_skill_atlas_v6.json`](../demo_gallery/media/latent_skill_atlas_v6.json).
 
+## Same-state environment counterfactual
+
+To separate latent conditioning from a family-label lookup, the counterfactual holds the test
+state, 12-frame history, command and `crouch_walk` family fixed. It only replaces the normalized
+`M_e` corridor/SDF and `M_self` block with a wider held-out environment. Both executions pass the
+static mesh gate, while the decoded reference changes by L2 `10.061` and the root reference by
+up to `0.782 m`:
+
+![Same-state latent environment counterfactual](../demo_gallery/media/latent_environment_counterfactual.gif)
+
+The low condition gives mean `M_self=[0.877, 0.433, 0.930] m` and minimum pelvis height
+`0.633 m`; the wide condition gives `[0.717, 0.563, 0.879] m` and `0.680 m`. This is the
+appropriate causal evidence that environment geometry changes the decoded motion. It is still a
+short-window ablation, not the final long-horizon claim; the exact report is
+[`latent_ablation_v0.json`](../experiments/results/latent_ablation_v0.json).
+
+Reproduce it after training v6 with:
+
+```bash
+./scripts/run_latent_counterfactual.sh
+```
+
 This atlas demonstrates real latent decoding and family diversity, not autonomous long-horizon
 composition. The next required ablation is the same unseen long task with LATENT disabled versus
 enabled, including at least two non-crouch switches and temporal screening for moving obstacles.

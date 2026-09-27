@@ -1,0 +1,26 @@
+{
+  "schema": "manifold-motion.latent-skill-atlas.v1",
+  "out": "docs/demo_gallery/media/latent_environment_counterfactual.gif",
+  "frames": 48,
+  "fps": 12.0,
+  "cases": [
+    {
+      "label": "LOW_Me",
+      "sample": "reports/manifold_motion/latent_env_counterfactual_v2/base_environment.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.832182741925653,
+      "corridor_radius_temporal_max": 1.35100623967798,
+      "track_err_mean_rad": 0.10248704154146318
+    },
+    {
+      "label": "WIDE_Me",
+      "sample": "reports/manifold_motion/latent_env_counterfactual_v2/counterfactual_environment.npz",
+      "accepted": true,
+      "failed_checks": [],
+      "corridor_radius_spatial_union_max": 0.6414153630347804,
+      "corridor_radius_temporal_max": 0.7301212382579803,
+      "track_err_mean_rad": 0.10858710543685772
+    }
+  ]
+}

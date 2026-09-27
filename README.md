@@ -80,6 +80,9 @@ remain in the reproducibility artifacts.
   <img src="docs/demo_gallery/media/latent_skill_atlas_v6.gif" width="1000" alt="Eight environment-conditioned latent skill families executed and mesh-gated in MuJoCo" />
 </p>
 <p>
+  <img src="docs/demo_gallery/media/latent_environment_counterfactual.gif" width="760" alt="Same-state same-skill latent environment counterfactual: low versus wide M_e" />
+</p>
+<p>
   <img src="docs/demo_gallery/media/online_closed_loop.gif" width="360" alt="Online 3-D SLAM to environment manifold to SONIC" />
   <img src="docs/demo_gallery/media/moving_obstacle_replanning.gif" width="260" alt="Incremental replanning around a moving obstacle" />
 </p>

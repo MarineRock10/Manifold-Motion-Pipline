@@ -1,6 +1,6 @@
 {
-  "schema": "manifold-motion.latent-ablation-audit.v1",
-  "status": "environment_conditioned_prior_physically_screened",
+  "schema": "manifold-motion.latent-ablation-audit.v2",
+  "status": "environment_conditioned_prior_physically_screened_and_counterfactual",
   "supersedes": "v0: deterministic geometry-router crouch was not a LATENT result",
   "training": {
     "checkpoint": "reports/manifold_motion/skill_prior_environment_v6_exec/skill_prior.pt",
@@ -51,6 +51,32 @@
     "accepted": "8/8",
     "static_union_radius_max": 0.9244529824887051,
     "tracking_error_max_rad": 0.16027095439463593
+  },
+  "same_state_environment_counterfactual": {
+    "report": "reports/manifold_motion/latent_env_counterfactual_v2/report.json",
+    "preview": "docs/demo_gallery/media/latent_environment_counterfactual.gif",
+    "base_state_index": 1278,
+    "family": "crouch_walk",
+    "held_fixed": ["state", "history", "primitive_family", "command"],
+    "changed": ["M_e corridor", "corridor SDF", "M_self condition"],
+    "decoded_reference_delta_l2": 10.061073303222656,
+    "decoded_root_delta_max_m": 0.7816751003265381,
+    "low_environment": {
+      "accepted": true,
+      "static_union_radius_max": 0.832182741925653,
+      "temporal_radius_max": 1.35100623967798,
+      "base_z_min_m": 0.6325940512978866,
+      "mean_self_manifold": [0.876990556716919, 0.43309831619262695, 0.93017578125]
+    },
+    "wide_environment": {
+      "source_environment_index": 3505,
+      "accepted": true,
+      "static_union_radius_max": 0.6414153630347804,
+      "temporal_radius_max": 0.7301212382579803,
+      "base_z_min_m": 0.6799559406462052,
+      "mean_self_manifold": [0.7167453765869141, 0.5628264546394348, 0.8785088658332825]
+    },
+    "interpretation": "same skill family and same proprioceptive/history input produce a different executable reference and body envelope when only environment geometry is replaced"
   },
   "corridor_gate_correction": {
     "static_scene": "max over mesh points of min ellipsoid radius across the static corridor union",
