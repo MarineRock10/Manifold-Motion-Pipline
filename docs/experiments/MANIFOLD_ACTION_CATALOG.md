@@ -31,7 +31,8 @@ The command creates:
   environment-manifold/action window;
 - `data/manifold_action_catalog_v1/manifold_action_catalog_v1.json`: counts, tensor shapes,
   provenance and leakage checks;
-- `data/manifold_action_catalog_v1/manifold_action_catalog_v1.npz`: local training tensors.
+- `data/manifold_action_catalog_v1/manifold_action_catalog_v1.npz`: versioned derived training
+  tensors (stored with Git LFS; the raw licensed SEED/G1 archives are intentionally not included).
 
 ## Paired GIF visual audit
 
