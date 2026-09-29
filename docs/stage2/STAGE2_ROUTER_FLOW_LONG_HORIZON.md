@@ -41,5 +41,7 @@ MUJOCO_GL=egl ./scripts/python.sh -m manifold_motion.stage2.flow_route_candidate
   --num-candidates 4 --max-ticks 650 --device cpu
 ```
 
-下一步是把同一入口接到在线雷达/滑动栅格更新，使用移动障碍改变局部 `M_e(t)`，并在
-窄通道与低顶棚场景验证 router 是否从 nominal 自动切换到侧身或低位动作。
+静态窄通道、低顶棚、在线雷达更新和移动障碍的完整验收汇总见
+[Stage 2 完成验收包](STAGE2_COMPLETION.md)。本实验的宽走廊仍然保留为一个重要的
+负对照：当局部 `M_e(t)` 没有收缩时，router 合理地维持 `walk_nominal`；动作切换的
+证据来自完成包中的窄通道、低顶棚和动态障碍场景，而不是强行让宽走廊产生非普通动作。

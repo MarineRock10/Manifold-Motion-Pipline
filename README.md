@@ -267,6 +267,12 @@ The first continuous router-Flow route is now also available in the
 [long-horizon report](docs/stage2/STAGE2_ROUTER_FLOW_LONG_HORIZON.md): three A* keyframes are
 reached in one MuJoCo rollout with no obstacle contact and no simulator reset.
 
+The complete Stage-2 acceptance package is now summarized in
+[STAGE2_COMPLETION.md](docs/stage2/STAGE2_COMPLETION.md). It includes static aperture
+counterfactuals, measured self-manifold gates, online state/history projection, incremental
+dynamic replanning, continuous router Flow, and reactive grazing/overhead obstacle tests. The
+machine-readable gate summary is [acceptance.json](docs/experiments/stage2_completion_v1/acceptance.json).
+
 ## Reproduction
 
 ### 1. Runtime and controller assets

@@ -1,0 +1,217 @@
+{
+  "schema": "manifold-motion.stage2-completion.v1",
+  "scope": "Stage 2 after Stage 1 temporal router, excluding real P1 point-cloud ingress",
+  "contracts": [
+    "time-varying M_e(t) and measured M_self(t)",
+    "state/history-conditioned Flow candidates",
+    "incremental ESDF + D* Lite route updates",
+    "current-state shadow rollout and exact self-manifold gate",
+    "continuous SONIC/MuJoCo execution without simulator reset"
+  ],
+  "overall_accepted": true,
+  "required_reports_available": true,
+  "experiments": [
+    {
+      "name": "environment_counterfactual",
+      "report": "reports/manifold_motion/stage2_manifold_counterfactual_v1/comparison_report.json",
+      "available": true,
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": null,
+      "keyframes_total": null,
+      "obstacle_contact_ticks": null,
+      "primitive_switch_count": null,
+      "physics_ticks": null,
+      "online_updates": null,
+      "checks": {
+        "wide_physics_accepted": true,
+        "low_physics_accepted": true,
+        "narrow_physics_accepted": true,
+        "wide_is_all_nominal": true,
+        "low_begins_nominal": true,
+        "low_switches_to_crouch": true,
+        "narrow_begins_nominal": true,
+        "narrow_switches_to_side_gait": true,
+        "same_segment_count": true,
+        "same_route_geometry": true,
+        "same_routing_thresholds": true,
+        "three_flow_candidates_per_set": true,
+        "wide_zero_obstacle_contact": true,
+        "low_zero_obstacle_contact": true,
+        "narrow_zero_obstacle_contact": true,
+        "environment_changes_measured_vertical_aperture": true,
+        "environment_changes_measured_lateral_aperture": true,
+        "center_block_physics_accepted": true,
+        "center_block_reaches_all_keyframes": true,
+        "center_block_zero_obstacle_contact": true,
+        "route_curvature_activates_turn": true
+      }
+    },
+    {
+      "name": "online_state_history_projection",
+      "report": "reports/manifold_motion/stage2_online_projection_v1/comparison_report.json",
+      "available": true,
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": null,
+      "keyframes_total": null,
+      "obstacle_contact_ticks": null,
+      "primitive_switch_count": null,
+      "physics_ticks": null,
+      "online_updates": null
+    },
+    {
+      "name": "online_composer_gallery",
+      "report": "reports/manifold_motion/online_composer_gallery_v1/comparison_report.json",
+      "available": true,
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": null,
+      "keyframes_total": null,
+      "obstacle_contact_ticks": null,
+      "primitive_switch_count": null,
+      "physics_ticks": null,
+      "online_updates": null,
+      "scenarios": [
+        {
+          "name": "block_left",
+          "accepted": true,
+          "failed_checks": [],
+          "keyframes_reached": 10,
+          "keyframes_total": 10,
+          "physics_ticks": 258,
+          "obstacle_contact_ticks": 0,
+          "primitive_switch_count": 9,
+          "online_updates": 13,
+          "composer_mean_latency_ms": 3.418333076926781,
+          "composer_families": [
+            "carry_object",
+            "dodge_lateral",
+            "door_interaction"
+          ]
+        },
+        {
+          "name": "block_right",
+          "accepted": true,
+          "failed_checks": [],
+          "keyframes_reached": 9,
+          "keyframes_total": 9,
+          "physics_ticks": 248,
+          "obstacle_contact_ticks": 0,
+          "primitive_switch_count": 9,
+          "online_updates": 13,
+          "composer_mean_latency_ms": 2.806746846142862,
+          "composer_families": [
+            "dodge_lateral",
+            "door_interaction",
+            "walk_curve"
+          ]
+        },
+        {
+          "name": "wide_long",
+          "accepted": true,
+          "failed_checks": [],
+          "keyframes_reached": 8,
+          "keyframes_total": 8,
+          "physics_ticks": 246,
+          "obstacle_contact_ticks": 0,
+          "primitive_switch_count": 7,
+          "online_updates": 13,
+          "composer_mean_latency_ms": 2.903210846170623,
+          "composer_families": [
+            "carry_object",
+            "door_interaction"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "incremental_dynamic_planning",
+      "report": "reports/manifold_motion/incremental_dynamic_benchmark_final/report.json",
+      "available": true,
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": null,
+      "keyframes_total": null,
+      "obstacle_contact_ticks": null,
+      "primitive_switch_count": null,
+      "physics_ticks": null,
+      "online_updates": null,
+      "route_change_events": 4,
+      "median_speedup": 85.31835586018407,
+      "incremental_planning_ms_median_excluding_init": 22.26445900004137
+    },
+    {
+      "name": "router_flow_long_horizon",
+      "report": "reports/manifold_motion/stage2_router_flow_long_horizon_v1/report.json",
+      "available": true,
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": 3,
+      "keyframes_total": 3,
+      "obstacle_contact_ticks": 0,
+      "primitive_switch_count": 2,
+      "physics_ticks": 599,
+      "online_updates": null
+    }
+  ],
+  "autonomous_scenarios": [
+    {
+      "name": "dynamic_crossing_nav",
+      "report": "reports/manifold_motion/autonomous_v3_motion_quality/dynamic_crossing_nav/report.json",
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": 8,
+      "keyframes_total": 8,
+      "obstacle_contact_ticks": 0,
+      "primitive_switch_count": 7,
+      "physics_ticks": 291,
+      "online_updates": 15,
+      "dynamic_obstacle_event": "crossing"
+    },
+    {
+      "name": "projectile_grazing_dodge",
+      "report": "reports/manifold_motion/autonomous_v3_motion_quality/projectile_grazing_dodge/report.json",
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": 8,
+      "keyframes_total": 8,
+      "obstacle_contact_ticks": 0,
+      "primitive_switch_count": 12,
+      "physics_ticks": 266,
+      "online_updates": 27,
+      "dynamic_obstacle_event": "projectile_grazing"
+    },
+    {
+      "name": "projectile_overhead_avoidance",
+      "report": "reports/manifold_motion/autonomous_v3_motion_quality/projectile_overhead_avoidance/report.json",
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": 8,
+      "keyframes_total": 8,
+      "obstacle_contact_ticks": 0,
+      "primitive_switch_count": 10,
+      "physics_ticks": 263,
+      "online_updates": 27,
+      "dynamic_obstacle_event": "projectile_overhead"
+    },
+    {
+      "name": "static_block_right_nav",
+      "report": "reports/manifold_motion/autonomous_v3_motion_quality/static_block_right_nav/report.json",
+      "accepted": true,
+      "failed_checks": [],
+      "keyframes_reached": 9,
+      "keyframes_total": 9,
+      "obstacle_contact_ticks": 0,
+      "primitive_switch_count": 9,
+      "physics_ticks": 239,
+      "online_updates": 12,
+      "dynamic_obstacle_event": null
+    }
+  ],
+  "notes": [
+    "A pass means the recorded hard gates passed; it is not a claim that every SEED family is executable.",
+    "Crawl remains unsupported and jump remains partial under the frozen SONIC capability manifest.",
+    "The router-Flow long-horizon route is accepted, while its wide static corridor selects nominal walk; narrow and dynamic tests provide the explicit semantic switches."
+  ]
+}

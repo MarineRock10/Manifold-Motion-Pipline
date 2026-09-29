@@ -1,0 +1,141 @@
+{
+  "accepted": true,
+  "scenario": "appearing + crossing + disappearing obstacle",
+  "steps": [
+    {
+      "step": 0,
+      "event": "obstacle_absent",
+      "obstacle_center_xy_m": null,
+      "incremental_ms": 57.83187600002293,
+      "full_voxel_astar_ms": 1824.373363999996,
+      "speedup": 31.54615568755322,
+      "changed_cost_cells": 0,
+      "expanded_vertices": 341,
+      "route_length_m": 3.6,
+      "route_change_max_y_m": 0.03999999910593033,
+      "raw_box_clearance_proxy_m": null,
+      "baseline_route_points": 46
+    },
+    {
+      "step": 1,
+      "event": "obstacle_moved",
+      "obstacle_center_xy_m": [
+        1.8,
+        -0.95
+      ],
+      "incremental_ms": 27.27150100002973,
+      "full_voxel_astar_ms": 1869.8069799999644,
+      "speedup": 68.56267207286926,
+      "changed_cost_cells": 114,
+      "expanded_vertices": 62,
+      "route_length_m": 3.6,
+      "route_change_max_y_m": 0.0,
+      "raw_box_clearance_proxy_m": 0.7499999991059303,
+      "baseline_route_points": 46
+    },
+    {
+      "step": 2,
+      "event": "obstacle_moved",
+      "obstacle_center_xy_m": [
+        1.8,
+        -0.6
+      ],
+      "incremental_ms": 13.957855000001018,
+      "full_voxel_astar_ms": 1852.6962639999738,
+      "speedup": 132.73502726599745,
+      "changed_cost_cells": 92,
+      "expanded_vertices": 0,
+      "route_length_m": 3.6,
+      "route_change_max_y_m": 0.0,
+      "raw_box_clearance_proxy_m": 0.3999999991059303,
+      "baseline_route_points": 46
+    },
+    {
+      "step": 3,
+      "event": "obstacle_moved",
+      "obstacle_center_xy_m": [
+        1.8,
+        -0.25
+      ],
+      "incremental_ms": 40.872610999997505,
+      "full_voxel_astar_ms": 1829.312328999947,
+      "speedup": 44.756434302669305,
+      "changed_cost_cells": 124,
+      "expanded_vertices": 219,
+      "route_length_m": 3.8650966799187807,
+      "route_change_max_y_m": 0.3200000151991844,
+      "raw_box_clearance_proxy_m": 0.29000001860076025,
+      "baseline_route_points": 46
+    },
+    {
+      "step": 4,
+      "event": "obstacle_moved",
+      "obstacle_center_xy_m": [
+        1.8,
+        0.1
+      ],
+      "incremental_ms": 44.062265000036405,
+      "full_voxel_astar_ms": 1854.002931000025,
+      "speedup": 42.07688667385785,
+      "changed_cost_cells": 156,
+      "expanded_vertices": 251,
+      "route_length_m": 3.9976450198781714,
+      "route_change_max_y_m": 0.800000011920929,
+      "raw_box_clearance_proxy_m": 0.24413113253030583,
+      "baseline_route_points": 46
+    },
+    {
+      "step": 5,
+      "event": "obstacle_moved",
+      "obstacle_center_xy_m": [
+        1.8,
+        0.45
+      ],
+      "incremental_ms": 22.26445900004137,
+      "full_voxel_astar_ms": 1899.5670360000076,
+      "speedup": 85.31835586018407,
+      "changed_cost_cells": 132,
+      "expanded_vertices": 56,
+      "route_length_m": 3.7325483399593904,
+      "route_change_max_y_m": 0.3200000002980232,
+      "raw_box_clearance_proxy_m": 0.32999999731779095,
+      "baseline_route_points": 46
+    },
+    {
+      "step": 6,
+      "event": "obstacle_moved",
+      "obstacle_center_xy_m": [
+        1.8,
+        0.8
+      ],
+      "incremental_ms": 18.209524999974747,
+      "full_voxel_astar_ms": 1989.4200269999942,
+      "speedup": 109.25161567930812,
+      "changed_cost_cells": 114,
+      "expanded_vertices": 29,
+      "route_length_m": 3.6,
+      "route_change_max_y_m": 0.1599999964237213,
+      "raw_box_clearance_proxy_m": 0.5200000008940697,
+      "baseline_route_points": 46
+    },
+    {
+      "step": 7,
+      "event": "obstacle_absent",
+      "obstacle_center_xy_m": null,
+      "incremental_ms": 15.73373100001163,
+      "full_voxel_astar_ms": 1794.1341119999947,
+      "speedup": 114.03106561302393,
+      "changed_cost_cells": 114,
+      "expanded_vertices": 0,
+      "route_length_m": 3.6,
+      "route_change_max_y_m": 0.0,
+      "raw_box_clearance_proxy_m": null,
+      "baseline_route_points": 46
+    }
+  ],
+  "route_change_events": 4,
+  "incremental_planning_ms_median_excluding_init": 22.26445900004137,
+  "full_voxel_astar_ms_median": 1854.002931000025,
+  "median_speedup": 85.31835586018407,
+  "artifact": "reports/manifold_motion/incremental_dynamic_benchmark_final/moving_obstacle_replanning.gif"
+}
