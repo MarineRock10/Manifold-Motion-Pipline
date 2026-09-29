@@ -10,7 +10,12 @@ __pycache__/
 *.ckpt
 *.safetensors
 *.engine
-models/
+models/*
+!models/stage1/
+!models/stage1/*.pt
+!models/stage2/
+!models/stage2/router_flow_v1/
+!models/stage2/router_flow_v1/*.pt
 
 # Local assets, generated scenes and experiment outputs
 data/*

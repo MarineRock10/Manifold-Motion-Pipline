@@ -363,11 +363,30 @@ def _torch_load(path: Path, device: torch.device) -> dict[str, Any]:
         return torch.load(path, map_location=device)
 
 
+def _apply_router(data: WindowData, windows: Path, checkpoint: Path | None,
+                  device: str) -> tuple[WindowData, np.ndarray | None]:
+    """Replace the oracle primitive slice with Stage-1 probabilities when requested.
+
+    The continuous condition and its train-split normalizer stay unchanged.  Only the
+    categorical slice is replaced, which makes the router-conditioned checkpoints directly
+    comparable to the historical one-hot baseline without leaking the recorded primitive.
+    """
+    if checkpoint is None:
+        return data, None
+    from manifold_motion.stage2.stage1_router_bridge import predicted_primitive_probabilities, replace_primitive_condition
+
+    probabilities = predicted_primitive_probabilities(windows, checkpoint, device)
+    return replace_primitive_condition(data, probabilities), probabilities
+
+
 def train_ae(args: argparse.Namespace) -> int:
     device = _device(args.device)
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
     data = WindowData.load(args.windows)
+    data, router_probabilities = _apply_router(
+        data, args.windows, args.router_checkpoint, str(device)
+    )
     train = np.flatnonzero(data.split == 0)
     validation = np.flatnonzero(data.split == 1)
     model = ConditionalVAE(data.target.shape[1], data.condition.shape[1], args.latent_dim,
@@ -402,7 +421,11 @@ def train_ae(args: argparse.Namespace) -> int:
                         "target_shape": data.target_shape, "primitive_count": data.primitive_count,
                         "target_parameterization": TARGET_PARAMETERIZATION,
                         "joint_lower": data.joint_lower, "joint_upper": data.joint_upper,
-                        "windows": str(args.windows)}, args.out / "autoencoder.pt")
+                        "windows": str(args.windows),
+                        "router_checkpoint": (str(args.router_checkpoint)
+                                              if args.router_checkpoint else None),
+                        "oracle_primitive_not_used": bool(router_probabilities is not None)},
+                       args.out / "autoencoder.pt")
     (args.out / "autoencoder_history.json").write_text(json.dumps(history, indent=2) + "\n")
     return 0
 
@@ -446,6 +469,9 @@ def train_mean(args: argparse.Namespace) -> int:
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
     data = WindowData.load(args.windows, model_target_field=args.model_target_field)
+    data, router_probabilities = _apply_router(
+        data, args.windows, args.router_checkpoint, str(device)
+    )
     train = np.flatnonzero(data.split == 0)
     validation = np.flatnonzero(data.split == 1)
     if args.primitive_id >= 0:
@@ -486,7 +512,10 @@ def train_mean(args: argparse.Namespace) -> int:
                         "joint_lower": data.joint_lower, "joint_upper": data.joint_upper,
                         "primitive_id": int(args.primitive_id),
                         "windows": str(args.windows), "model_target_field": args.model_target_field,
-                        "root_weight": float(args.root_weight)},
+                        "root_weight": float(args.root_weight),
+                        "router_checkpoint": (str(args.router_checkpoint)
+                                              if args.router_checkpoint else None),
+                        "oracle_primitive_not_used": bool(router_probabilities is not None)},
                        args.out / "conditional_mean.pt")
     (args.out / "conditional_mean_history.json").write_text(json.dumps(history, indent=2) + "\n")
     return 0
@@ -536,6 +565,9 @@ def train_residual_flow(args: argparse.Namespace) -> int:
     mean, mean_checkpoint = _load_mean(args.mean_model, device)
     normalizer = Normalizer.from_state_dict(mean_checkpoint["normalizer"])
     data = WindowData.load(args.windows, normalizer=normalizer)
+    data, router_probabilities = _apply_router(
+        data, args.windows, args.router_checkpoint, str(device)
+    )
     if not (np.allclose(data.joint_lower, mean_checkpoint["joint_lower"]) and
             np.allclose(data.joint_upper, mean_checkpoint["joint_upper"]) and
             mean.condition_dim == data.condition.shape[1] and mean.target_dim == data.target.shape[1]):
@@ -592,7 +624,11 @@ def train_residual_flow(args: argparse.Namespace) -> int:
                         "target_parameterization": TARGET_PARAMETERIZATION,
                         "joint_lower": data.joint_lower, "joint_upper": data.joint_upper,
                         "residual_std": residual_std, "primitive_id": int(args.primitive_id),
-                        "windows": str(args.windows)}, args.out / "residual_flow.pt")
+                        "windows": str(args.windows),
+                        "router_checkpoint": (str(args.router_checkpoint)
+                                              if args.router_checkpoint else None),
+                        "oracle_primitive_not_used": bool(router_probabilities is not None)},
+                       args.out / "residual_flow.pt")
     (args.out / "residual_flow_history.json").write_text(json.dumps(history, indent=2) + "\n")
     return 0
 
@@ -664,6 +700,9 @@ def train_flow(args: argparse.Namespace) -> int:
         parameter.requires_grad_(False)
     normalizer = Normalizer.from_state_dict(ae_checkpoint["normalizer"])
     data = WindowData.load(args.windows, normalizer=normalizer)
+    data, router_probabilities = _apply_router(
+        data, args.windows, args.router_checkpoint, str(device)
+    )
     if not (np.allclose(data.joint_lower, ae_checkpoint["joint_lower"]) and
             np.allclose(data.joint_upper, ae_checkpoint["joint_upper"])):
         raise ValueError("the active G1 MJCF joint ranges differ from the autoencoder checkpoint")
@@ -705,7 +744,11 @@ def train_flow(args: argparse.Namespace) -> int:
                         "normalizer": ae_checkpoint["normalizer"], "target_shape": data.target_shape,
                         "target_parameterization": TARGET_PARAMETERIZATION,
                         "joint_lower": data.joint_lower, "joint_upper": data.joint_upper,
-                        "windows": str(args.windows)}, args.out / "flow.pt")
+                        "windows": str(args.windows),
+                        "router_checkpoint": (str(args.router_checkpoint)
+                                              if args.router_checkpoint else None),
+                        "oracle_primitive_not_used": bool(router_probabilities is not None)},
+                       args.out / "flow.pt")
     (args.out / "flow_history.json").write_text(json.dumps(history, indent=2) + "\n")
     return 0
 
@@ -750,6 +793,9 @@ def sample(args: argparse.Namespace) -> int:
                 np.allclose(data.joint_upper, ae_checkpoint["joint_upper"]) and
                 ae.condition_dim == data.condition.shape[1]):
             raise ValueError("autoencoder checkpoint is incompatible with the active G1/window condition")
+    data, router_probabilities = _apply_router(
+        data, args.windows, args.router_checkpoint, str(device)
+    )
     if args.sampler == "flow":
         flow, flow_checkpoint = _load_flow(args.flow, device)
         if not (np.allclose(data.joint_lower, flow_checkpoint["joint_lower"]) and
@@ -768,7 +814,10 @@ def sample(args: argparse.Namespace) -> int:
         raise ValueError(f"no windows in requested split {args.split}")
     index = int(candidates[args.index % len(candidates)])
     actual_primitive = int(data.raw["primitive"][index])
-    conditioned_primitive = actual_primitive if args.primitive_id < 0 else int(args.primitive_id)
+    if router_probabilities is not None and args.primitive_id < 0:
+        conditioned_primitive = int(np.argmax(router_probabilities[index]))
+    else:
+        conditioned_primitive = actual_primitive if args.primitive_id < 0 else int(args.primitive_id)
     if not 0 <= conditioned_primitive < data.primitive_count:
         raise ValueError(f"primitive-id must be in [0, {data.primitive_count - 1}] for this archive")
     if mean_checkpoint is not None and int(mean_checkpoint.get("primitive_id", -1)) >= 0:
@@ -804,11 +853,14 @@ def sample(args: argparse.Namespace) -> int:
                 if key in data.raw:
                     environment_parts.append(data.raw[key][index:index + 1].reshape(1, -1))
             environment = np.concatenate(environment_parts, axis=1).astype(np.float32)
-        one_hot = np.eye(data.primitive_count, dtype=np.float32)[[conditioned_primitive]]
+        if router_probabilities is not None and args.primitive_id < 0:
+            primitive_condition = router_probabilities[index:index + 1]
+        else:
+            primitive_condition = np.eye(data.primitive_count, dtype=np.float32)[[conditioned_primitive]]
         condition_row = np.concatenate([
             normalizer.state(data.raw["state"][index:index + 1]).astype(np.float32),
             normalizer.state(data.raw["history"][index:index + 1]).reshape(1, -1).astype(np.float32),
-            one_hot,
+            primitive_condition,
             normalizer.manifold(environment).astype(np.float32),
             normalizer.command(np.asarray(
                 condition_overrides.get("command", data.raw["command"][index:index + 1])
@@ -880,6 +932,12 @@ def sample(args: argparse.Namespace) -> int:
         "primitive_name": np.asarray(PRIMITIVE_NAMES[conditioned_primitive]),
         "source_primitive_id": np.asarray(actual_primitive, dtype=np.int64),
     }
+    if router_probabilities is not None:
+        sample_arrays["router_probabilities"] = router_probabilities[index]
+        sample_arrays["router_entropy"] = np.asarray(
+            -np.sum(router_probabilities[index] * np.log(np.maximum(router_probabilities[index], 1e-8))),
+            dtype=np.float32,
+        )
     # Keep the environmental condition beside the generated trajectory.  This makes controller
     # validation check the exact corridor/SDF the model was conditioned on, rather than a later
     # lookup that could silently use a different window.
@@ -904,6 +962,8 @@ def sample(args: argparse.Namespace) -> int:
               "residual_flow_checkpoint": (str(args.residual_flow) if residual_checkpoint else None),
               "autoencoder_checkpoint": (str(args.autoencoder) if ae_checkpoint else None),
               "condition_npz": (str(args.condition_npz) if args.condition_npz else None),
+              "router_checkpoint": (str(args.router_checkpoint) if args.router_checkpoint else None),
+              "oracle_primitive_not_used": bool(router_probabilities is not None),
               "note": "Generated trajectory is R_ref for SONIC; validate it through seed_replay-style execution before use."}
     for key in ("clip_index", "source_origin"):
         if key in sample_arrays:
@@ -915,6 +975,8 @@ def sample(args: argparse.Namespace) -> int:
 
 def _common_training(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--windows", type=Path, required=True)
+    parser.add_argument("--router-checkpoint", type=Path, default=None,
+                        help="Stage-1 temporal checkpoint; replaces oracle primitive one-hot with M_e(t) probabilities")
     parser.add_argument("--out", type=Path, default=Path("reports/manifold_motion/stage2_flow"))
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -982,6 +1044,8 @@ def main() -> int:
     sampler.add_argument("--device", default="auto")
     sampler.add_argument("--condition-npz", type=Path, default=None,
                          help="optional perception condition.npz containing corridor and sdf")
+    sampler.add_argument("--router-checkpoint", type=Path, default=None,
+                         help="Stage-1 temporal checkpoint used to construct the primitive distribution")
     sampler.add_argument("--primitive-id", type=int, default=-1,
                          help="router-selected z_p override; -1 retains the stored window primitive")
     sampler.set_defaults(handler=sample)

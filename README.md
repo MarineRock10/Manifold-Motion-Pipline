@@ -238,12 +238,19 @@ Full protocols, all six GIFs and the failure manifest are in the
 
 ## Stage 2 entry
 
-The first Stage-2 bridge is now running without an oracle primitive label. Stage 1 predicts a
-30-way probability vector from `M_e(t)`; Stage 2 combines that distribution with measured state,
-history, SDF/corridor and command to predict the full joint/root trajectory. The initial
-deterministic baseline reaches `0.1379 rad` test joint MAE and `0.0303 m` root-position MAE.
-See the [router bridge report](docs/stage2/STAGE2_ROUTER_BRIDGE.md). Flow Matching and physical
-multi-candidate selection remain the next Stage-2 gate.
+The Stage-2 bridge now runs without an oracle primitive label. Stage 1 predicts a 30-way
+probability vector from `M_e(t)`; Stage 2 combines that distribution with measured state, history,
+`M_self(t)`, SDF/corridor and command. The deterministic baseline reaches `0.1379 rad` test
+joint MAE and `0.0303 m` root-position MAE. The first router-conditioned latent Flow experiment
+generates 16 candidates and selects them with the frozen SONIC/MuJoCo hard gate: `1/16` raw Flow
+candidate passes, and `15/16` pass after the bounded optimization-embedded projection. See the
+[router bridge report](docs/stage2/STAGE2_ROUTER_BRIDGE.md) and the
+[router-conditioned Flow report](docs/stage2/STAGE2_ROUTER_FLOW.md).
+
+<p align="center">
+  <img src="docs/experiments/stage2_router_flow_v1/router_flow_selected.gif" width="720"
+       alt="Router-conditioned Flow candidate selected by SONIC and MuJoCo" />
+</p>
 
 ## Reproduction
 

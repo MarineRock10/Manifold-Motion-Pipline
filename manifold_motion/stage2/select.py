@@ -20,6 +20,7 @@ from typing import Any
 import numpy as np
 
 from manifold_motion.dataio.seed_replay import ReplayConfig, SeedReplayRunner
+from manifold_motion.stage2.projection import project_reference
 from manifold_motion.stage2.validate import validate_trajectory
 
 
@@ -81,6 +82,8 @@ def main() -> int:
     parser.add_argument("--min-reference-planar-path", type=float, default=ReplayConfig.min_reference_planar_path_m)
     parser.add_argument("--min-progress-ratio", type=float, default=ReplayConfig.min_progress_ratio)
     parser.add_argument("--max-corridor-radius", type=float, default=1.0)
+    parser.add_argument("--project-candidates", action="store_true",
+                        help="run the optimization-embedded feasibility projection before SONIC/MuJoCo")
     args = parser.parse_args()
     if args.source_hz <= 0.0:
         parser.error("source-hz must be positive")
@@ -104,15 +107,25 @@ def main() -> int:
     runner = SeedReplayRunner()
     reports: list[dict[str, Any]] = []
     executions: list[dict[str, np.ndarray]] = []
+    evaluated_candidates: list[np.ndarray] = []
     for index, trajectory in enumerate(candidates):
-        executed, summary = validate_trajectory(trajectory, source=args.sample, source_hz=args.source_hz,
+        projection_report: dict[str, Any] | None = None
+        evaluated = trajectory
+        if args.project_candidates:
+            if corridor is None:
+                parser.error("--project-candidates requires condition_corridor in the sample")
+            evaluated, projection_report = project_reference(trajectory, corridor)
+        executed, summary = validate_trajectory(evaluated, source=args.sample, source_hz=args.source_hz,
                                                  config=config, corridor=corridor,
                                                  max_corridor_radius=args.max_corridor_radius,
                                                  stratum=stratum,
                                                  runner=runner)
-        report: dict[str, Any] = {"candidate_index": index, **_objective(summary, trajectory), **summary}
+        report: dict[str, Any] = {"candidate_index": index, **_objective(summary, evaluated), **summary}
+        if projection_report is not None:
+            report["projection"] = projection_report
         reports.append(report)
         executions.append(executed)
+        evaluated_candidates.append(evaluated)
         print(json.dumps({"candidate_index": index, "accepted": report["accepted"],
                           "score": report["score"], "failed_checks": report["failed_checks"]}), flush=True)
 
@@ -124,7 +137,7 @@ def main() -> int:
     # trajectory.  All candidate evidence remains in selection.json and the original sample.
     original_arrays.pop("generated_ref_candidates", None)
     original_arrays.pop("candidate_indices", None)
-    original_arrays["generated_ref"] = candidates[selected_index]
+    original_arrays["generated_ref"] = evaluated_candidates[selected_index]
     original_arrays["selected_candidate_index"] = np.asarray(selected_index, dtype=np.int64)
     args.out.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(args.out / "selected_sample.npz", **original_arrays)
@@ -132,6 +145,7 @@ def main() -> int:
     selection = {"sample": str(args.sample), "source_hz": args.source_hz,
                  "candidates_evaluated": int(len(candidates)), "viable_candidates": int(len(viable)),
                  "selected_candidate_index": selected_index, "accepted": bool(selected["accepted"]),
+                 "optimization_embedded_projection": bool(args.project_candidates),
                  **source_trace,
                  "selection_rule": "hard feasibility, then tracking/corridor/progress/smoothness objective",
                  "selected": selected, "candidates": reports}
