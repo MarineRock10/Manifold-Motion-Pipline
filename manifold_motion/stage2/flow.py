@@ -48,6 +48,18 @@ PRIMITIVE_NAMES = (
 PRIMITIVE_COUNT = len(PRIMITIVE_NAMES)
 
 
+def _primitive_name(raw: dict[str, np.ndarray], primitive_id: int) -> str:
+    """Resolve a data-driven SEED family name, including the 30-family archive taxonomy."""
+    names = raw.get("primitive_names")
+    if names is not None:
+        values = np.asarray(names).reshape(-1)
+        if 0 <= int(primitive_id) < len(values):
+            return str(values[int(primitive_id)])
+    if 0 <= int(primitive_id) < len(PRIMITIVE_NAMES):
+        return PRIMITIVE_NAMES[int(primitive_id)]
+    return f"primitive_{int(primitive_id)}"
+
+
 def _policy_joint_bounds() -> tuple[np.ndarray, np.ndarray]:
     """Physical G1 joint ranges in SONIC's policy order, read from the active MJCF."""
     env = G1FlatEnv()
@@ -929,7 +941,7 @@ def sample(args: argparse.Namespace) -> int:
         "condition": condition_row[0],
         "source_index": np.asarray(index, dtype=np.int64),
         "primitive_id": np.asarray(conditioned_primitive, dtype=np.int64),
-        "primitive_name": np.asarray(PRIMITIVE_NAMES[conditioned_primitive]),
+        "primitive_name": np.asarray(_primitive_name(data.raw, conditioned_primitive)),
         "source_primitive_id": np.asarray(actual_primitive, dtype=np.int64),
     }
     if router_probabilities is not None:
@@ -956,7 +968,7 @@ def sample(args: argparse.Namespace) -> int:
     report = {"source_index": index, "split": int(args.split), "steps": args.steps,
               "num_candidates": args.num_candidates, "sampler": args.sampler,
               "primitive": str(sample_arrays["primitive_name"]),
-              "source_primitive": PRIMITIVE_NAMES[actual_primitive],
+              "source_primitive": _primitive_name(data.raw, actual_primitive),
               "generated_shape": list(generated.shape), "flow_checkpoint": (str(args.flow) if flow_checkpoint else None),
               "mean_checkpoint": (str(args.mean_model) if mean_checkpoint else None),
               "residual_flow_checkpoint": (str(args.residual_flow) if residual_checkpoint else None),

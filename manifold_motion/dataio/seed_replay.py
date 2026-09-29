@@ -363,7 +363,8 @@ class SeedReplayRunner:
             checks.append("reference_joint_limit")
         if obstacle_ratio > 0.0:
             checks.append("scene_obstacle_contact")
-        if stratum == "jump":
+        stratum_name = str(stratum).lower()
+        if stratum_name == "jump" or "jump" in stratum_name:
             if longest_airborne < cfg.jump_min_airborne_ticks:
                 checks.append("jump_no_sustained_takeoff")
             if jump_lift < cfg.jump_min_lift_m:
@@ -373,7 +374,7 @@ class SeedReplayRunner:
 
         # Crawl/all-fours references legitimately ask for hand and other low-body contacts.
         # Normal walk and crouch clips must retain foot support and stay off non-foot bodies.
-        low_contact_mode = stratum in {"all_fours", "crawl", "low_transition"}
+        low_contact_mode = stratum_name in {"all_fours", "crawl", "low_transition", "kneel"}
         if not low_contact_mode:
             if float(foot_ratio.min()) < cfg.min_foot_contact_ratio:
                 checks.append("insufficient_foot_contact")
@@ -383,8 +384,13 @@ class SeedReplayRunner:
         # that does ask for appreciable planar travel, stability alone is insufficient: require
         # the frozen executor to make at least a fraction of that progress.  The SEED and
         # generated root axes are only used through their invariant planar path length.
-        locomotion = stratum in {"walk_nominal", "walk_turn", "walk_lateral_reverse", "crouch",
-                                 "all_fours", "crawl", "generated"}
+        locomotion_families = {
+            "walk_nominal", "walk_turn", "walk_lateral_reverse", "crouch", "all_fours", "crawl",
+            "walk_forward", "jog_forward", "hands_back_walk", "walk_lateral", "walk_curve",
+            "crouch_walk", "dodge_lateral", "side_hop", "forward_lunge", "step_up_box",
+            "step_down_box", "box_jump", "high_jump", "carry_object", "generated",
+        }
+        locomotion = stratum_name in locomotion_families
         progress_required = locomotion and reference_path >= cfg.min_reference_planar_path_m
         if progress_required and progress_ratio < cfg.min_progress_ratio:
             checks.append("insufficient_motion_progress")

@@ -71,6 +71,9 @@ CPU 训练配置为 latent 32、hidden 256、25 个 VAE epoch 和 35 个 Flow ep
 - `reports/manifold_motion/stage2_router_flow_selection_projected_v1/selection.json`
 - `reports/manifold_motion/stage2_router_flow_selection_projected_v1/selected_executed.npz`
 
+多动作族扩展见[多动作 router/Flow 物理验证报告](STAGE2_ROUTER_FLOW_MULTIFAMILY.md)，
+其中包含 5 个动作族的可预览 GIF、自动路由审计和每候选失败原因。
+
 ## 重要边界
 
 这是一条正式接线和首轮候选筛选实验，不是最终 SOTA 声明。当前 Flow checkpoint 仍需

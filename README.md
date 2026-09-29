@@ -252,6 +252,17 @@ candidate passes, and `15/16` pass after the bounded optimization-embedded proje
        alt="Router-conditioned Flow candidate selected by SONIC and MuJoCo" />
 </p>
 
+The multi-family physical audit now covers `jog_forward`, `kneel`, `crouch_transition`,
+`carry_object` and `forward_lunge` in addition to the first all-fours case. The automatic router
+selected these families from its predicted probabilities; the [audit table and five GIFs](docs/stage2/STAGE2_ROUTER_FLOW_MULTIFAMILY.md)
+also keep the rejected all-fours case and its failure checks visible.
+
+| Jog forward | Kneel | Crouch transition |
+|:---:|:---:|:---:|
+| <img src="docs/experiments/stage2_router_flow_multifamily_v1/jog_forward.gif" width="250" /> | <img src="docs/experiments/stage2_router_flow_multifamily_v1/kneel.gif" width="250" /> | <img src="docs/experiments/stage2_router_flow_multifamily_v1/crouch_transition.gif" width="250" /> |
+| **Carry-object route** | **Forward lunge** | **Audit** |
+| <img src="docs/experiments/stage2_router_flow_multifamily_v1/carry_object.gif" width="250" /> | <img src="docs/experiments/stage2_router_flow_multifamily_v1/forward_lunge.gif" width="250" /> | Raw `13/36`, projected `14/36`; 5/6 routed families produced an executable candidate. |
+
 ## Reproduction
 
 ### 1. Runtime and controller assets
