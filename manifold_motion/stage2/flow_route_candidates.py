@@ -33,6 +33,10 @@ from manifold_motion.perception.scene_pointcloud import obstacle_pointcloud
 from manifold_motion.dataio.seed_replay import ReplayConfig, SeedReplayRunner
 from manifold_motion.stage2.flow import (Normalizer, WindowData, _load_ae, _load_flow,
                           _load_mean, _target_from_model)
+from manifold_motion.stage2.stage1_router_bridge import (
+    predicted_primitive_probabilities, replace_primitive_condition,
+)
+from manifold_motion.stage1.temporal_primitive import TemporalPrimitiveNet
 from manifold_motion.stage2.long_horizon_avoidance import (
     PlannerConfig, _astar, _boxes, _densify, _distance_to_polyline, _roll_degrees,
     _route_yaw, _simplify, _angle, _yaw, _rolling_reference, render,
@@ -81,6 +85,30 @@ PRIMITIVE_NAMES = {
 }
 
 
+def _canonical_primitive_id(name: str) -> int:
+    """Map the 30-family SEED taxonomy to the continuous executor's legacy semantic slots."""
+    value = str(name).lower()
+    if any(token in value for token in ("lateral", "dodge", "side_hop")):
+        return 4
+    if any(token in value for token in ("turn", "curve")):
+        return 6
+    if any(token in value for token in ("crouch", "kneel", "crawl", "all_fours", "low")):
+        return 2
+    return 5
+
+
+def _router_semantic_choices(probabilities: np.ndarray, names: np.ndarray) -> list[int]:
+    """Choose distinct executor semantics from the predicted distribution, never from labels."""
+    scores: dict[int, float] = {}
+    for family_id, probability in enumerate(np.asarray(probabilities).reshape(-1)):
+        canonical = _canonical_primitive_id(str(names[family_id]))
+        scores[canonical] = max(scores.get(canonical, 0.0), float(probability))
+    ordered = [key for key, _ in sorted(scores.items(), key=lambda item: item[1], reverse=True)]
+    if 5 not in ordered:
+        ordered.append(5)
+    return ordered[:2]
+
+
 def _runtime_obstacle_boxes(model: mujoco.MjModel, data: mujoco.MjData
                             ) -> list[tuple[str, np.ndarray, np.ndarray]]:
     """Extract the axis-aligned obstacle boxes used by the online self-manifold stop."""
@@ -127,13 +155,33 @@ class RouteFlowSampler:
     """Build exact model-condition rows and decode stochastic latent-flow trajectories."""
 
     def __init__(self, windows: Path, autoencoder: Path, flow: Path, device: str = "cpu",
-                 mean_model_root: Path | None = None):
+                 mean_model_root: Path | None = None, router_checkpoint: Path | None = None):
         self.device = torch.device(device)
+        self.windows = Path(windows)
+        self.router_checkpoint = Path(router_checkpoint) if router_checkpoint is not None else None
         self.ae, self.ae_checkpoint = _load_ae(autoencoder, self.device)
         self.flow, self.flow_checkpoint = _load_flow(flow, self.device)
         normalizer = Normalizer.from_state_dict(self.ae_checkpoint["normalizer"])
         self.data = WindowData.load(windows, normalizer=normalizer)
+        self.router_probabilities: np.ndarray | None = None
+        self.router_model: TemporalPrimitiveNet | None = None
+        self.router_checkpoint_data: dict[str, Any] | None = None
+        if self.router_checkpoint is not None:
+            self.router_probabilities = predicted_primitive_probabilities(
+                self.windows, self.router_checkpoint, str(self.device)
+            )
+            self.data = replace_primitive_condition(self.data, self.router_probabilities)
+            self.router_checkpoint_data = torch.load(
+                self.router_checkpoint, map_location=self.device, weights_only=False
+            )
+            self.router_model = TemporalPrimitiveNet.build(
+                torch, 7, int(self.router_checkpoint_data["hidden"]),
+                int(self.router_checkpoint_data["classes"])
+            ).to(self.device)
+            self.router_model.load_state_dict(self.router_checkpoint_data["model"])
+            self.router_model.eval()
         self.normalizer = normalizer
+        self.horizon = int(self.data.raw["corridor"].shape[1]) if "corridor" in self.data.raw else 48
         self.validated_exemplars = {2: 554, 4: 1348, 5: 2072, 6: 2113}
         if self.flow.condition_dim != self.data.condition.shape[1]:
             raise ValueError("Flow checkpoint and route window condition dimensions differ")
@@ -164,6 +212,10 @@ class RouteFlowSampler:
                         )
 
     def _window_index(self, primitive_id: int) -> int:
+        if self.router_checkpoint is not None:
+            train = np.flatnonzero(self.data.split == 0)
+            if len(train):
+                return int(train[0])
         values = np.flatnonzero(self.data.raw["primitive"] == primitive_id)
         if not len(values):
             raise ValueError(f"route windows contain no primitive {primitive_id}")
@@ -179,6 +231,25 @@ class RouteFlowSampler:
         train = values[self.data.split[values] == 0]
         return int(train[0] if len(train) else values[0])
 
+    def route_probabilities(self, corridor: np.ndarray) -> np.ndarray:
+        """Predict the Stage-1 action distribution for one live route segment."""
+        if self.router_model is None or self.router_checkpoint_data is None:
+            return np.eye(self.data.primitive_count, dtype=np.float32)[[5]][0]
+        corridor = np.asarray(corridor, dtype=np.float32)
+        target_t = np.linspace(0.0, 1.0, self.horizon)
+        source_t = np.linspace(0.0, 1.0, len(corridor))
+        resampled = np.stack([
+            np.interp(target_t, source_t, corridor[:, axis]) for axis in range(corridor.shape[1])
+        ], axis=1).astype(np.float32)
+        mean = np.asarray(self.router_checkpoint_data["geom_mean"], dtype=np.float32)
+        std = np.asarray(self.router_checkpoint_data["geom_std"], dtype=np.float32)
+        with torch.no_grad():
+            normalized = (resampled - mean[None]) / std[None]
+            _, logits = self.router_model(
+                torch.as_tensor(normalized, dtype=torch.float32, device=self.device)[None]
+            )
+            return torch.softmax(logits, dim=-1)[0].cpu().numpy().astype(np.float32)
+
     @staticmethod
     def _yaw_command(delta_local: np.ndarray, yaw_local: float) -> np.ndarray:
         c, s = np.cos(yaw_local), np.sin(yaw_local)
@@ -188,16 +259,27 @@ class RouteFlowSampler:
     def condition(self, primitive_id: int, corridor: np.ndarray, sdf: np.ndarray,
                   command: np.ndarray, *, state: np.ndarray | None = None,
                   history: np.ndarray | None = None,
+                  self_manifold: np.ndarray | None = None,
+                  router_probabilities: np.ndarray | None = None,
                   normalizer: Normalizer | None = None) -> tuple[np.ndarray, int]:
         index = self._window_index(primitive_id)
         normalizer = self.normalizer if normalizer is None else normalizer
-        if corridor.shape != (48, 7) or sdf.shape != (10, 10, 8):
-            raise ValueError(f"route condition must be (48,7)/(10,10,8), got {corridor.shape}/{sdf.shape}")
-        environment = np.concatenate([
-            self.data.raw["manifold"][index].reshape(1, -1),
-            corridor.reshape(1, -1), sdf.reshape(1, -1),
-        ], axis=1).astype(np.float32)
-        one_hot = np.eye(self.data.primitive_count, dtype=np.float32)[[primitive_id]]
+        if corridor.shape != (self.horizon, 7) or sdf.shape != (10, 10, 8):
+            raise ValueError(f"route condition must be ({self.horizon},7)/(10,10,8), got {corridor.shape}/{sdf.shape}")
+        environment_parts = [self.data.raw["manifold"][index].reshape(1, -1),
+                             corridor.reshape(1, -1), sdf.reshape(1, -1)]
+        if "self_manifold" in self.data.raw:
+            self_value = (np.asarray(self_manifold, dtype=np.float32).reshape(1, self.horizon, 3)
+                          if self_manifold is not None
+                          else self.data.raw["self_manifold"][index:index + 1])
+            environment_parts.append(self_value.reshape(1, -1))
+        environment = np.concatenate(environment_parts, axis=1).astype(np.float32)
+        if router_probabilities is not None:
+            category = np.asarray(router_probabilities, dtype=np.float32).reshape(1, -1)
+        elif self.router_probabilities is not None:
+            category = self.router_probabilities[index:index + 1]
+        else:
+            category = np.eye(self.data.primitive_count, dtype=np.float32)[[primitive_id]]
         state_value = self.data.raw["state"][index:index + 1] if state is None else np.asarray(state, dtype=np.float32).reshape(1, -1)
         history_value = self.data.raw["history"][index:index + 1] if history is None else np.asarray(history, dtype=np.float32).reshape(1, 12, -1)
         if state_value.shape != (1, self.data.raw["state"].shape[1]):
@@ -207,7 +289,7 @@ class RouteFlowSampler:
         row = np.concatenate([
             normalizer.state(state_value).astype(np.float32),
             normalizer.state(history_value).reshape(1, -1).astype(np.float32),
-            one_hot,
+            category,
             normalizer.manifold(environment).astype(np.float32),
             normalizer.command(command[None]).astype(np.float32),
         ], axis=1)
@@ -217,10 +299,13 @@ class RouteFlowSampler:
                command: np.ndarray, count: int, seed: int, *,
                state: np.ndarray | None = None,
                history: np.ndarray | None = None,
+               self_manifold: np.ndarray | None = None,
+               router_probabilities: np.ndarray | None = None,
                raw_exemplar: bool = False,
                include_mean_anchor: bool = True) -> tuple[np.ndarray, int]:
         condition_row, source_index = self.condition(
-            primitive_id, corridor, sdf, command, state=state, history=history
+            primitive_id, corridor, sdf, command, state=state, history=history,
+            self_manifold=self_manifold, router_probabilities=router_probabilities,
         )
         condition = torch.as_tensor(condition_row, device=self.device).expand(count, -1)
         generator = torch.Generator(device=self.device).manual_seed(seed)
@@ -239,10 +324,11 @@ class RouteFlowSampler:
         # Add a deterministic conditional-mean anchor as candidate 0 when available.  This is
         # still a model candidate and prevents a stochastic draw from removing a known stable
         # primitive from the candidate set.
-        if include_mean_anchor and primitive_id in self.mean_models:
+        if include_mean_anchor and self.router_checkpoint is None and primitive_id in self.mean_models:
             mean_normalizer = self.mean_normalizers.get(primitive_id, self.normalizer)
             mean_condition_row, _ = self.condition(
                 primitive_id, corridor, sdf, command, state=state, history=history,
+                self_manifold=self_manifold, router_probabilities=router_probabilities,
                 normalizer=mean_normalizer,
             )
             with torch.no_grad():
@@ -262,8 +348,9 @@ class RouteFlowSampler:
 
 
 def _segment_condition(route_segment: np.ndarray, start: np.ndarray, points_world: np.ndarray,
-                       envelope_semi: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Make a route-local 48-frame M_e and the exact fixed Stage-2 SDF shape."""
+                       envelope_semi: np.ndarray, horizon: int = 48
+                       ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Make a route-local M_e, self-manifold and the exact fixed Stage-2 SDF shape."""
     delta = route_segment - start[None, :]
     heading = float(np.arctan2(delta[-1, 1], delta[-1, 0]))
     c, s = np.cos(heading), np.sin(heading)
@@ -273,16 +360,16 @@ def _segment_condition(route_segment: np.ndarray, start: np.ndarray, points_worl
     local_points = np.column_stack([(points_world[:, :2] - start[None, :]) @ rotation.T,
                                     points_world[:, 2]])
     source_t = np.linspace(0.0, 1.0, len(local_route))
-    target_t = np.linspace(0.0, 1.0, 48)
+    target_t = np.linspace(0.0, 1.0, horizon)
     route = np.stack([np.interp(target_t, source_t, local_route[:, axis]) for axis in range(3)], axis=1)
-    semi = np.repeat(np.asarray(envelope_semi, dtype=np.float64)[None, :], 48, axis=0)
-    yaw = np.zeros(48, dtype=np.float64)
+    semi = np.repeat(np.asarray(envelope_semi, dtype=np.float64)[None, :], horizon, axis=0)
+    yaw = np.zeros(horizon, dtype=np.float64)
     config = PerceptionGridConfig()
     corridor, sdf = corridor_from_perception(
         route, semi, local_points, route_yaw_local_rad=yaw, config=config, clearance_m=0.08
     )
     command = RouteFlowSampler._yaw_command(route[-1], 0.0)
-    return corridor, sdf, command
+    return corridor, sdf, command, semi.astype(np.float32)
 
 
 def _candidate_screen(trajectory: np.ndarray, primitive_id: int, source: Path,
@@ -1171,6 +1258,8 @@ def main() -> int:
     parser.add_argument("--windows", type=Path, default=C.REPO / "reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz")
     parser.add_argument("--autoencoder", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/autoencoder.pt")
     parser.add_argument("--flow", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/flow.pt")
+    parser.add_argument("--router-checkpoint", type=Path, default=None,
+                        help="Stage-1 temporal router; route segments then use predicted M_e(t) probabilities")
     parser.add_argument("--out", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_route_avoidance_v1")
     parser.add_argument("--num-candidates", type=int, default=6)
     parser.add_argument("--goal-x", type=float, default=3.60)
@@ -1212,19 +1301,28 @@ def main() -> int:
     segments = _route_segments(dense, keyframes)
     points, obstacle_names = obstacle_pointcloud(args.scene, spacing_m=.06)
     envelope = _calibrate_envelope()
-    sampler = RouteFlowSampler(args.windows, args.autoencoder, args.flow, args.device)
+    sampler = RouteFlowSampler(args.windows, args.autoencoder, args.flow, args.device,
+                               router_checkpoint=args.router_checkpoint)
     runner = SeedReplayRunner(C.FLAT_SCENE)
 
-    # Preferred semantic action by route interval.  The first segment turns into the upper
-    # corridor, the middle segment uses a lateral gait, and the exit segment uses crouch before
-    # returning to nominal.  Each preference is backed by K flow candidates and a hard gate.
+    # With a router checkpoint, each route segment chooses its semantic candidate from the
+    # predicted M_e(t) distribution.  The nominal slot remains a safety fallback only; no
+    # segment is assigned turn/side/crouch by its index.  The legacy preference table is kept
+    # solely for backwards-compatible runs without a router checkpoint.
     preferences = [[6, 5], [4, 5], [2, 5]]
     plan_options: list[list[CandidatePlan]] = []
     evidence: list[dict[str, Any]] = []
     condition_arrays: dict[str, np.ndarray] = {}
     for segment_index, (segment, primitive_choices) in enumerate(zip(segments, preferences)):
         start = segment[0]
-        corridor, sdf, command = _segment_condition(segment, start, points, envelope)
+        corridor, sdf, command, self_manifold = _segment_condition(
+            segment, start, points, envelope, sampler.horizon
+        )
+        router_probabilities = (sampler.route_probabilities(corridor)
+                                if args.router_checkpoint is not None else None)
+        primitive_choices = (_router_semantic_choices(
+            router_probabilities, sampler.data.raw["primitive_names"]
+        ) if router_probabilities is not None else preferences[segment_index])
         condition_arrays[f"segment_{segment_index}_corridor"] = corridor
         condition_arrays[f"segment_{segment_index}_sdf"] = sdf
         segment_reports: list[dict[str, Any]] = []
@@ -1234,6 +1332,7 @@ def main() -> int:
             generated, source_index = sampler.sample(
                 primitive_id, corridor, sdf, command, args.num_candidates,
                 seed=20260917 + segment_index * 101 + primitive_id,
+                self_manifold=self_manifold, router_probabilities=router_probabilities,
             )
             candidate_reports = []
             for candidate_index, trajectory in enumerate(generated):
@@ -1298,6 +1397,7 @@ def main() -> int:
         "experiment": "Stage-2 Flow Matching route-segment candidate generation and physical selection",
         "scene": str(args.scene), "windows": str(args.windows), "flow": str(args.flow),
         "autoencoder": str(args.autoencoder), "obstacles": obstacle_names,
+        "router_checkpoint": (str(args.router_checkpoint) if args.router_checkpoint else None),
         "planner": {"resolution_m": planner.resolution_m, "inflation_m": planner.inflation_m,
                      "body_radius_m": planner.body_radius_m, "clearance_m": planner.clearance_m},
         "raw_astar_points": int(len(raw_route)), "keyframes": world_keyframes.tolist(),
@@ -1314,7 +1414,12 @@ def main() -> int:
                                     if len(options) > 1 else None)} for options in plan_options],
         "candidate_evidence": evidence, "execution": execution,
         "accepted": execution["accepted"], "failed_checks": execution["failed_checks"],
-        "flow_condition_contract": "each segment supplies corridor [48,7] and sdf [10,10,8] directly to latent Flow Matching",
+        "flow_condition_contract": (
+            f"each segment supplies corridor [{sampler.horizon},7], self_manifold "
+            f"[{sampler.horizon},3], sdf [10,10,8] and Stage-1 predicted probabilities"
+            if args.router_checkpoint else
+            "each segment supplies corridor [48,7] and sdf [10,10,8] directly to latent Flow Matching"
+        ),
     }
     np.savez_compressed(args.out / "segment_conditions.npz", **condition_arrays,
                         keyframes=world_keyframes, route=world_route)

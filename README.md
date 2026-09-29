@@ -263,6 +263,10 @@ also keep the rejected all-fours case and its failure checks visible.
 | **Carry-object route** | **Forward lunge** | **Audit** |
 | <img src="docs/experiments/stage2_router_flow_multifamily_v1/carry_object.gif" width="250" /> | <img src="docs/experiments/stage2_router_flow_multifamily_v1/forward_lunge.gif" width="250" /> | Raw `13/36`, projected `14/36`; 5/6 routed families produced an executable candidate. |
 
+The first continuous router-Flow route is now also available in the
+[long-horizon report](docs/stage2/STAGE2_ROUTER_FLOW_LONG_HORIZON.md): three A* keyframes are
+reached in one MuJoCo rollout with no obstacle contact and no simulator reset.
+
 ## Reproduction
 
 ### 1. Runtime and controller assets
