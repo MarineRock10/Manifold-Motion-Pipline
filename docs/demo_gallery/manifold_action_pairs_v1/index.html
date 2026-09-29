@@ -1,0 +1,155 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>流形 GIF ↔ 动作 GIF</title>
+<style>body{font-family:"Microsoft YaHei",Arial,sans-serif;background:#091522;color:#eaf5fa;margin:24px auto;padding:0 18px;max-width:1320px}h1{margin-bottom:6px}p{color:#b7cad2;line-height:1.7}.note{padding:12px 20px;border-left:3px solid #eeaf66;background:#192d3b}.toolbar{position:sticky;top:0;background:#091522;padding:10px 0;z-index:1}input{width:min(340px,80%);padding:10px;border-radius:6px;border:1px solid #507080;background:#112432;color:#fff}.grid{display:grid;grid-template-columns:1fr;gap:22px}.card{background:#102331;border:1px solid #294d5d;border-radius:10px;padding:16px}h2{font-size:21px;margin:4px 0}small{font-size:14px;font-weight:400;color:#aecad4}code{font-size:14px;color:#84e9ff}img{display:block;width:100%;background:#000;border-radius:6px}a{color:#72e9ff;text-decoration:none}a:hover{text-decoration:underline}nav{display:flex;flex-wrap:wrap;gap:24px;padding-top:14px}.labels{display:flex;padding:8px 0;color:#bcd0dd}.labels span{width:50%;text-align:center}.source{font-size:12px;overflow-wrap:anywhere}button{margin-left:12px;background:#243f50;color:white;padding:8px;border:1px solid #507080;border-radius:6px;cursor:pointer}</style></head>
+<body><h1>一个流形 GIF，对应一个动作 GIF</h1><p>21 组成对样本 · 每组两个独立 GIF，另附逐帧同步合成 GIF · 原始窗口 1.2 秒，默认半速观看（2.4 秒）。</p>
+<div class="note"><p>左图：青色为反向构建的环境走廊 M_e(t)，橙色为随执行姿态变化的自身包络 M_self(t)。右图：对应窗口的 SONIC/MuJoCo 执行记录，非新生成的模型动作。</p>
+<p>这是<strong>数据处理结果</strong>，不是“模型看见流形后自主完成动作”的实验。环境流形由既有动作反推，未放置真实障碍；“开门 / 攀梯 / 箱跳”等名称是 SEED 来源标签，不代表已经完成对应物体交互。蓝色地面线为记录的根轨迹，非规划结果。</p>
+<p>默认每个来源动作族选取关节变化较大的一个窗口，便于目视审查；不是随机抽样或成功率统计。镜头在片段内固定；两栏独立取景，网格均为 0.5 米。主预览使用合成 GIF，保证左右严格同步。</p></div>
+<div class="toolbar"><input id="search" aria-label="筛选样本" placeholder="筛选：蹲走、侧向、walk、样本编号…"><button id="restart">重新播放可见样本</button></div><main class="grid"><article class="card" data-search="四肢支撑 all_fours me_action_002865">
+  <h2>四肢支撑 <small>all_fours</small></h2>
+  <p><code>me_action_002865</code> · 36 帧 · test</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_002865_all_fours_pair.gif" loading="lazy" alt="四肢支撑：流形与动作逐帧同步对照">
+  <nav><a href="me_action_002865_all_fours_manifold.gif">单独打开流形 GIF</a><a href="me_action_002865_all_fours_action.gif">单独打开动作 GIF</a><a href="me_action_002865_all_fours_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_20_all_fours_test_00 · actor A201</p>
+</article><article class="card" data-search="箱跳来源片段 box_jump me_action_002391">
+  <h2>箱跳来源片段 <small>box_jump</small></h2>
+  <p><code>me_action_002391</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_002391_box_jump_pair.gif" loading="lazy" alt="箱跳来源片段：流形与动作逐帧同步对照">
+  <nav><a href="me_action_002391_box_jump_manifold.gif">单独打开流形 GIF</a><a href="me_action_002391_box_jump_action.gif">单独打开动作 GIF</a><a href="me_action_002391_box_jump_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_15_box_jump_train_02 · actor A361</p>
+</article><article class="card" data-search="按压 / 拨杆动作 button_lever me_action_003462">
+  <h2>按压 / 拨杆动作 <small>button_lever</small></h2>
+  <p><code>me_action_003462</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_003462_button_lever_pair.gif" loading="lazy" alt="按压 / 拨杆动作：流形与动作逐帧同步对照">
+  <nav><a href="me_action_003462_button_lever_manifold.gif">单独打开流形 GIF</a><a href="me_action_003462_button_lever_action.gif">单独打开动作 GIF</a><a href="me_action_003462_button_lever_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_27_button_lever_train_01 · actor A481</p>
+</article><article class="card" data-search="搬运姿态 carry_object me_action_003618">
+  <h2>搬运姿态 <small>carry_object</small></h2>
+  <p><code>me_action_003618</code> · 36 帧 · test</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_003618_carry_object_pair.gif" loading="lazy" alt="搬运姿态：流形与动作逐帧同步对照">
+  <nav><a href="me_action_003618_carry_object_manifold.gif">单独打开流形 GIF</a><a href="me_action_003618_carry_object_action.gif">单独打开动作 GIF</a><a href="me_action_003618_carry_object_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_28_carry_object_test_01 · actor A321</p>
+</article><article class="card" data-search="蹲起转换 crouch_transition me_action_001652">
+  <h2>蹲起转换 <small>crouch_transition</small></h2>
+  <p><code>me_action_001652</code> · 36 帧 · validation</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_001652_crouch_transition_pair.gif" loading="lazy" alt="蹲起转换：流形与动作逐帧同步对照">
+  <nav><a href="me_action_001652_crouch_transition_manifold.gif">单独打开流形 GIF</a><a href="me_action_001652_crouch_transition_action.gif">单独打开动作 GIF</a><a href="me_action_001652_crouch_transition_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_07_crouch_transition_validation_01 · actor A129</p>
+</article><article class="card" data-search="蹲走 crouch_walk me_action_001441">
+  <h2>蹲走 <small>crouch_walk</small></h2>
+  <p><code>me_action_001441</code> · 36 帧 · validation</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_001441_crouch_walk_pair.gif" loading="lazy" alt="蹲走：流形与动作逐帧同步对照">
+  <nav><a href="me_action_001441_crouch_walk_manifold.gif">单独打开流形 GIF</a><a href="me_action_001441_crouch_walk_action.gif">单独打开动作 GIF</a><a href="me_action_001441_crouch_walk_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_06_crouch_walk_validation_00 · actor A129</p>
+</article><article class="card" data-search="侧向闪避 dodge_lateral me_action_001700">
+  <h2>侧向闪避 <small>dodge_lateral</small></h2>
+  <p><code>me_action_001700</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_001700_dodge_lateral_pair.gif" loading="lazy" alt="侧向闪避：流形与动作逐帧同步对照">
+  <nav><a href="me_action_001700_dodge_lateral_manifold.gif">单独打开流形 GIF</a><a href="me_action_001700_dodge_lateral_action.gif">单独打开动作 GIF</a><a href="me_action_001700_dodge_lateral_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_09_dodge_lateral_train_00 · actor A431</p>
+</article><article class="card" data-search="开门来源片段 door_interaction me_action_003207">
+  <h2>开门来源片段 <small>door_interaction</small></h2>
+  <p><code>me_action_003207</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_003207_door_interaction_pair.gif" loading="lazy" alt="开门来源片段：流形与动作逐帧同步对照">
+  <nav><a href="me_action_003207_door_interaction_manifold.gif">单独打开流形 GIF</a><a href="me_action_003207_door_interaction_action.gif">单独打开动作 GIF</a><a href="me_action_003207_door_interaction_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_25_door_interaction_train_04 · actor A513</p>
+</article><article class="card" data-search="向前弓步 forward_lunge me_action_001924">
+  <h2>向前弓步 <small>forward_lunge</small></h2>
+  <p><code>me_action_001924</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_001924_forward_lunge_pair.gif" loading="lazy" alt="向前弓步：流形与动作逐帧同步对照">
+  <nav><a href="me_action_001924_forward_lunge_manifold.gif">单独打开流形 GIF</a><a href="me_action_001924_forward_lunge_action.gif">单独打开动作 GIF</a><a href="me_action_001924_forward_lunge_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_10_forward_lunge_train_01 · actor A360</p>
+</article><article class="card" data-search="背手行走 hands_back_walk me_action_000563">
+  <h2>背手行走 <small>hands_back_walk</small></h2>
+  <p><code>me_action_000563</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_000563_hands_back_walk_pair.gif" loading="lazy" alt="背手行走：流形与动作逐帧同步对照">
+  <nav><a href="me_action_000563_hands_back_walk_manifold.gif">单独打开流形 GIF</a><a href="me_action_000563_hands_back_walk_action.gif">单独打开动作 GIF</a><a href="me_action_000563_hands_back_walk_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_02_hands_back_walk_train_05 · actor A238</p>
+</article><article class="card" data-search="高跳来源片段 high_jump me_action_002333">
+  <h2>高跳来源片段 <small>high_jump</small></h2>
+  <p><code>me_action_002333</code> · 36 帧 · validation</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_002333_high_jump_pair.gif" loading="lazy" alt="高跳来源片段：流形与动作逐帧同步对照">
+  <nav><a href="me_action_002333_high_jump_manifold.gif">单独打开流形 GIF</a><a href="me_action_002333_high_jump_action.gif">单独打开动作 GIF</a><a href="me_action_002333_high_jump_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_14_high_jump_validation_00 · actor A349</p>
+</article><article class="card" data-search="向前慢跑 jog_forward me_action_000394">
+  <h2>向前慢跑 <small>jog_forward</small></h2>
+  <p><code>me_action_000394</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_000394_jog_forward_pair.gif" loading="lazy" alt="向前慢跑：流形与动作逐帧同步对照">
+  <nav><a href="me_action_000394_jog_forward_manifold.gif">单独打开流形 GIF</a><a href="me_action_000394_jog_forward_action.gif">单独打开动作 GIF</a><a href="me_action_000394_jog_forward_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_01_jog_forward_train_05 · actor A094</p>
+</article><article class="card" data-search="跪姿转换 kneel me_action_002828">
+  <h2>跪姿转换 <small>kneel</small></h2>
+  <p><code>me_action_002828</code> · 36 帧 · validation</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_002828_kneel_pair.gif" loading="lazy" alt="跪姿转换：流形与动作逐帧同步对照">
+  <nav><a href="me_action_002828_kneel_manifold.gif">单独打开流形 GIF</a><a href="me_action_002828_kneel_action.gif">单独打开动作 GIF</a><a href="me_action_002828_kneel_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_18_kneel_validation_00 · actor A184</p>
+</article><article class="card" data-search="攀梯来源片段 ladder me_action_003344">
+  <h2>攀梯来源片段 <small>ladder</small></h2>
+  <p><code>me_action_003344</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_003344_ladder_pair.gif" loading="lazy" alt="攀梯来源片段：流形与动作逐帧同步对照">
+  <nav><a href="me_action_003344_ladder_manifold.gif">单独打开流形 GIF</a><a href="me_action_003344_ladder_action.gif">单独打开动作 GIF</a><a href="me_action_003344_ladder_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_26_ladder_train_01 · actor A301</p>
+</article><article class="card" data-search="侧向跳步 side_hop me_action_002202">
+  <h2>侧向跳步 <small>side_hop</small></h2>
+  <p><code>me_action_002202</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_002202_side_hop_pair.gif" loading="lazy" alt="侧向跳步：流形与动作逐帧同步对照">
+  <nav><a href="me_action_002202_side_hop_manifold.gif">单独打开流形 GIF</a><a href="me_action_002202_side_hop_action.gif">单独打开动作 GIF</a><a href="me_action_002202_side_hop_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_11_side_hop_train_05 · actor A361</p>
+</article><article class="card" data-search="下台阶来源片段 step_down_box me_action_002539">
+  <h2>下台阶来源片段 <small>step_down_box</small></h2>
+  <p><code>me_action_002539</code> · 36 帧 · test</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_002539_step_down_box_pair.gif" loading="lazy" alt="下台阶来源片段：流形与动作逐帧同步对照">
+  <nav><a href="me_action_002539_step_down_box_manifold.gif">单独打开流形 GIF</a><a href="me_action_002539_step_down_box_action.gif">单独打开动作 GIF</a><a href="me_action_002539_step_down_box_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_17_step_down_box_test_00 · actor A251</p>
+</article><article class="card" data-search="上台阶来源片段 step_up_box me_action_002510">
+  <h2>上台阶来源片段 <small>step_up_box</small></h2>
+  <p><code>me_action_002510</code> · 36 帧 · validation</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_002510_step_up_box_pair.gif" loading="lazy" alt="上台阶来源片段：流形与动作逐帧同步对照">
+  <nav><a href="me_action_002510_step_up_box_manifold.gif">单独打开流形 GIF</a><a href="me_action_002510_step_up_box_action.gif">单独打开动作 GIF</a><a href="me_action_002510_step_up_box_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_16_step_up_box_validation_01 · actor A123</p>
+</article><article class="card" data-search="原地转向 turn_in_place me_action_001256">
+  <h2>原地转向 <small>turn_in_place</small></h2>
+  <p><code>me_action_001256</code> · 36 帧 · validation</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_001256_turn_in_place_pair.gif" loading="lazy" alt="原地转向：流形与动作逐帧同步对照">
+  <nav><a href="me_action_001256_turn_in_place_manifold.gif">单独打开流形 GIF</a><a href="me_action_001256_turn_in_place_action.gif">单独打开动作 GIF</a><a href="me_action_001256_turn_in_place_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_05_turn_in_place_validation_01 · actor A123</p>
+</article><article class="card" data-search="曲线行走 walk_curve me_action_000822">
+  <h2>曲线行走 <small>walk_curve</small></h2>
+  <p><code>me_action_000822</code> · 36 帧 · test</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_000822_walk_curve_pair.gif" loading="lazy" alt="曲线行走：流形与动作逐帧同步对照">
+  <nav><a href="me_action_000822_walk_curve_manifold.gif">单独打开流形 GIF</a><a href="me_action_000822_walk_curve_action.gif">单独打开动作 GIF</a><a href="me_action_000822_walk_curve_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_04_walk_curve_test_01 · actor A182</p>
+</article><article class="card" data-search="向前行走 walk_forward me_action_000150">
+  <h2>向前行走 <small>walk_forward</small></h2>
+  <p><code>me_action_000150</code> · 36 帧 · train</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_000150_walk_forward_pair.gif" loading="lazy" alt="向前行走：流形与动作逐帧同步对照">
+  <nav><a href="me_action_000150_walk_forward_manifold.gif">单独打开流形 GIF</a><a href="me_action_000150_walk_forward_action.gif">单独打开动作 GIF</a><a href="me_action_000150_walk_forward_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_00_walk_forward_train_02 · actor A518</p>
+</article><article class="card" data-search="侧向行走 walk_lateral me_action_000634">
+  <h2>侧向行走 <small>walk_lateral</small></h2>
+  <p><code>me_action_000634</code> · 36 帧 · test</p>
+  <div class="labels"><span>流形 GIF：环境 + 自身包络</span><span>动作 GIF：G1 执行记录</span></div>
+  <img class="synced" src="me_action_000634_walk_lateral_pair.gif" loading="lazy" alt="侧向行走：流形与动作逐帧同步对照">
+  <nav><a href="me_action_000634_walk_lateral_manifold.gif">单独打开流形 GIF</a><a href="me_action_000634_walk_lateral_action.gif">单独打开动作 GIF</a><a href="me_action_000634_walk_lateral_pair.gif">同步对照 GIF</a></nav>
+  <p class="source">来源 cap_03_walk_lateral_test_00 · actor A362</p>
+</article></main>
+<script>const q=document.getElementById('search');q.oninput=()=>document.querySelectorAll('.card').forEach(c=>c.hidden=!c.dataset.search.toLowerCase().includes(q.value.toLowerCase()));document.getElementById('restart').onclick=()=>document.querySelectorAll('.card:not([hidden]) img').forEach(img=>{if(img.getBoundingClientRect().bottom>0&&img.getBoundingClientRect().top<innerHeight){const s=img.src;img.src='';requestAnimationFrame(()=>img.src=s);}});</script></body></html>

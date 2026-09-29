@@ -29,6 +29,12 @@ data/g1_flat/*
 data/seed_capability_v1/*
 !data/seed_capability_v1/*.csv
 !data/seed_capability_v1/*.json
+# The manifold/action catalogue is a small reviewable index. Its NPZ tensors stay local and are
+# regenerated from the accepted corridor archive.
+!data/manifold_action_catalog_v1/
+data/manifold_action_catalog_v1/*
+!data/manifold_action_catalog_v1/*.csv
+!data/manifold_action_catalog_v1/*.json
 reports/
 artifacts/
 

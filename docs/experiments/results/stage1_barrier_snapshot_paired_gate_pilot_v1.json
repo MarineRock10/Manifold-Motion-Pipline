@@ -1,0 +1,31 @@
+{
+  "schema": "manifold-motion.stage1.barrier-snapshot-paired-gate-pilot.v1",
+  "rows": 24,
+  "steps": 4,
+  "training": {
+    "iterations": 8,
+    "manifolds_per_iteration": 8,
+    "learning_rate": 0.00005,
+    "w_containment": 12.0,
+    "w_outside": 30.0,
+    "w_track": 1.5,
+    "w_imitation": 2.0,
+    "mean_probe_same_state": true,
+    "best_train_success": 0.75
+  },
+  "direct_imitation": {
+    "accepted": 24,
+    "acceptance_rate": 1.0,
+    "radius_mean": 0.6795707259,
+    "radius_p95": 0.7612462608,
+    "tracking_mae_rad": 0.2028480611
+  },
+  "sonic_warm_start": {
+    "accepted": 23,
+    "acceptance_rate": 0.9583333333,
+    "radius_mean": 0.7495085835,
+    "radius_p95": 0.8158975378,
+    "tracking_mae_rad": 0.0771026972
+  },
+  "interpretation": "current valid pilot: the same-state mean probe and containment-weighted objective improve tracking but not geometric containment; direct imitation remains the selected Stage-1 deployment baseline until a constrained residual fine-tune is added"
+}

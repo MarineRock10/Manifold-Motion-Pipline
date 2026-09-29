@@ -1,0 +1,31 @@
+{
+  "schema": "manifold-motion.stage1.temporal-confirmation.v1",
+  "source_catalog": "data/manifold_action_catalog_v1/manifold_action_catalog_v1.npz",
+  "metadata": "reports/manifold_motion/seed_capability_windows_corridor_v1/seed_stage2_windows_metadata.json",
+  "modulo": 5,
+  "split_counts": {
+    "0": 1587,
+    "1": 1151,
+    "2": 727,
+    "3": 523
+  },
+  "confirmation_actors": [
+    "A050",
+    "A067",
+    "A138",
+    "A166",
+    "A216",
+    "A238",
+    "A300",
+    "A310",
+    "A332",
+    "A361",
+    "A381",
+    "A428",
+    "A486",
+    "A509",
+    "A515"
+  ],
+  "actor_count": 118,
+  "catalog_sha256": "6c04c857430cb317cf10953852c8a0f90ffdf1993699f72d571859c1a62ef920"
+}

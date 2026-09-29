@@ -1,0 +1,389 @@
+{
+  "20260928": {
+    "seed": 20260928,
+    "selected_scale": 1.0,
+    "methods": {
+      "short": {
+        "sim_adapter": {
+          "rows": 727,
+          "runtime_errors": 0,
+          "accepted": 0.9628610729023384,
+          "pose_success": 0.8459422283356258,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.030261348005502064,
+          "radius": 0.7576032606306232,
+          "tracking_mae": 0.11952701152797006,
+          "target_mae": 0.21496810422653595,
+          "request_mae": 0.20029445311678215,
+          "drift_m": 0.06311691539511817,
+          "reward": 0.1352672118945958,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "il_only": {
+          "rows": 727,
+          "runtime_errors": 0,
+          "accepted": 0.9656121045392022,
+          "pose_success": 0.8431911966987621,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.02888583218707015,
+          "radius": 0.7511515947137728,
+          "tracking_mae": 0.10309662970347008,
+          "target_mae": 0.21855114283830884,
+          "request_mae": 0.19471622088440488,
+          "drift_m": 0.06267036477198383,
+          "reward": 0.14620825821214514,
+          "clipped_fraction": 0.0,
+          "inference_ms": 0.001156338376912706
+        },
+        "paired_actor_bootstrap": {
+          "pose_success": {
+            "mean_delta": 0.002751031636863824,
+            "ci95": [
+              -0.02245861494081919,
+              0.0257419055313077
+            ],
+            "actors": 23
+          },
+          "accepted": {
+            "mean_delta": -0.002751031636863824,
+            "ci95": [
+              -0.007953079923651702,
+              0.00258631424924504
+            ],
+            "actors": 23
+          },
+          "target_mae": {
+            "mean_delta": -0.0035830386117729073,
+            "ci95": [
+              -0.005782297149992891,
+              -0.0007326157396367524
+            ],
+            "actors": 23
+          }
+        },
+        "adapter_scale": 1.0
+      },
+      "long": {
+        "sim_adapter": {
+          "rows": 38,
+          "runtime_errors": 0,
+          "accepted": 0.9473684210526315,
+          "pose_success": 0.9210526315789473,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.02631578947368421,
+          "radius": 0.7808431888782367,
+          "tracking_mae": 0.09024089060942256,
+          "target_mae": 0.19074074544539654,
+          "request_mae": 0.1813564046551916,
+          "drift_m": 0.09346135168546642,
+          "reward": 0.2067543126063665,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "il_only": {
+          "rows": 38,
+          "runtime_errors": 0,
+          "accepted": 0.9473684210526315,
+          "pose_success": 0.868421052631579,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.02631578947368421,
+          "radius": 0.7581436166479424,
+          "tracking_mae": 0.07858469662019858,
+          "target_mae": 0.1919019710831223,
+          "request_mae": 0.17608558905583002,
+          "drift_m": 0.08707420857813644,
+          "reward": 0.21924943159852459,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "paired_actor_bootstrap": {
+          "pose_success": {
+            "mean_delta": 0.05263157894736842,
+            "ci95": [
+              0.0,
+              0.12913978494623646
+            ],
+            "actors": 23
+          },
+          "accepted": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          },
+          "target_mae": {
+            "mean_delta": -0.001161225637725783,
+            "ci95": [
+              -0.006205985390446994,
+              0.00548219646164318
+            ],
+            "actors": 23
+          }
+        },
+        "adapter_scale": 1.0
+      }
+    },
+    "test_used_for_selection": false
+  },
+  "20260929": {
+    "seed": 20260929,
+    "selected_scale": 0.0,
+    "methods": {
+      "short": {
+        "sim_adapter": {
+          "rows": 727,
+          "runtime_errors": 0,
+          "accepted": 0.9669876203576341,
+          "pose_success": 0.844566712517194,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.027510316368638238,
+          "radius": 0.7477582975627453,
+          "tracking_mae": 0.10303357004817028,
+          "target_mae": 0.21855218293144604,
+          "request_mae": 0.1935160541177844,
+          "drift_m": 0.05844927903548671,
+          "reward": 0.14963857836990174,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "il_only": {
+          "rows": 727,
+          "runtime_errors": 0,
+          "accepted": 0.9669876203576341,
+          "pose_success": 0.844566712517194,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.027510316368638238,
+          "radius": 0.7477582975627453,
+          "tracking_mae": 0.10303357016342053,
+          "target_mae": 0.21855218293144604,
+          "request_mae": 0.19351605424014665,
+          "drift_m": 0.05844927903548671,
+          "reward": 0.14963857825465152,
+          "clipped_fraction": 0.0,
+          "inference_ms": 0.002037828060445418
+        },
+        "paired_actor_bootstrap": {
+          "pose_success": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          },
+          "accepted": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          },
+          "target_mae": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          }
+        },
+        "adapter_scale": 0.0
+      },
+      "long": {
+        "sim_adapter": {
+          "rows": 38,
+          "runtime_errors": 0,
+          "accepted": 0.9473684210526315,
+          "pose_success": 0.8421052631578947,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.02631578947368421,
+          "radius": 0.7569744873812827,
+          "tracking_mae": 0.0765407416802637,
+          "target_mae": 0.18989641514423788,
+          "request_mae": 0.17195536992872612,
+          "drift_m": 0.08693061065067605,
+          "reward": 0.23581657541496684,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "il_only": {
+          "rows": 38,
+          "runtime_errors": 0,
+          "accepted": 0.9473684210526315,
+          "pose_success": 0.8421052631578947,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.02631578947368421,
+          "radius": 0.7569744873812827,
+          "tracking_mae": 0.0765407416802637,
+          "target_mae": 0.18989641514423788,
+          "request_mae": 0.17195536992872612,
+          "drift_m": 0.08693061065067605,
+          "reward": 0.23581657541496684,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "paired_actor_bootstrap": {
+          "pose_success": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          },
+          "accepted": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          },
+          "target_mae": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          }
+        },
+        "adapter_scale": 0.0
+      }
+    },
+    "test_used_for_selection": false
+  },
+  "20260930": {
+    "seed": 20260930,
+    "selected_scale": 0.25,
+    "methods": {
+      "short": {
+        "sim_adapter": {
+          "rows": 727,
+          "runtime_errors": 0,
+          "accepted": 0.9669876203576341,
+          "pose_success": 0.8473177441540578,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.027510316368638238,
+          "radius": 0.7539271089957351,
+          "tracking_mae": 0.10460440824284356,
+          "target_mae": 0.21720152729972447,
+          "request_mae": 0.1928944336410678,
+          "drift_m": 0.0634249335788648,
+          "reward": 0.15500894907007898,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "il_only": {
+          "rows": 727,
+          "runtime_errors": 0,
+          "accepted": 0.9683631361760661,
+          "pose_success": 0.8404401650618982,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.027510316368638238,
+          "radius": 0.7519319232645226,
+          "tracking_mae": 0.10148411651777443,
+          "target_mae": 0.21800386217368314,
+          "request_mae": 0.19265578024764038,
+          "drift_m": 0.0634856852831565,
+          "reward": 0.15729745309193652,
+          "clipped_fraction": 0.0,
+          "inference_ms": 0.003535807427697476
+        },
+        "paired_actor_bootstrap": {
+          "pose_success": {
+            "mean_delta": 0.0068775790921595595,
+            "ci95": [
+              -0.004422309413259283,
+              0.017642133190020587
+            ],
+            "actors": 23
+          },
+          "accepted": {
+            "mean_delta": -0.001375515818431912,
+            "ci95": [
+              -0.003976606406831977,
+              0.0
+            ],
+            "actors": 23
+          },
+          "target_mae": {
+            "mean_delta": -0.0008023348739586812,
+            "ci95": [
+              -0.0012304899211833572,
+              -0.0002974565614203294
+            ],
+            "actors": 23
+          }
+        },
+        "adapter_scale": 0.25
+      },
+      "long": {
+        "sim_adapter": {
+          "rows": 38,
+          "runtime_errors": 0,
+          "accepted": 0.9736842105263158,
+          "pose_success": 0.8947368421052632,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.02631578947368421,
+          "radius": 0.7619148373231112,
+          "tracking_mae": 0.07588405495594851,
+          "target_mae": 0.18762101684769758,
+          "request_mae": 0.17105559419453456,
+          "drift_m": 0.08805244467714832,
+          "reward": 0.27913261266308115,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "il_only": {
+          "rows": 38,
+          "runtime_errors": 0,
+          "accepted": 0.9736842105263158,
+          "pose_success": 0.8947368421052632,
+          "fallen": 0.0,
+          "nonfoot_contact": 0.02631578947368421,
+          "radius": 0.758973936066259,
+          "tracking_mae": 0.07378056752118176,
+          "target_mae": 0.1894250543540614,
+          "request_mae": 0.17101655194368465,
+          "drift_m": 0.08731329577138715,
+          "reward": 0.27594016509215497,
+          "clipped_fraction": 0.0,
+          "inference_ms": null
+        },
+        "paired_actor_bootstrap": {
+          "pose_success": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          },
+          "accepted": {
+            "mean_delta": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "actors": 23
+          },
+          "target_mae": {
+            "mean_delta": -0.0018040375063637995,
+            "ci95": [
+              -0.0036733632702277814,
+              0.00017364004225670833
+            ],
+            "actors": 23
+          }
+        },
+        "adapter_scale": 0.25
+      }
+    },
+    "test_used_for_selection": false
+  }
+}

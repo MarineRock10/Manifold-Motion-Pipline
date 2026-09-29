@@ -4,19 +4,48 @@ These previews are generated only from accepted MuJoCo reports. They are compact
 previews; the full-resolution GIF, NPZ trajectory, candidate audit and JSON metrics remain in
 `reports/manifold_motion/` after reproduction.
 
-## Environment-conditioned latent skills
+## Data preparation: manifold GIF ↔ action GIF
+
+Open the [21-family paired GIF gallery](manifold_action_pairs_v1/README.md), or open
+`manifold_action_pairs_v1/index.html` locally for synchronized previews and Chinese search labels.
+Each sample supplies two independent GIFs plus a synchronized composite; IDs, frames, and source
+timestamps match. This section visualizes reverse-synthesized data pairs from recorded execution,
+not a trained `M -> action` prediction. The source family label is not proof of successful object interaction.
+
+## Current mainline: geometry-routed motion quality
+
+![Repaired static gait](media/repaired_autonomous_static.gif)
+
+![Repaired dynamic crossing](media/repaired_autonomous_dynamic.gif)
+
+![Repaired lateral projectile response](media/repaired_autonomous_projectile_grazing.gif)
+
+![Repaired overhead projectile response](media/repaired_autonomous_projectile_overhead.gif)
+
+The default chain is now `M_e + M_self + state/history -> geometry/safety router -> screened
+SEED primitive -> continuous phase handoff -> projection -> SONIC/MuJoCo`.  It does not load
+the environment-conditioned latent prior or the learned high-level composer.  Static and dynamic
+navigation are geometry routed; projectile cases add a small relative-motion hazard classifier
+that selects an escape primitive but does not synthesize poses.  Every committed motion is still
+checked using the measured self-manifold and the physical gate.  Reproduce all four cases with
+`./scripts/run_trained_autonomous_suite.sh`; the compact summary is
+[`repaired_motion_quality.json`](repaired_motion_quality.json).
+
+## Archived ablation: environment-conditioned latent skills
 
 ![Eight latent skill families](media/latent_skill_atlas_v6.gif)
 
-This is the first gallery item produced by the environment-conditioned latent prior rather than
-the deterministic geometry router. Each panel decodes a SEED family, passes the latent barrier,
+This negative-result ablation is retained for reproducibility, but it is no longer part of the
+default pipeline or the main claim. It changed decoded references and labels without producing
+better long-horizon SONIC motion quality than the geometry-routed anchors. Each panel decodes a
+SEED family, passes the latent barrier,
 projection and frozen SONIC/MuJoCo mesh gate, and shows cyan `M_e` versus orange `M_self`. The
 eight accepted short probes cover crouch walk, lateral walk, dodge, lunge, side hop, jump, kneel
 and all-fours. Machine-readable metrics are in
 [`latent_skill_atlas_v6.json`](media/latent_skill_atlas_v6.json); interpretation and reproduction
 commands are in [`LATENT_SKILL_PRIOR.md`](../stage2/LATENT_SKILL_PRIOR.md).
 
-## Trained autonomous response suite
+## Archived ablation: latent-composer autonomous response
 
 ![Trained autonomous static obstacle](media/trained_autonomous_static.gif)
 
@@ -26,8 +55,8 @@ commands are in [`LATENT_SKILL_PRIOR.md`](../stage2/LATENT_SKILL_PRIOR.md).
 
 ![Trained reactive projectile duck](media/trained_autonomous_projectile_overhead.gif)
 
-These clips are the current trained chain rather than fixed route/action demos. The static
-and crossing clips use the counterfactual-trained environment composer. Two incoming-object
+These clips record the superseded latent-composer chain. The static and crossing clips use the
+counterfactual-trained environment composer. Two incoming-object
 variants show a lateral near-miss and an overhead trajectory; the latter adds a learned
 relative-motion hazard head, which selects a crouch family from radar-tracked position and
 velocity and releases it only after the threat passes. Every switch is checked against the

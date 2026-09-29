@@ -1,0 +1,30 @@
+{
+  "schema": "manifold-motion.stage1.barrier-paired-gate-pilot.v1",
+  "rows": 24,
+  "steps": 4,
+  "training": {
+    "iterations": 8,
+    "manifolds_per_iteration": 8,
+    "learning_rate": 0.00005,
+    "w_containment": 12.0,
+    "w_outside": 30.0,
+    "w_track": 1.5,
+    "w_imitation": 2.0,
+    "best_train_success": 0.75
+  },
+  "direct_imitation": {
+    "accepted": 24,
+    "acceptance_rate": 1.0,
+    "radius_mean": 0.6795707259,
+    "radius_p95": 0.7612462608,
+    "tracking_mae_rad": 0.2028480611
+  },
+  "sonic_warm_start": {
+    "accepted": 23,
+    "acceptance_rate": 0.9583333333,
+    "radius_mean": 0.7135947022,
+    "radius_p95": 0.8223745548,
+    "tracking_mae_rad": 0.0659161130
+  },
+  "interpretation": "containment-weighted pilot improves the previous warm-start radius (0.746 -> 0.714) and tracking (0.074 -> 0.066), but remains worse than direct imitation; no final fine-tune claim"
+}

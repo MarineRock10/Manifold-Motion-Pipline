@@ -5,10 +5,11 @@ from __future__ import annotations
 import numpy as np
 
 from manifold_motion.perception.deploy import (
-    ProbabilisticSlidingVoxelGrid, SlidingGridConfig, _vertical_free_half_extent,
+    ProbabilisticSlidingVoxelGrid, RadarScan, SlidingGridConfig, _vertical_free_half_extent,
 )
 from manifold_motion.perception.online import (
     OnlinePerceptionNavigator, _bilateral_lateral_free_semi_from_radar,
+    _mapping_scan_for_event,
 )
 
 
@@ -73,6 +74,19 @@ def test_posture_release_requires_more_evidence_than_contraction() -> None:
     decision = navigator._primitive_decision(open_corridor, 0.70)
     assert decision["primitive_id"] == 5
     assert decision["primitive_changed"]
+
+
+def test_projectile_hits_are_not_persisted_in_static_map() -> None:
+    scan = RadarScan(
+        points_world=np.asarray([[1.0, 0.0, 0.8], [1.2, 0.1, 0.8]], dtype=np.float32),
+        origins_world=np.zeros((2, 3), dtype=np.float32),
+        geom_names=["obstacle_wall", "obstacle_dynamic_block"],
+        timestamp=0.0,
+    )
+    mapping = _mapping_scan_for_event(scan, "projectile_overhead")
+    assert mapping.geom_names == ["obstacle_wall"]
+    assert mapping.points_world.shape == (1, 3)
+    assert _mapping_scan_for_event(scan, "crossing") is scan
 
 
 if __name__ == "__main__":

@@ -1,0 +1,329 @@
+{
+  "schema": "manifold-motion.paired-gif-gallery.v1",
+  "fps": 15,
+  "width": 520,
+  "height": 546,
+  "entries": [
+    {
+      "catalog_id": "me_action_002865",
+      "family": "all_fours",
+      "motion_id": "cap_20_all_fours_test_00",
+      "actor_uid": "A201",
+      "source_origin": 65,
+      "frames": 36,
+      "split": "test",
+      "max_target_error": 5.9232939886300073e-08,
+      "files": {
+        "manifold": "me_action_002865_all_fours_manifold.gif",
+        "action": "me_action_002865_all_fours_action.gif",
+        "pair": "me_action_002865_all_fours_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_002391",
+      "family": "box_jump",
+      "motion_id": "cap_15_box_jump_train_02",
+      "actor_uid": "A361",
+      "source_origin": 17,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 1.1869568261602126e-07,
+      "files": {
+        "manifold": "me_action_002391_box_jump_manifold.gif",
+        "action": "me_action_002391_box_jump_action.gif",
+        "pair": "me_action_002391_box_jump_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_003462",
+      "family": "button_lever",
+      "motion_id": "cap_27_button_lever_train_01",
+      "actor_uid": "A481",
+      "source_origin": 77,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 1.1303121283390283e-07,
+      "files": {
+        "manifold": "me_action_003462_button_lever_manifold.gif",
+        "action": "me_action_003462_button_lever_action.gif",
+        "pair": "me_action_003462_button_lever_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_003618",
+      "family": "carry_object",
+      "motion_id": "cap_28_carry_object_test_01",
+      "actor_uid": "A321",
+      "source_origin": 155,
+      "frames": 36,
+      "split": "test",
+      "max_target_error": 5.8663627067190305e-08,
+      "files": {
+        "manifold": "me_action_003618_carry_object_manifold.gif",
+        "action": "me_action_003618_carry_object_action.gif",
+        "pair": "me_action_003618_carry_object_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_001652",
+      "family": "crouch_transition",
+      "motion_id": "cap_07_crouch_transition_validation_01",
+      "actor_uid": "A129",
+      "source_origin": 137,
+      "frames": 36,
+      "split": "validation",
+      "max_target_error": 1.146509278626695e-07,
+      "files": {
+        "manifold": "me_action_001652_crouch_transition_manifold.gif",
+        "action": "me_action_001652_crouch_transition_action.gif",
+        "pair": "me_action_001652_crouch_transition_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_001441",
+      "family": "crouch_walk",
+      "motion_id": "cap_06_crouch_walk_validation_00",
+      "actor_uid": "A129",
+      "source_origin": 161,
+      "frames": 36,
+      "split": "validation",
+      "max_target_error": 1.1859459414509388e-07,
+      "files": {
+        "manifold": "me_action_001441_crouch_walk_manifold.gif",
+        "action": "me_action_001441_crouch_walk_action.gif",
+        "pair": "me_action_001441_crouch_walk_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_001700",
+      "family": "dodge_lateral",
+      "motion_id": "cap_09_dodge_lateral_train_00",
+      "actor_uid": "A431",
+      "source_origin": 23,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 5.906432587465815e-08,
+      "files": {
+        "manifold": "me_action_001700_dodge_lateral_manifold.gif",
+        "action": "me_action_001700_dodge_lateral_action.gif",
+        "pair": "me_action_001700_dodge_lateral_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_003207",
+      "family": "door_interaction",
+      "motion_id": "cap_25_door_interaction_train_04",
+      "actor_uid": "A513",
+      "source_origin": 77,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 5.907107669678169e-08,
+      "files": {
+        "manifold": "me_action_003207_door_interaction_manifold.gif",
+        "action": "me_action_003207_door_interaction_action.gif",
+        "pair": "me_action_003207_door_interaction_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_001924",
+      "family": "forward_lunge",
+      "motion_id": "cap_10_forward_lunge_train_01",
+      "actor_uid": "A360",
+      "source_origin": 125,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 5.865895280621203e-08,
+      "files": {
+        "manifold": "me_action_001924_forward_lunge_manifold.gif",
+        "action": "me_action_001924_forward_lunge_action.gif",
+        "pair": "me_action_001924_forward_lunge_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_000563",
+      "family": "hands_back_walk",
+      "motion_id": "cap_02_hands_back_walk_train_05",
+      "actor_uid": "A238",
+      "source_origin": 11,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 5.9018412823519384e-08,
+      "files": {
+        "manifold": "me_action_000563_hands_back_walk_manifold.gif",
+        "action": "me_action_000563_hands_back_walk_action.gif",
+        "pair": "me_action_000563_hands_back_walk_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_002333",
+      "family": "high_jump",
+      "motion_id": "cap_14_high_jump_validation_00",
+      "actor_uid": "A349",
+      "source_origin": 11,
+      "frames": 36,
+      "split": "validation",
+      "max_target_error": 1.1530731525155602e-07,
+      "files": {
+        "manifold": "me_action_002333_high_jump_manifold.gif",
+        "action": "me_action_002333_high_jump_action.gif",
+        "pair": "me_action_002333_high_jump_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_000394",
+      "family": "jog_forward",
+      "motion_id": "cap_01_jog_forward_train_05",
+      "actor_uid": "A094",
+      "source_origin": 29,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 5.840780548105329e-08,
+      "files": {
+        "manifold": "me_action_000394_jog_forward_manifold.gif",
+        "action": "me_action_000394_jog_forward_action.gif",
+        "pair": "me_action_000394_jog_forward_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_002828",
+      "family": "kneel",
+      "motion_id": "cap_18_kneel_validation_00",
+      "actor_uid": "A184",
+      "source_origin": 65,
+      "frames": 36,
+      "split": "validation",
+      "max_target_error": 1.1645312225638804e-07,
+      "files": {
+        "manifold": "me_action_002828_kneel_manifold.gif",
+        "action": "me_action_002828_kneel_action.gif",
+        "pair": "me_action_002828_kneel_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_003344",
+      "family": "ladder",
+      "motion_id": "cap_26_ladder_train_01",
+      "actor_uid": "A301",
+      "source_origin": 101,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 5.941643355100723e-08,
+      "files": {
+        "manifold": "me_action_003344_ladder_manifold.gif",
+        "action": "me_action_003344_ladder_action.gif",
+        "pair": "me_action_003344_ladder_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_002202",
+      "family": "side_hop",
+      "motion_id": "cap_11_side_hop_train_05",
+      "actor_uid": "A361",
+      "source_origin": 47,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 5.815579351420297e-08,
+      "files": {
+        "manifold": "me_action_002202_side_hop_manifold.gif",
+        "action": "me_action_002202_side_hop_action.gif",
+        "pair": "me_action_002202_side_hop_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_002539",
+      "family": "step_down_box",
+      "motion_id": "cap_17_step_down_box_test_00",
+      "actor_uid": "A251",
+      "source_origin": 89,
+      "frames": 36,
+      "split": "test",
+      "max_target_error": 1.1688961309985757e-07,
+      "files": {
+        "manifold": "me_action_002539_step_down_box_manifold.gif",
+        "action": "me_action_002539_step_down_box_action.gif",
+        "pair": "me_action_002539_step_down_box_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_002510",
+      "family": "step_up_box",
+      "motion_id": "cap_16_step_up_box_validation_01",
+      "actor_uid": "A123",
+      "source_origin": 29,
+      "frames": 36,
+      "split": "validation",
+      "max_target_error": 5.9403755470199826e-08,
+      "files": {
+        "manifold": "me_action_002510_step_up_box_manifold.gif",
+        "action": "me_action_002510_step_up_box_action.gif",
+        "pair": "me_action_002510_step_up_box_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_001256",
+      "family": "turn_in_place",
+      "motion_id": "cap_05_turn_in_place_validation_01",
+      "actor_uid": "A123",
+      "source_origin": 143,
+      "frames": 36,
+      "split": "validation",
+      "max_target_error": 5.880399833735339e-08,
+      "files": {
+        "manifold": "me_action_001256_turn_in_place_manifold.gif",
+        "action": "me_action_001256_turn_in_place_action.gif",
+        "pair": "me_action_001256_turn_in_place_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_000822",
+      "family": "walk_curve",
+      "motion_id": "cap_04_walk_curve_test_01",
+      "actor_uid": "A182",
+      "source_origin": 77,
+      "frames": 36,
+      "split": "test",
+      "max_target_error": 5.784777123984952e-08,
+      "files": {
+        "manifold": "me_action_000822_walk_curve_manifold.gif",
+        "action": "me_action_000822_walk_curve_action.gif",
+        "pair": "me_action_000822_walk_curve_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_000150",
+      "family": "walk_forward",
+      "motion_id": "cap_00_walk_forward_train_02",
+      "actor_uid": "A518",
+      "source_origin": 47,
+      "frames": 36,
+      "split": "train",
+      "max_target_error": 5.875373432218112e-08,
+      "files": {
+        "manifold": "me_action_000150_walk_forward_manifold.gif",
+        "action": "me_action_000150_walk_forward_action.gif",
+        "pair": "me_action_000150_walk_forward_pair.gif"
+      }
+    },
+    {
+      "catalog_id": "me_action_000634",
+      "family": "walk_lateral",
+      "motion_id": "cap_03_walk_lateral_test_00",
+      "actor_uid": "A362",
+      "source_origin": 47,
+      "frames": 36,
+      "split": "test",
+      "max_target_error": 1.1352995388236309e-07,
+      "files": {
+        "manifold": "me_action_000634_walk_lateral_manifold.gif",
+        "action": "me_action_000634_walk_lateral_action.gif",
+        "pair": "me_action_000634_walk_lateral_pair.gif"
+      }
+    }
+  ],
+  "source_hz": 30.0,
+  "selection": "maximum_mean_joint_frame_delta_per_family",
+  "source_windows": "reports/manifold_motion/seed_capability_windows_corridor_v1/seed_stage2_windows.npz",
+  "source_metadata": "reports/manifold_motion/seed_capability_windows_corridor_v1/seed_stage2_windows_metadata.json",
+  "source_record_root": "reports/manifold_motion/seed_capability_supported_v1",
+  "warning": "M_e is reverse-synthesized from accepted R_exec; GIFs are replay visualizations."
+}

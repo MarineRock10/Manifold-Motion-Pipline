@@ -1,0 +1,92 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Stage 1 inverse tracking</title><style>body{max-width:1400px;margin:28px auto;padding:24px;font-family:Arial,"Microsoft YaHei",sans-serif;line-height:1.65;color:#20354b;background:#f4f7fa}h1,h2{color:#155775}table{border-collapse:collapse;width:100%;background:white}td,th{border:1px solid #d5dfe8;padding:10px}th{background:#eaf1f6}img{max-width:100%}pre{overflow:auto;background:#162c42;color:white;padding:14px}</style><h1>Stage 1：SONIC 逆跟踪适配器</h1>
+<p>本实验在冻结 SONIC ONNX 的条件下，使用训练集物理回放测量“IL 请求姿态 − 实际保持姿态”，通过短时与 3 秒长时候选筛选后，训练一个只读取 <code>M_e</code> 与 IL 输出的有界残差适配器。SEED 目标只用于物理候选奖励与安全筛选，不作为在线残差标签。</p>
+<h2>三种子测试结果</h2>
+<table>
+<thead>
+<tr>
+<th>时域</th>
+<th style="text-align: right;">IL only 目标 MAE</th>
+<th style="text-align: right;">适配器目标 MAE</th>
+<th style="text-align: right;">IL 安全门控</th>
+<th style="text-align: right;">适配器安全门控</th>
+<th style="text-align: right;">IL 姿态成功</th>
+<th style="text-align: right;">适配器姿态成功</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>短时全 727 窗口</td>
+<td style="text-align: right;">0.2184 ± 0.0003</td>
+<td style="text-align: right;">0.2169 ± 0.0018</td>
+<td style="text-align: right;">96.6988 ± 0.1376%</td>
+<td style="text-align: right;">96.5612 ± 0.2382%</td>
+<td style="text-align: right;">84.2733 ± 0.2101%</td>
+<td style="text-align: right;">84.5942 ± 0.1376%</td>
+</tr>
+<tr>
+<td>长时固定 38 窗口</td>
+<td style="text-align: right;">0.1904 ± 0.0013</td>
+<td style="text-align: right;">0.1894 ± 0.0016</td>
+<td style="text-align: right;">95.6140 ± 1.5193%</td>
+<td style="text-align: right;">95.6140 ± 1.5193%</td>
+<td style="text-align: right;">86.8421 ± 2.6316%</td>
+<td style="text-align: right;">88.5965 ± 4.0198%</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="" src="metrics.png" /></p>
+<h2>冻结协议与 seed 选择</h2>
+<ul>
+<li>三个 actor-disjoint seed：20260928 / 20260929 / 20260930。训练集每来源族 4 个窗口，短时和 3 秒长时都参与候选物理筛选。</li>
+<li>腿部残差固定为 0；腰部最多 ±0.04 rad；手臂最多 ±0.24 rad。在线只使用流形特征和 IL 输出。</li>
+<li>候选为 0×、0.5×、1.0×请求-实际误差；原本安全的 rollout 不允许因修正变成不安全。缩放值只在 validation 选择，test 未参与。</li>
+<li>各 seed 选择的缩放：20260928 → 1.00×, 20260929 → 0.00×, 20260930 → 0.25×。</li>
+<li>20260929 validation 未通过严格门控，因此选择 0×并等价于 IL；该 seed 没有被隐藏。</li>
+<li>
+<p>该实验显示短时 MAE 平均下降，但短时安全率存在约 0.14 个百分点的 test 波动；长时安全率保持。它是 simulator-aware 改善证据，不是已经完成的实机验证或 SOTA 声明。</p>
+</li>
+<li>
+<p>当前 split=2 已在 v3–v5 中被查看，因此本页属于 development-test；论文结论仍需新 actor / 新物理场景的未查看 confirmation set。</p>
+</li>
+</ul>
+<h2>A/B MuJoCo 回放</h2>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>IL 与逆跟踪适配器同步对照</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>walk_lateral / 628</td>
+<td><a href="media/B_000628_walk_lateral.gif"><img alt="" src="media/B_000628_walk_lateral.gif" /></a></td>
+</tr>
+<tr>
+<td>turn_in_place / 1031</td>
+<td><a href="media/B_001031_turn_in_place.gif"><img alt="" src="media/B_001031_turn_in_place.gif" /></a></td>
+</tr>
+<tr>
+<td>crouch_walk / 1278</td>
+<td><a href="media/B_001278_crouch_walk.gif"><img alt="" src="media/B_001278_crouch_walk.gif" /></a></td>
+</tr>
+<tr>
+<td>forward_lunge / 1817</td>
+<td><a href="media/B_001817_forward_lunge.gif"><img alt="" src="media/B_001817_forward_lunge.gif" /></a></td>
+</tr>
+<tr>
+<td>all_fours / 2856</td>
+<td><a href="media/B_002856_all_fours.gif"><img alt="" src="media/B_002856_all_fours.gif" /></a></td>
+</tr>
+<tr>
+<td>carry_object / 3570</td>
+<td><a href="media/B_003570_carry_object.gif"><img alt="" src="media/B_003570_carry_object.gif" /></a></td>
+</tr>
+</tbody>
+</table>
+<h2>复现</h2>
+<pre><code class="language-bash">seed=20260928
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 ./scripts/python.sh -m manifold_motion.stage1.simulator_adapter --seed &quot;$seed&quot; --base reports/manifold_motion/stage1_ab_response_v3/replicate_${seed}/seed_${seed}/imitation.pt --out reports/manifold_motion/stage1_sim_adapter_v9_tracking/seed_${seed}
+OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 ./scripts/python.sh -m manifold_motion.stage1.simulator_adapter --evaluate --seed &quot;$seed&quot; --base reports/manifold_motion/stage1_ab_response_v3/replicate_${seed}/seed_${seed}/imitation.pt --out reports/manifold_motion/stage1_sim_adapter_v9_tracking/seed_${seed}
+</code></pre>
+<p><a href="summary.json">逐 seed 测试摘要</a> · <a href="audit.json">协议与训练审计</a></p></html>

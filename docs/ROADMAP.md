@@ -1,18 +1,22 @@
 # 当前算法路线与验收口径
 
 本仓库当前已经通过 MuJoCo + 冻结 GEAR-SONIC 完成了 Stage-2 的**验证型闭环**：
-环境流形 `M_e(t)` → 原语路由 → latent Flow 候选 → 保守 projection → SONIC/MuJoCo
-物理门 → 连续执行。四个固定场景（wide/low/narrow/center）已经有可复现实验，但这
-不等同于在真实感知输入和未见环境上的泛化。
+环境流形 `M_e(t)` + 实测自身流形 `M_self(t)` → 几何/安全路由 → 已通过 SONIC 筛选的
+SEED 原语 → 连续相位交接 → 保守 projection → SONIC/MuJoCo 物理门 → 连续执行。
+latent prior / learned composer 已从默认链路移除并保留为负结果消融：它能改变标签和
+参考轨迹，但没有改善闭环动作质量。当前可复现实验覆盖静态、移动障碍及飞行物响应，
+仍不等同于真实感知输入和未见环境上的泛化。
 
 ## 已完成
 
 - Stage 1 静态包络、原语和物理可执行性门控；
-- Stage 2 的 actor-disjoint SEED 滑窗、latent Flow Matching、多候选筛选；
+- Stage 2 的 actor-disjoint SEED 滑窗、能力筛选和多候选物理门；
 - execution-target mean ablation：`target_exec` 可作为 SONIC tracking-error 对照；
 - 低顶棚下蹲、1.05 m 通道严格侧身、中心障碍 A* 绕行；
 - 路段边界的真实 state/history 重条件化；
 - 关节范围、平滑、交接和路线一致性的保守投影层。
+- latent prior / composer 负结果消融：保留代码与报告，但不再进入默认训练和展示；
+- 连续步态相位交接、左右腿能量/幅度不平衡硬门、动态飞行物地图分层。
 
 ## 当前明确边界
 

@@ -17,6 +17,7 @@ from manifold_motion.core import constants as C
 from manifold_motion.perception.deploy import (
     ProbabilisticSlidingVoxelGrid,
     RadarConfig,
+    RadarScan,
     SimulatedRadar,
     SlidingGridConfig,
     safe_corridor_from_grid,
@@ -111,6 +112,21 @@ def _bilateral_lateral_free_semi_from_radar(
     # rejects the momentary left/right pairing produced by two longitudinally staggered poles.
     return (float(min(candidates))
             if len(candidates) >= min_bilateral_stations else float(cap_m))
+
+
+def _mapping_scan_for_event(scan: RadarScan, dynamic_event: str | None) -> RadarScan:
+    """Keep fast projectiles in the dynamic tracker instead of static SLAM memory."""
+    if not str(dynamic_event or "").startswith("projectile"):
+        return scan
+    static_mask = np.asarray([
+        name != "obstacle_dynamic_block" for name in scan.geom_names
+    ], dtype=bool)
+    return RadarScan(
+        points_world=scan.points_world[static_mask],
+        origins_world=scan.origins_world[static_mask],
+        geom_names=[name for name, keep in zip(scan.geom_names, static_mask) if keep],
+        timestamp=scan.timestamp,
+    )
 
 
 class OnlinePerceptionNavigator:
@@ -321,14 +337,20 @@ class OnlinePerceptionNavigator:
                         "velocity_world_mps": self._hazard_track_velocity.tolist(),
                         "points": int(len(dynamic_points)),
                     })
-                self.grid.update_radar(position, scan)
+                # A fast projectile belongs to the synchronized hazard track, not the static
+                # occupancy map. Integrating its hits into the slow-decay SLAM volume left a
+                # permanent low ceiling after impact and kept the robot crouched forever.
+                # Crossing walls remain in the map because D* Lite must route/wait around
+                # their swept volume; projectile avoidance is handled by the reactive policy.
+                mapping_scan = _mapping_scan_for_event(scan, self.dynamic_event)
+                self.grid.update_radar(position, mapping_scan)
                 goal = np.array([goal_world_xy[0], goal_world_xy[1], position[2]], dtype=np.float64)
                 preferred_xyz = np.column_stack([
                     np.asarray(preferred_world_route, dtype=np.float64)[:, :2],
                     np.full(len(preferred_world_route), position[2]),
                 ])
                 preplan_bilateral = _bilateral_lateral_free_semi_from_radar(
-                    preferred_xyz, scan.points_world, float(position[2]),
+                    preferred_xyz, mapping_scan.points_world, float(position[2]),
                     cap_m=max(0.70, self.side_semi_y_m + 0.30),
                 )
                 compact_requested = bool(
@@ -368,7 +390,7 @@ class OnlinePerceptionNavigator:
                     horizon_m=self.vertical_lookahead_m,
                 )
                 bilateral_lateral = _bilateral_lateral_free_semi_from_radar(
-                    route, scan.points_world, float(position[2]),
+                    route, mapping_scan.points_world, float(position[2]),
                     cap_m=max(0.70, self.side_semi_y_m + 0.30),
                 )
                 dynamic_state = obstacle_state(self.dynamic_event, tick * 0.02)

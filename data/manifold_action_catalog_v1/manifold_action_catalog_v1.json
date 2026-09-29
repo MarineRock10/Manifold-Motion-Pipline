@@ -1,0 +1,69 @@
+{
+  "schema": "manifold-motion.manifold-action-catalog.v1",
+  "source_windows": "reports/manifold_motion/seed_capability_windows_corridor_v1/seed_stage2_windows.npz",
+  "source_metadata": "reports/manifold_motion/seed_capability_windows_corridor_v1/seed_stage2_windows_metadata.json",
+  "source_provenance": "reverse_synthesized_from_R_exec",
+  "rows": 3988,
+  "source_rows": 3988,
+  "actor_count": 118,
+  "family_count": 21,
+  "family_counts": {
+    "all_fours": 246,
+    "box_jump": 82,
+    "button_lever": 189,
+    "carry_object": 418,
+    "crouch_transition": 214,
+    "crouch_walk": 164,
+    "dodge_lateral": 161,
+    "door_interaction": 212,
+    "forward_lunge": 255,
+    "hands_back_walk": 205,
+    "high_jump": 124,
+    "jog_forward": 140,
+    "kneel": 222,
+    "ladder": 67,
+    "side_hop": 153,
+    "step_down_box": 108,
+    "step_up_box": 95,
+    "turn_in_place": 247,
+    "walk_curve": 239,
+    "walk_forward": 283,
+    "walk_lateral": 164
+  },
+  "split_counts": {
+    "test": 727,
+    "train": 2610,
+    "validation": 651
+  },
+  "actor_split_leakage": {},
+  "condition_arrays": {
+    "M_e": [
+      36,
+      7
+    ],
+    "M_self": [
+      36,
+      3
+    ],
+    "state": [
+      69
+    ],
+    "history": [
+      12,
+      69
+    ],
+    "target_ref": [
+      36,
+      38
+    ],
+    "target_exec": [
+      36,
+      38
+    ]
+  },
+  "physical_status": "all rows inherit accepted SONIC/MuJoCo replay admission; no synthetic corridor variants are marked accepted",
+  "files": {
+    "csv": "data/manifold_action_catalog_v1/manifold_action_catalog_v1.csv",
+    "npz": "data/manifold_action_catalog_v1/manifold_action_catalog_v1.npz"
+  }
+}

@@ -27,15 +27,18 @@ from manifold_motion.stage2.flow import _device, _torch_load
 from manifold_motion.stage2.reactive_policy import ACTION_NAMES, ReactivePolicy
 
 
-# The frozen Flow/SONIC route executor exposes eight verified legacy tokens. Several richer
-# SEED families share safe locomotion support until their own targeted references are added.
+# The frozen Flow/SONIC route executor exposes a small set of *validated* legacy tokens. Do
+# not silently project a richer SEED label (jump/lunge/dodge/...) onto an unrelated clip: that
+# was the source of the visually homogeneous, one-sided gait in the first autonomous GIFs.
+# A family is listed here only when its low-level reference has been screened as that family.
 FAMILY_TO_LEGACY: dict[str, int] = {
-    "walk_forward": 5, "jog_forward": 5, "hands_back_walk": 5, "walk_lateral": 4,
-    "walk_curve": 5, "turn_in_place": 6, "crouch_walk": 2, "crouch_transition": 3,
-    "dodge_lateral": 4, "forward_lunge": 5, "side_hop": 4, "high_jump": 5,
-    "box_jump": 5, "step_up_box": 5, "step_down_box": 5, "kneel": 2, "all_fours": 2,
-    "door_interaction": 5, "ladder": 2, "button_lever": 5, "carry_object": 5,
+    "walk_forward": 5, "walk_lateral": 4, "crouch_walk": 2,
 }
+
+# These are the only semantics the current frozen SONIC reference bank can honestly claim.
+# Other SEED families remain visible in offline reports, but are intentionally not executable
+# until a matching SONIC/MuJoCo reference has passed the same physical gate.
+EXECUTABLE_FAMILIES = frozenset(FAMILY_TO_LEGACY)
 
 # Action availability is a task contract, not a scripted action sequence.  The network still
 # selects the action from the live state/M_e/M_self observation, while interaction-only SEED
@@ -100,7 +103,7 @@ def _family_legacy(name: str) -> int | None:
 class OnlineSkillComposer:
     """Classify each live rolling M_e/M_self window with debounced safe routing."""
 
-    def __init__(self, checkpoint: Path, *, device: str = "cpu", switch_margin: float = 0.08,
+    def __init__(self, checkpoint: Path | None, *, device: str = "cpu", switch_margin: float = 0.08,
                  min_dwell_updates: int = 2, confidence_floor: float = 0.35,
                  allow_family_contraction: bool = True,
                  geometry_override_enabled: bool = True,
@@ -108,13 +111,24 @@ class OnlineSkillComposer:
                  reactive_checkpoint: Path | None = None):
         if switch_margin < 0 or min_dwell_updates < 1 or not 0 <= confidence_floor <= 1:
             raise ValueError("online composer hysteresis parameters are invalid")
-        self.device = _device(device); self.checkpoint_path = Path(checkpoint)
-        checkpoint_value = _torch_load(self.checkpoint_path, self.device)
-        self.normalizer = ComposerNormalizer.from_state_dict(checkpoint_value["normalizer"])
-        self.names = [str(value) for value in checkpoint_value["primitive_names"]]
-        self.supported = np.asarray(checkpoint_value["supported_mask"], dtype=bool)
-        self.model = EnvironmentSkillComposer(**checkpoint_value["architecture"]).to(self.device)
-        self.model.load_state_dict(checkpoint_value["model_state"]); self.model.eval()
+        self.device = _device(device); self.geometry_mode = checkpoint is None
+        self.checkpoint_path = (Path(checkpoint) if checkpoint is not None else None)
+        if getattr(self, "geometry_mode", False):
+            # No learned family prior is needed for the active mainline.  The measured
+            # environment affordance already supplies the executable primitive; keeping the
+            # same callback interface lets the optional hazard head reuse the current-state
+            # self-manifold audit without loading a latent/composer checkpoint.
+            self.normalizer = None
+            self.names = ["walk_forward", "walk_lateral", "crouch_walk"]
+            self.supported = np.ones(len(self.names), dtype=bool)
+            self.model = None
+        else:
+            checkpoint_value = _torch_load(self.checkpoint_path, self.device)
+            self.normalizer = ComposerNormalizer.from_state_dict(checkpoint_value["normalizer"])
+            self.names = [str(value) for value in checkpoint_value["primitive_names"]]
+            self.supported = np.asarray(checkpoint_value["supported_mask"], dtype=bool)
+            self.model = EnvironmentSkillComposer(**checkpoint_value["architecture"]).to(self.device)
+            self.model.load_state_dict(checkpoint_value["model_state"]); self.model.eval()
         self.switch_margin = float(switch_margin); self.min_dwell_updates = int(min_dwell_updates)
         self.confidence_floor = float(confidence_floor)
         self.allow_family_contraction = bool(allow_family_contraction)
@@ -124,8 +138,14 @@ class OnlineSkillComposer:
                              f"choose from {sorted(ACTION_PROFILES)}")
         allowed_names = ACTION_PROFILES[action_profile]
         self.action_profile = str(action_profile)
+        # A classifier probability is not a license to execute a different motion. Restrict
+        # online inference to families that have a one-to-one, physically screened reference;
+        # unsupported families are handled as nominal fallback and recorded in the audit log.
         self.inference_mask = self.supported.copy()
-        if allowed_names is not None:
+        self.inference_mask &= np.asarray(
+            [name in EXECUTABLE_FAMILIES for name in self.names], dtype=bool
+        )
+        if allowed_names is not None and not self.geometry_mode:
             self.inference_mask &= np.asarray([name in allowed_names for name in self.names], dtype=bool)
         if not np.any(self.inference_mask):
             raise ValueError(f"action profile {action_profile!r} has no supported checkpoint families")
@@ -175,13 +195,19 @@ class OnlineSkillComposer:
         safety_primitive_id = int(safety_primitive_id)
         if safety_primitive_id not in (2, 4, 5): safety_primitive_id = 5
         corridor36 = _resample_corridor(corridor)
-        probability, latency = self._predict(
-            state, history, corridor36, sdf, self_manifold,
-            np.full(6, [2.0, 2.0, 1.5, 0.0, 0.0, 0.0], dtype=np.float32)
-            if manifold is None else manifold,
-            RouteFlowSampler._yaw_command(corridor36[-1, :3], float(corridor36[-1, 6]))
-            if command is None else command,
-        )
+        if getattr(self, "geometry_mode", False):
+            family_id = {5: 0, 4: 1, 2: 2}[safety_primitive_id]
+            probability = np.zeros(len(self.names), dtype=np.float32)
+            probability[family_id] = 1.0
+            latency = 0.0
+        else:
+            probability, latency = self._predict(
+                state, history, corridor36, sdf, self_manifold,
+                np.full(6, [2.0, 2.0, 1.5, 0.0, 0.0, 0.0], dtype=np.float32)
+                if manifold is None else manifold,
+                RouteFlowSampler._yaw_command(corridor36[-1, :3], float(corridor36[-1, 6]))
+                if command is None else command,
+            )
         family_id = int(np.argmax(probability)); family = self.names[family_id]
         confidence = float(probability[family_id]); legacy = _family_legacy(family)
         top_ids = np.argsort(-probability)[:3]
@@ -206,10 +232,24 @@ class OnlineSkillComposer:
                 else:
                     switch_reason = "pending_family_dwell"; switched = False
         stable_name = self.names[int(self.stable_family_id)]; stable_legacy = _family_legacy(stable_name)
-        geometry_override = False; selected = stable_legacy if stable_legacy in (2, 4, 5) else None
-        if getattr(self, "geometry_override_enabled", True) and safety_primitive_id in (2, 4):
-            if selected != safety_primitive_id: geometry_override = True; self.override_count += 1
-            selected = safety_primitive_id; selected_reason = "geometry_safety_override"
+        geometry_override = False
+        selected = stable_legacy if stable_legacy in (2, 4, 5) else 5
+        geometry_enabled = getattr(self, "geometry_override_enabled", True)
+        if geometry_enabled:
+            # M_e is an affordance contract in both directions. A compact request contracts
+            # the body, while a wide/tall nominal corridor explicitly forbids a gratuitous
+            # crouch/side clip. Previously only the first direction was enforced, so a biased
+            # composer could choose p4 in every scene even though online perception reported
+            # p5 at every update.
+            if selected != safety_primitive_id:
+                geometry_override = True
+                self.override_count += 1
+            selected = safety_primitive_id
+            selected_reason = (
+                "geometry_required_contraction"
+                if safety_primitive_id in (2, 4)
+                else "geometry_nominal_affordance_gate"
+            )
         elif selected is None or not self.allow_family_contraction:
             selected = 5; selected_reason = "legacy_nominal_safe_fallback"
         elif selected in (2, 4) and confidence < self.confidence_floor:
@@ -303,11 +343,23 @@ class OnlineSkillComposer:
                 result["decision_source"] = "reactive_hazard_policy"
             result["reactive_hazard"] = reactive
             self.reactive_decisions.append({"tick": int(tick), **reactive})
+        # ``update`` records the classifier decision before the hazard head runs. Keep the
+        # audit stream consistent with the command actually sent to the route executor.
+        if self.decisions and self.decisions[-1].get("tick") == int(tick):
+            self.decisions[-1].update({
+                "selected_legacy_id": int(result["selected_legacy_id"]),
+                "selected_reason": result.get("selected_reason"),
+                "switch_reason": result.get("switch_reason"),
+                "decision_source": result.get("decision_source", "environment_composer"),
+            })
         return result
 
     def summary(self) -> dict[str, Any]:
         return {
-            "enabled": True, "checkpoint": str(self.checkpoint_path),
+            "enabled": True,
+            "mode": ("geometry_router" if getattr(self, "geometry_mode", False)
+                     else "learned_composer"),
+            "checkpoint": (str(self.checkpoint_path) if self.checkpoint_path is not None else None),
             "input_contract": "69-D state + 12-frame history + live M_e corridor/SDF + measured M_self",
             "updates": int(self.update_count), "switches": int(self.switch_count),
             "geometry_overrides": int(self.override_count),
@@ -377,4 +429,4 @@ def main() -> int:
 if __name__ == "__main__": raise SystemExit(main())
 
 
-__all__ = ["FAMILY_TO_LEGACY", "OnlineSkillComposer", "ComposerDecision"]
+__all__ = ["FAMILY_TO_LEGACY", "EXECUTABLE_FAMILIES", "OnlineSkillComposer", "ComposerDecision"]

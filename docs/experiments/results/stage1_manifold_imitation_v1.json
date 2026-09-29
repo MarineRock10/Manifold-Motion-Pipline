@@ -1,0 +1,521 @@
+{
+  "schema": "manifold-motion.stage1.manifold-imitation-report.v1",
+  "catalog": "data/manifold_action_catalog_v1/manifold_action_catalog_v1.npz",
+  "target_field": "target_exec",
+  "target_frame": 18,
+  "feature_dim": 22,
+  "train_rows": 2610,
+  "validation_rows": 651,
+  "test_rows": 727,
+  "hidden": 256,
+  "epochs": 80,
+  "seed": 20260928,
+  "metrics": {
+    "train": {
+      "rows": 2610,
+      "mae_rad": 0.10981334745883942,
+      "rmse_rad": 0.1604578047990799,
+      "p95_abs_rad": 0.3376961648464203,
+      "by_family": {
+        "walk_forward": {
+          "rows": 152,
+          "mae_rad": 0.10847382992506027,
+          "rmse_rad": 0.15016117691993713
+        },
+        "jog_forward": {
+          "rows": 88,
+          "mae_rad": 0.13597281277179718,
+          "rmse_rad": 0.18624164164066315
+        },
+        "hands_back_walk": {
+          "rows": 118,
+          "mae_rad": 0.11629847437143326,
+          "rmse_rad": 0.1685958355665207
+        },
+        "walk_lateral": {
+          "rows": 124,
+          "mae_rad": 0.1328650712966919,
+          "rmse_rad": 0.19983580708503723
+        },
+        "walk_curve": {
+          "rows": 144,
+          "mae_rad": 0.10006989538669586,
+          "rmse_rad": 0.1379939615726471
+        },
+        "turn_in_place": {
+          "rows": 148,
+          "mae_rad": 0.11367879062891006,
+          "rmse_rad": 0.16641674935817719
+        },
+        "crouch_walk": {
+          "rows": 118,
+          "mae_rad": 0.11177872121334076,
+          "rmse_rad": 0.15006937086582184
+        },
+        "crouch_transition": {
+          "rows": 116,
+          "mae_rad": 0.1295735388994217,
+          "rmse_rad": 0.18694552779197693
+        },
+        "dodge_lateral": {
+          "rows": 119,
+          "mae_rad": 0.11859151721000671,
+          "rmse_rad": 0.16765595972537994
+        },
+        "forward_lunge": {
+          "rows": 198,
+          "mae_rad": 0.09412351250648499,
+          "rmse_rad": 0.1381443291902542
+        },
+        "side_hop": {
+          "rows": 125,
+          "mae_rad": 0.133058562874794,
+          "rmse_rad": 0.1904790997505188
+        },
+        "high_jump": {
+          "rows": 72,
+          "mae_rad": 0.12035927176475525,
+          "rmse_rad": 0.17634998261928558
+        },
+        "box_jump": {
+          "rows": 66,
+          "mae_rad": 0.12193191796541214,
+          "rmse_rad": 0.17946140468120575
+        },
+        "step_up_box": {
+          "rows": 51,
+          "mae_rad": 0.10478255152702332,
+          "rmse_rad": 0.15135744214057922
+        },
+        "step_down_box": {
+          "rows": 61,
+          "mae_rad": 0.12003494799137115,
+          "rmse_rad": 0.16352935135364532
+        },
+        "kneel": {
+          "rows": 144,
+          "mae_rad": 0.07776128500699997,
+          "rmse_rad": 0.1190977394580841
+        },
+        "all_fours": {
+          "rows": 155,
+          "mae_rad": 0.12478546053171158,
+          "rmse_rad": 0.1726994663476944
+        },
+        "door_interaction": {
+          "rows": 171,
+          "mae_rad": 0.1196870505809784,
+          "rmse_rad": 0.17516739666461945
+        },
+        "ladder": {
+          "rows": 67,
+          "mae_rad": 0.12860190868377686,
+          "rmse_rad": 0.17849856615066528
+        },
+        "button_lever": {
+          "rows": 100,
+          "mae_rad": 0.1220318153500557,
+          "rmse_rad": 0.19315318763256073
+        },
+        "carry_object": {
+          "rows": 273,
+          "mae_rad": 0.06564036011695862,
+          "rmse_rad": 0.09098121523857117
+        }
+      }
+    },
+    "validation": {
+      "rows": 651,
+      "mae_rad": 0.16771358251571655,
+      "rmse_rad": 0.24056363105773926,
+      "p95_abs_rad": 0.5041134357452393,
+      "by_family": {
+        "walk_forward": {
+          "rows": 75,
+          "mae_rad": 0.15068016946315765,
+          "rmse_rad": 0.19056934118270874
+        },
+        "jog_forward": {
+          "rows": 23,
+          "mae_rad": 0.1863466501235962,
+          "rmse_rad": 0.2684846818447113
+        },
+        "hands_back_walk": {
+          "rows": 47,
+          "mae_rad": 0.168870210647583,
+          "rmse_rad": 0.24222970008850098
+        },
+        "walk_curve": {
+          "rows": 47,
+          "mae_rad": 0.15630817413330078,
+          "rmse_rad": 0.20439238846302032
+        },
+        "turn_in_place": {
+          "rows": 73,
+          "mae_rad": 0.14397290349006653,
+          "rmse_rad": 0.2088891863822937
+        },
+        "crouch_walk": {
+          "rows": 26,
+          "mae_rad": 0.22893282771110535,
+          "rmse_rad": 0.30994081497192383
+        },
+        "crouch_transition": {
+          "rows": 46,
+          "mae_rad": 0.23021537065505981,
+          "rmse_rad": 0.314337819814682
+        },
+        "high_jump": {
+          "rows": 16,
+          "mae_rad": 0.2079688161611557,
+          "rmse_rad": 0.3223741054534912
+        },
+        "step_up_box": {
+          "rows": 31,
+          "mae_rad": 0.13701550662517548,
+          "rmse_rad": 0.20982873439788818
+        },
+        "step_down_box": {
+          "rows": 19,
+          "mae_rad": 0.1435151845216751,
+          "rmse_rad": 0.20789986848831177
+        },
+        "kneel": {
+          "rows": 37,
+          "mae_rad": 0.13230039179325104,
+          "rmse_rad": 0.19898423552513123
+        },
+        "all_fours": {
+          "rows": 44,
+          "mae_rad": 0.21383872628211975,
+          "rmse_rad": 0.2871502637863159
+        },
+        "door_interaction": {
+          "rows": 41,
+          "mae_rad": 0.1819651573896408,
+          "rmse_rad": 0.261936753988266
+        },
+        "button_lever": {
+          "rows": 35,
+          "mae_rad": 0.20937448740005493,
+          "rmse_rad": 0.32588356733322144
+        },
+        "carry_object": {
+          "rows": 91,
+          "mae_rad": 0.13037928938865662,
+          "rmse_rad": 0.1776181310415268
+        }
+      }
+    },
+    "test": {
+      "rows": 727,
+      "mae_rad": 0.19831536710262299,
+      "rmse_rad": 0.2973509132862091,
+      "p95_abs_rad": 0.6307944655418396,
+      "by_family": {
+        "walk_forward": {
+          "rows": 56,
+          "mae_rad": 0.19210390746593475,
+          "rmse_rad": 0.27414757013320923
+        },
+        "jog_forward": {
+          "rows": 29,
+          "mae_rad": 0.25705525279045105,
+          "rmse_rad": 0.3809390068054199
+        },
+        "hands_back_walk": {
+          "rows": 40,
+          "mae_rad": 0.17742978036403656,
+          "rmse_rad": 0.25003916025161743
+        },
+        "walk_lateral": {
+          "rows": 40,
+          "mae_rad": 0.19323350489139557,
+          "rmse_rad": 0.2812163829803467
+        },
+        "walk_curve": {
+          "rows": 48,
+          "mae_rad": 0.13212516903877258,
+          "rmse_rad": 0.19668549299240112
+        },
+        "turn_in_place": {
+          "rows": 26,
+          "mae_rad": 0.12425260245800018,
+          "rmse_rad": 0.1711382418870926
+        },
+        "crouch_walk": {
+          "rows": 20,
+          "mae_rad": 0.17326582968235016,
+          "rmse_rad": 0.2384939193725586
+        },
+        "crouch_transition": {
+          "rows": 52,
+          "mae_rad": 0.2557109296321869,
+          "rmse_rad": 0.3368004560470581
+        },
+        "dodge_lateral": {
+          "rows": 42,
+          "mae_rad": 0.20489387214183807,
+          "rmse_rad": 0.3013949990272522
+        },
+        "forward_lunge": {
+          "rows": 57,
+          "mae_rad": 0.1337316334247589,
+          "rmse_rad": 0.18302622437477112
+        },
+        "side_hop": {
+          "rows": 28,
+          "mae_rad": 0.22183477878570557,
+          "rmse_rad": 0.32195624709129333
+        },
+        "high_jump": {
+          "rows": 36,
+          "mae_rad": 0.1847768872976303,
+          "rmse_rad": 0.2823146879673004
+        },
+        "box_jump": {
+          "rows": 16,
+          "mae_rad": 0.18587380647659302,
+          "rmse_rad": 0.26256653666496277
+        },
+        "step_up_box": {
+          "rows": 13,
+          "mae_rad": 0.22937311232089996,
+          "rmse_rad": 0.33834412693977356
+        },
+        "step_down_box": {
+          "rows": 28,
+          "mae_rad": 0.21354904770851135,
+          "rmse_rad": 0.30145615339279175
+        },
+        "kneel": {
+          "rows": 41,
+          "mae_rad": 0.15068557858467102,
+          "rmse_rad": 0.2171112447977066
+        },
+        "all_fours": {
+          "rows": 47,
+          "mae_rad": 0.17612183094024658,
+          "rmse_rad": 0.26451754570007324
+        },
+        "button_lever": {
+          "rows": 54,
+          "mae_rad": 0.22299303114414215,
+          "rmse_rad": 0.3265956938266754
+        },
+        "carry_object": {
+          "rows": 54,
+          "mae_rad": 0.31994831562042236,
+          "rmse_rad": 0.4893430769443512
+        }
+      }
+    },
+    "test_global_mean_baseline": {
+      "rows": 727,
+      "mae_rad": 0.2554660737514496,
+      "rmse_rad": 0.3776842951774597,
+      "p95_abs_rad": 0.8389400243759155,
+      "by_family": {
+        "walk_forward": {
+          "rows": 56,
+          "mae_rad": 0.20398934185504913,
+          "rmse_rad": 0.29099002480506897
+        },
+        "jog_forward": {
+          "rows": 29,
+          "mae_rad": 0.25713348388671875,
+          "rmse_rad": 0.4049513638019562
+        },
+        "hands_back_walk": {
+          "rows": 40,
+          "mae_rad": 0.32372695207595825,
+          "rmse_rad": 0.4390272796154022
+        },
+        "walk_lateral": {
+          "rows": 40,
+          "mae_rad": 0.24494218826293945,
+          "rmse_rad": 0.3495704233646393
+        },
+        "walk_curve": {
+          "rows": 48,
+          "mae_rad": 0.1751667708158493,
+          "rmse_rad": 0.2347676157951355
+        },
+        "turn_in_place": {
+          "rows": 26,
+          "mae_rad": 0.1962559074163437,
+          "rmse_rad": 0.2690991163253784
+        },
+        "crouch_walk": {
+          "rows": 20,
+          "mae_rad": 0.2732410132884979,
+          "rmse_rad": 0.3761952221393585
+        },
+        "crouch_transition": {
+          "rows": 52,
+          "mae_rad": 0.3669925630092621,
+          "rmse_rad": 0.5113686323165894
+        },
+        "dodge_lateral": {
+          "rows": 42,
+          "mae_rad": 0.22558951377868652,
+          "rmse_rad": 0.33445459604263306
+        },
+        "forward_lunge": {
+          "rows": 57,
+          "mae_rad": 0.2104913294315338,
+          "rmse_rad": 0.30651262402534485
+        },
+        "side_hop": {
+          "rows": 28,
+          "mae_rad": 0.24000553786754608,
+          "rmse_rad": 0.3533107042312622
+        },
+        "high_jump": {
+          "rows": 36,
+          "mae_rad": 0.2290964275598526,
+          "rmse_rad": 0.33925631642341614
+        },
+        "box_jump": {
+          "rows": 16,
+          "mae_rad": 0.27443915605545044,
+          "rmse_rad": 0.4132080376148224
+        },
+        "step_up_box": {
+          "rows": 13,
+          "mae_rad": 0.24857769906520844,
+          "rmse_rad": 0.36113208532333374
+        },
+        "step_down_box": {
+          "rows": 28,
+          "mae_rad": 0.22528976202011108,
+          "rmse_rad": 0.3241131901741028
+        },
+        "kneel": {
+          "rows": 41,
+          "mae_rad": 0.2134276181459427,
+          "rmse_rad": 0.35579913854599
+        },
+        "all_fours": {
+          "rows": 47,
+          "mae_rad": 0.3257303237915039,
+          "rmse_rad": 0.47505414485931396
+        },
+        "button_lever": {
+          "rows": 54,
+          "mae_rad": 0.25941166281700134,
+          "rmse_rad": 0.3719680905342102
+        },
+        "carry_object": {
+          "rows": 54,
+          "mae_rad": 0.32589974999427795,
+          "rmse_rad": 0.4776929020881653
+        }
+      }
+    },
+    "test_family_mean_baseline": {
+      "rows": 727,
+      "mae_rad": 0.20601600408554077,
+      "rmse_rad": 0.318717360496521,
+      "p95_abs_rad": 0.6991450190544128,
+      "by_family": {
+        "walk_forward": {
+          "rows": 56,
+          "mae_rad": 0.17479807138442993,
+          "rmse_rad": 0.25490596890449524
+        },
+        "jog_forward": {
+          "rows": 29,
+          "mae_rad": 0.19860471785068512,
+          "rmse_rad": 0.27021369338035583
+        },
+        "hands_back_walk": {
+          "rows": 40,
+          "mae_rad": 0.1314874291419983,
+          "rmse_rad": 0.1753404438495636
+        },
+        "walk_lateral": {
+          "rows": 40,
+          "mae_rad": 0.21647442877292633,
+          "rmse_rad": 0.32041552662849426
+        },
+        "walk_curve": {
+          "rows": 48,
+          "mae_rad": 0.1391099989414215,
+          "rmse_rad": 0.19663311541080475
+        },
+        "turn_in_place": {
+          "rows": 26,
+          "mae_rad": 0.11352106928825378,
+          "rmse_rad": 0.17723819613456726
+        },
+        "crouch_walk": {
+          "rows": 20,
+          "mae_rad": 0.1581156700849533,
+          "rmse_rad": 0.212036594748497
+        },
+        "crouch_transition": {
+          "rows": 52,
+          "mae_rad": 0.23198767006397247,
+          "rmse_rad": 0.3144116699695587
+        },
+        "dodge_lateral": {
+          "rows": 42,
+          "mae_rad": 0.23827287554740906,
+          "rmse_rad": 0.3393421173095703
+        },
+        "forward_lunge": {
+          "rows": 57,
+          "mae_rad": 0.1852555125951767,
+          "rmse_rad": 0.26652762293815613
+        },
+        "side_hop": {
+          "rows": 28,
+          "mae_rad": 0.22233165800571442,
+          "rmse_rad": 0.33738210797309875
+        },
+        "high_jump": {
+          "rows": 36,
+          "mae_rad": 0.22088877856731415,
+          "rmse_rad": 0.3305509686470032
+        },
+        "box_jump": {
+          "rows": 16,
+          "mae_rad": 0.2580510377883911,
+          "rmse_rad": 0.388126403093338
+        },
+        "step_up_box": {
+          "rows": 13,
+          "mae_rad": 0.24293768405914307,
+          "rmse_rad": 0.3540063798427582
+        },
+        "step_down_box": {
+          "rows": 28,
+          "mae_rad": 0.19859333336353302,
+          "rmse_rad": 0.288596510887146
+        },
+        "kneel": {
+          "rows": 41,
+          "mae_rad": 0.17568643391132355,
+          "rmse_rad": 0.28983017802238464
+        },
+        "all_fours": {
+          "rows": 47,
+          "mae_rad": 0.24894621968269348,
+          "rmse_rad": 0.4127952456474304
+        },
+        "button_lever": {
+          "rows": 54,
+          "mae_rad": 0.22809818387031555,
+          "rmse_rad": 0.373155802488327
+        },
+        "carry_object": {
+          "rows": 54,
+          "mae_rad": 0.30814069509506226,
+          "rmse_rad": 0.48485514521598816
+        }
+      }
+    }
+  },
+  "interpretation": "M_e-only supervised imitation; no SONIC fine-tuning or Stage-2 history is used"
+}

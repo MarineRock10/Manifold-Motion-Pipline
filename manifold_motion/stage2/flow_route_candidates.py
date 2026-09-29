@@ -346,6 +346,80 @@ def _handoff_phase(motion: Any, previous_q: np.ndarray | None, default: int = 6,
     return int(np.argmin(error))
 
 
+def _continuous_handoff_phase(motion: Any, previous_motion: Any, previous_phase: int,
+                              previous_q: np.ndarray | None, search_radius: int = 4) -> int:
+    """Transfer cyclic gait phase without matching the opposite leg by accident.
+
+    A global nearest-pose search is ambiguous for left/right-symmetric walking clips. It can
+    jump half a cycle at every route boundary and produces the characteristic one-legged
+    shuffle. Preserve normalized cycle time first, then use pose *and velocity* only inside a
+    small neighbourhood of that expected phase.
+    """
+    new_start = min(6, max(0, motion.T - 2))
+    old_start = min(6, max(0, previous_motion.T - 2))
+    new_stop = max(new_start + 1, motion.T - 1)
+    old_stop = max(old_start + 1, previous_motion.T - 1)
+    new_length = new_stop - new_start
+    old_length = old_stop - old_start
+    old_phase = old_start + (int(previous_phase) - old_start) % old_length
+    fraction = float(old_phase - old_start) / float(old_length)
+    expected = new_start + int(round(fraction * new_length)) % new_length
+    offsets = np.arange(-max(0, int(search_radius)), max(0, int(search_radius)) + 1)
+    candidates = new_start + (expected - new_start + offsets) % new_length
+    candidates = np.unique(candidates.astype(np.int64))
+    if previous_q is None:
+        return int(expected)
+    pose_error = np.mean(
+        (motion.joint_pos_policy[candidates] - np.asarray(previous_q)[None, :]) ** 2,
+        axis=1,
+    )
+    old_velocity = previous_motion.joint_vel_policy[old_phase]
+    velocity_error = np.mean(
+        (motion.joint_vel_policy[candidates] - old_velocity[None, :]) ** 2,
+        axis=1,
+    )
+    # Pose continuity dominates; velocity direction disambiguates the two support legs.
+    score = pose_error + 0.015 * velocity_error
+    return int(candidates[int(np.argmin(score))])
+
+
+def _gait_balance_metrics(q_policy: np.ndarray, dq_policy: np.ndarray,
+                          mask: np.ndarray | None = None) -> dict[str, float | int]:
+    """Measure one-sided lower-body motion without assuming mirrored joint angles.
+
+    Walking is deliberately out of phase, so instantaneous left/right pose differences are
+    not a useful quality signal. Compare per-joint velocity energy and range over a complete
+    interval instead; a replay that mostly drives one leg scores close to one.
+    """
+    q = np.asarray(q_policy, dtype=np.float64)
+    dq = np.asarray(dq_policy, dtype=np.float64)
+    if mask is not None:
+        select = np.asarray(mask, dtype=bool)
+        q, dq = q[select], dq[select]
+    if len(q) < 4:
+        return {"ticks": int(len(q)), "leg_velocity_energy_imbalance": 0.0,
+                "leg_joint_range_imbalance": 0.0, "joint_acceleration_rms_rad_s2": 0.0}
+    q_hw = q[:, C.ISAACLAB_TO_MUJOCO]
+    dq_hw = dq[:, C.ISAACLAB_TO_MUJOCO]
+    left_energy = np.sqrt(np.mean(dq_hw[:, :6] ** 2, axis=0))
+    right_energy = np.sqrt(np.mean(dq_hw[:, 6:12] ** 2, axis=0))
+    energy_imbalance = np.mean(
+        np.abs(left_energy - right_energy) / np.maximum(left_energy + right_energy, 1e-4)
+    )
+    left_range = np.ptp(q_hw[:, :6], axis=0)
+    right_range = np.ptp(q_hw[:, 6:12], axis=0)
+    range_imbalance = np.mean(
+        np.abs(left_range - right_range) / np.maximum(left_range + right_range, 1e-4)
+    )
+    acceleration = np.diff(dq_hw[:, :12], axis=0) / C.CONTROL_DT
+    return {
+        "ticks": int(len(q)),
+        "leg_velocity_energy_imbalance": float(energy_imbalance),
+        "leg_joint_range_imbalance": float(range_imbalance),
+        "joint_acceleration_rms_rad_s2": float(np.sqrt(np.mean(acceleration ** 2))),
+    }
+
+
 def _clone_sonic_controller(controller: SonicController) -> SonicController:
     """Clone mutable SONIC history while sharing immutable ONNX Runtime sessions."""
     clone = SonicController.__new__(SonicController)
@@ -804,15 +878,16 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             if refreshed is not None:
                 commit = bool((refresh_report or {}).get("commit", True))
                 if commit:
+                    previous_motion = plan.motion
+                    previous_phase = phases[segment][option_index]
                     plan_options[segment][option_index] = refreshed
                     plan = refreshed
                     # A rolling refresh of the same semantic primitive must preserve gait phase;
                     # restarting at the transition prefix every N ticks turns a walk into a
                     # series of starts and explains the zero-progress failure mode of the first
                     # prototype.
-                    phases[segment][option_index] = (
-                        _handoff_phase(plan.motion, previous_q)
-                        if previous_q is not None else min(6, plan.motion.T - 1)
+                    phases[segment][option_index] = _continuous_handoff_phase(
+                        plan.motion, previous_motion, previous_phase, previous_q
                     )
                 if commit and previous_q is not None:
                     blend_from_q = previous_q.copy()
@@ -830,8 +905,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             # an otherwise forward candidate.  Nearest-pose alignment is used only when the
             # semantic primitive stays the same across an M_e segment boundary.
             if previous_plan is not None and previous_plan.primitive_id == plan.primitive_id:
-                phases[segment][option_index] = _handoff_phase(plan.motion, previous_q)
-                phase_handoff = "same_primitive_nearest_pose"
+                previous_phase = phases[active[0]][active[1]]
+                phases[segment][option_index] = _continuous_handoff_phase(
+                    plan.motion, previous_plan.motion, previous_phase, previous_q
+                )
+                phase_handoff = "same_primitive_phase_continuous"
                 blend_from_q = None
             elif previous_q is not None:
                 # Enter a new semantic motion at its validated prefix, then crossfade the
@@ -959,6 +1037,27 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     side_mask = np.asarray(data["side_on_active"], dtype=bool)
     side_yaw_error = np.abs(np.degrees(np.abs(data["body_route_yaw_error"][side_mask]) - np.pi / 2.0)) if np.any(side_mask) else np.zeros(1)
     terminal_error = float(np.linalg.norm(positions[-1] - world_keyframes[-1]))
+    nominal_gait = _gait_balance_metrics(
+        data["q_exec"], data["dq_exec"], data["active_primitive"] == 5
+    )
+    side_gait = _gait_balance_metrics(
+        data["q_exec"], data["dq_exec"], data["active_primitive"] == 4
+    )
+    complete_gait = _gait_balance_metrics(data["q_exec"], data["dq_exec"])
+    unjustified_compact_updates = []
+    for update in online_perception_updates:
+        decision = update.get("composer_decision")
+        if not isinstance(decision, dict):
+            continue
+        environment_id = int(decision.get("safety_primitive_id", update.get("primitive_id", 5)))
+        executed_id = int(decision.get("selected_legacy_id", environment_id))
+        reactive = decision.get("decision_source") == "reactive_hazard_policy"
+        if environment_id == 5 and executed_id in (2, 4) and not reactive:
+            unjustified_compact_updates.append({
+                "tick": decision.get("tick"), "environment_primitive_id": environment_id,
+                "selected_primitive_id": executed_id,
+                "stable_family": decision.get("stable_family"),
+            })
     failures = []
     if online_perception_failure is not None: failures.append("online_perception_failure")
     if target_index < len(world_keyframes): failures.append("goal_or_keyframe_not_reached")
@@ -977,6 +1076,17 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     side_yaw_p95_deg = float(np.quantile(side_yaw_error, 0.95)) if np.any(side_mask) else 0.0
     if np.any(side_mask) and side_yaw_p95_deg > getattr(args, "max_side_body_yaw_error_p95_deg", 35.0):
         failures.append("side_on_body_heading_mismatch")
+    if unjustified_compact_updates:
+        failures.append("semantic_action_without_environment_affordance")
+    max_leg_imbalance = float(getattr(args, "max_leg_energy_imbalance", 0.55))
+    if (int(nominal_gait["ticks"]) >= 40
+            and (float(nominal_gait["leg_velocity_energy_imbalance"]) > max_leg_imbalance
+                 or float(nominal_gait["leg_joint_range_imbalance"]) > max_leg_imbalance)):
+        failures.append("one_sided_nominal_gait")
+    if (int(side_gait["ticks"]) >= 20
+            and (float(side_gait["leg_velocity_energy_imbalance"]) > max_leg_imbalance
+                 or float(side_gait["leg_joint_range_imbalance"]) > max_leg_imbalance)):
+        failures.append("one_sided_lateral_gait")
     summary = {
         "accepted": not failures, "failed_checks": failures, "no_reset_between_primitives": True,
         "physics_ticks": int(len(data["t"])), "duration_s": float(len(data["t"]) * C.CONTROL_DT),
@@ -1022,6 +1132,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "online_semantic_updates": online_semantic_updates,
         "online_semantic_switch_count": int(sum(bool(row.get("committed"))
                                                   for row in online_semantic_updates)),
+        "unjustified_compact_action_updates": unjustified_compact_updates,
+        "nominal_gait_quality": nominal_gait,
+        "side_gait_quality": side_gait,
+        "complete_gait_quality": complete_gait,
+        "max_leg_energy_imbalance": max_leg_imbalance,
         "online_perception_failure": online_perception_failure,
         "online_perception_contract": (
             "live radar -> 3-D sliding map -> incremental ESDF/D* Lite -> M_e -> "
@@ -1031,7 +1146,10 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "primitive_switch_count": int(max(0, len(switches) - 1)), "max_pre_switch_joint_rms_rad": switch_rms,
         "primitive_ticks": {name: int(np.sum(data["active_primitive_name"] == name)) for name in PRIMITIVE_NAMES.values()},
         "start_world_xy_m": origin.tolist(), "final_world_xy_m": positions[-1].tolist(),
-        "phase_contract": "nearest-pose handoff plus continuous 50 Hz phase; no per-segment phase reset",
+        "phase_contract": (
+            "normalized cyclic phase transfer plus local pose/velocity alignment; "
+            "no global nearest-pose leg swap and no per-segment phase reset"
+        ),
         "receding_horizon_ticks": int(getattr(args, "receding_horizon_ticks", 0)),
         "receding_horizon_updates": receding_updates,
         "receding_horizon_contract": (

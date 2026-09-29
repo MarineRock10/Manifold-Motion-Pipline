@@ -1,0 +1,250 @@
+{
+  "schema": "manifold-motion.stage1.temporal-physical.v1",
+  "rows": [
+    {
+      "tracking_mae_rad": 0.07185827801685722,
+      "radius": 0.8522315883727595,
+      "drift_m": 0.027867455088064205,
+      "fallen": false,
+      "accepted": true,
+      "row": 312,
+      "family": "jog_forward",
+      "predicted_family": "side_hop",
+      "oracle": {
+        "tracking_mae_rad": 0.10173076170705435,
+        "radius": 1.1346652050793213,
+        "drift_m": 0.10271189007878695,
+        "fallen": false,
+        "accepted": false
+      }
+    },
+    {
+      "tracking_mae_rad": 0.11986026119992789,
+      "radius": 0.7598421439469426,
+      "drift_m": 0.06910458647272565,
+      "fallen": false,
+      "accepted": true,
+      "row": 531,
+      "family": "hands_back_walk",
+      "predicted_family": "hands_back_walk",
+      "oracle": {
+        "tracking_mae_rad": 0.25094872135480706,
+        "radius": 0.8375526141951051,
+        "drift_m": 0.33590424701085236,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.09403105189739583,
+      "radius": 0.8797901501602199,
+      "drift_m": 0.0387737366092458,
+      "fallen": false,
+      "accepted": true,
+      "row": 682,
+      "family": "walk_lateral",
+      "predicted_family": "walk_lateral",
+      "oracle": {
+        "tracking_mae_rad": 0.10880881085891497,
+        "radius": 0.9938096264415452,
+        "drift_m": 0.3125550725629533,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.0873638825182346,
+      "radius": 0.6942608715232396,
+      "drift_m": 0.05361365830720813,
+      "fallen": false,
+      "accepted": true,
+      "row": 894,
+      "family": "walk_curve",
+      "predicted_family": "walk_curve",
+      "oracle": {
+        "tracking_mae_rad": 0.09767479171656131,
+        "radius": 0.8995053178307227,
+        "drift_m": 0.304069817178607,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.08610047789170094,
+      "radius": 0.7398526298502638,
+      "drift_m": 0.1649553469690799,
+      "fallen": false,
+      "accepted": true,
+      "row": 1726,
+      "family": "dodge_lateral",
+      "predicted_family": "side_hop",
+      "oracle": {
+        "tracking_mae_rad": 0.10629677563034871,
+        "radius": 0.7990613138341303,
+        "drift_m": 0.1775503367591513,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.08306523311862676,
+      "radius": 0.9751362094299583,
+      "drift_m": 0.16799135095957457,
+      "fallen": false,
+      "accepted": true,
+      "row": 1936,
+      "family": "forward_lunge",
+      "predicted_family": "forward_lunge",
+      "oracle": {
+        "tracking_mae_rad": 0.09143034206225556,
+        "radius": 1.0284870355141211,
+        "drift_m": 0.3229984899555623,
+        "fallen": false,
+        "accepted": false
+      }
+    },
+    {
+      "tracking_mae_rad": 0.07794098213527739,
+      "radius": 0.8731518453915841,
+      "drift_m": 0.046313046263843735,
+      "fallen": false,
+      "accepted": true,
+      "row": 2196,
+      "family": "side_hop",
+      "predicted_family": "door_interaction",
+      "oracle": {
+        "tracking_mae_rad": 0.13166096524462914,
+        "radius": 0.8701636824118931,
+        "drift_m": 0.3040357538044346,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.09972856236750358,
+      "radius": 0.7892220078307419,
+      "drift_m": 0.4378140616288378,
+      "fallen": false,
+      "accepted": false,
+      "row": 2299,
+      "family": "high_jump",
+      "predicted_family": "box_jump",
+      "oracle": {
+        "tracking_mae_rad": 0.11747006684895335,
+        "radius": 0.8244847053199713,
+        "drift_m": 0.24684534723578927,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.12013396556762383,
+      "radius": 0.7362763756464307,
+      "drift_m": 0.36832351547462955,
+      "fallen": false,
+      "accepted": false,
+      "row": 2383,
+      "family": "box_jump",
+      "predicted_family": "box_jump",
+      "oracle": {
+        "tracking_mae_rad": 0.17372269461086037,
+        "radius": 0.8897744130245036,
+        "drift_m": 0.1397097514405018,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.07747452465786343,
+      "radius": 0.7357896312346157,
+      "drift_m": 0.14211108430128913,
+      "fallen": false,
+      "accepted": true,
+      "row": 2470,
+      "family": "step_up_box",
+      "predicted_family": "door_interaction",
+      "oracle": {
+        "tracking_mae_rad": 0.1271669912164318,
+        "radius": 0.7840649122792102,
+        "drift_m": 0.8897181218261601,
+        "fallen": false,
+        "accepted": false
+      }
+    },
+    {
+      "tracking_mae_rad": 0.10252477380504094,
+      "radius": 0.8298608534387082,
+      "drift_m": 0.05590877415316064,
+      "fallen": false,
+      "accepted": true,
+      "row": 2714,
+      "family": "kneel",
+      "predicted_family": "walk_lateral",
+      "oracle": {
+        "tracking_mae_rad": 0.12019349239323637,
+        "radius": 0.8210644298946245,
+        "drift_m": 0.17457700527177158,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.09342850566276564,
+      "radius": 0.7673153898153521,
+      "drift_m": 0.07910801743349155,
+      "fallen": false,
+      "accepted": true,
+      "row": 3102,
+      "family": "door_interaction",
+      "predicted_family": "door_interaction",
+      "oracle": {
+        "tracking_mae_rad": 0.10354455702287366,
+        "radius": 0.8400580593575815,
+        "drift_m": 0.06943307674580239,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.11483382052486123,
+      "radius": 0.7697000206317399,
+      "drift_m": 0.0865416186816778,
+      "fallen": false,
+      "accepted": true,
+      "row": 3345,
+      "family": "ladder",
+      "predicted_family": "all_fours",
+      "oracle": {
+        "tracking_mae_rad": 0.15305772929249853,
+        "radius": 0.8149966121135981,
+        "drift_m": 0.20664806476832953,
+        "fallen": false,
+        "accepted": true
+      }
+    },
+    {
+      "tracking_mae_rad": 0.13265673229765296,
+      "radius": 0.722690755379898,
+      "drift_m": 0.06470272195933319,
+      "fallen": false,
+      "accepted": true,
+      "row": 3481,
+      "family": "button_lever",
+      "predicted_family": "door_interaction",
+      "oracle": {
+        "tracking_mae_rad": 0.08886541671409229,
+        "radius": 0.7853995606517568,
+        "drift_m": 0.061949633289795664,
+        "fallen": false,
+        "accepted": true
+      }
+    }
+  ],
+  "aggregate": {
+    "predicted_acceptance": 0.8571428571428571,
+    "oracle_acceptance": 0.7857142857142857,
+    "predicted_tracking_mae_rad": 0.09721436083295229
+  },
+  "frozen_sonic": true,
+  "repeat": 2
+}

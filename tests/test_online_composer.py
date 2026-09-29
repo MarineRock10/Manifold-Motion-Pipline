@@ -49,13 +49,29 @@ def test_online_composer_dwell_and_geometry_override():
     pending = composer.update(**kwargs, tick=1)
     assert pending["selected_legacy_id"] == 5
     switched = composer.update(**kwargs, tick=2)
-    assert switched["selected_legacy_id"] == 2
+    # A confident crouch classification cannot override a wide/tall environment affordance.
+    # Only the live M_e contract may request the compact primitive.
+    assert switched["selected_legacy_id"] == 5
+    assert switched["selected_reason"] == "geometry_nominal_affordance_gate"
     overridden = composer.update(**{**kwargs, "safety_primitive_id": 4}, tick=3)
     assert overridden["selected_legacy_id"] == 4
     assert overridden["geometry_override"]
 
 
 def test_richer_seed_families_keep_auditable_legacy_mapping():
-    assert FAMILY_TO_LEGACY["all_fours"] == 2
-    assert FAMILY_TO_LEGACY["dodge_lateral"] == 4
-    assert FAMILY_TO_LEGACY["door_interaction"] == 5
+    assert FAMILY_TO_LEGACY == {
+        "walk_forward": 5,
+        "walk_lateral": 4,
+        "crouch_walk": 2,
+    }
+
+
+def test_geometry_router_runs_without_latent_checkpoint():
+    composer = OnlineSkillComposer(None)
+    kwargs = dict(state=np.zeros(69), history=np.zeros((12, 69)),
+                  corridor=np.zeros((36, 7)), sdf=np.zeros((10, 10, 8)),
+                  self_manifold=np.ones((36, 3)))
+    decision = composer.update(**kwargs, safety_primitive_id=4, tick=0)
+    assert decision["selected_legacy_id"] == 4
+    assert composer.summary()["mode"] == "geometry_router"
+    assert composer.summary()["checkpoint"] is None

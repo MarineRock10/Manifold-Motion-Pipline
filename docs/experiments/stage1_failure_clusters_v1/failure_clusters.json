@@ -1,0 +1,255 @@
+{
+  "schema": "manifold-motion.stage1.failure-clusters.v1",
+  "source": "reports/manifold_motion/stage1_temporal_primitive_v11/physical.json",
+  "clusters": {
+    "accepted": {
+      "rows": 12,
+      "families": [
+        "button_lever",
+        "dodge_lateral",
+        "door_interaction",
+        "forward_lunge",
+        "hands_back_walk",
+        "jog_forward",
+        "kneel",
+        "ladder",
+        "side_hop",
+        "step_up_box",
+        "walk_curve",
+        "walk_lateral"
+      ],
+      "rows_detail": [
+        {
+          "row": 312,
+          "family": "jog_forward",
+          "radius": 0.8522315883727595,
+          "drift_m": 0.027867455088064205,
+          "predicted_family": "side_hop"
+        },
+        {
+          "row": 531,
+          "family": "hands_back_walk",
+          "radius": 0.7598421439469426,
+          "drift_m": 0.06910458647272565,
+          "predicted_family": "hands_back_walk"
+        },
+        {
+          "row": 682,
+          "family": "walk_lateral",
+          "radius": 0.8797901501602199,
+          "drift_m": 0.0387737366092458,
+          "predicted_family": "walk_lateral"
+        },
+        {
+          "row": 894,
+          "family": "walk_curve",
+          "radius": 0.6942608715232396,
+          "drift_m": 0.05361365830720813,
+          "predicted_family": "walk_curve"
+        },
+        {
+          "row": 1726,
+          "family": "dodge_lateral",
+          "radius": 0.7398526298502638,
+          "drift_m": 0.1649553469690799,
+          "predicted_family": "side_hop"
+        },
+        {
+          "row": 1936,
+          "family": "forward_lunge",
+          "radius": 0.9751362094299583,
+          "drift_m": 0.16799135095957457,
+          "predicted_family": "forward_lunge"
+        },
+        {
+          "row": 2196,
+          "family": "side_hop",
+          "radius": 0.8731518453915841,
+          "drift_m": 0.046313046263843735,
+          "predicted_family": "door_interaction"
+        },
+        {
+          "row": 2470,
+          "family": "step_up_box",
+          "radius": 0.7357896312346157,
+          "drift_m": 0.14211108430128913,
+          "predicted_family": "door_interaction"
+        },
+        {
+          "row": 2714,
+          "family": "kneel",
+          "radius": 0.8298608534387082,
+          "drift_m": 0.05590877415316064,
+          "predicted_family": "walk_lateral"
+        },
+        {
+          "row": 3102,
+          "family": "door_interaction",
+          "radius": 0.7673153898153521,
+          "drift_m": 0.07910801743349155,
+          "predicted_family": "door_interaction"
+        },
+        {
+          "row": 3345,
+          "family": "ladder",
+          "radius": 0.7697000206317399,
+          "drift_m": 0.0865416186816778,
+          "predicted_family": "all_fours"
+        },
+        {
+          "row": 3481,
+          "family": "button_lever",
+          "radius": 0.722690755379898,
+          "drift_m": 0.06470272195933319,
+          "predicted_family": "door_interaction"
+        }
+      ]
+    },
+    "root_drift": {
+      "rows": 2,
+      "families": [
+        "box_jump",
+        "high_jump"
+      ],
+      "rows_detail": [
+        {
+          "row": 2299,
+          "family": "high_jump",
+          "radius": 0.7892220078307419,
+          "drift_m": 0.4378140616288378,
+          "predicted_family": "box_jump"
+        },
+        {
+          "row": 2383,
+          "family": "box_jump",
+          "radius": 0.7362763756464307,
+          "drift_m": 0.36832351547462955,
+          "predicted_family": "box_jump"
+        }
+      ]
+    }
+  },
+  "by_family": {
+    "box_jump": {
+      "rows": 1,
+      "failures": 1,
+      "max_radius": 0.7362763756464307,
+      "max_drift_m": 0.36832351547462955
+    },
+    "button_lever": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.722690755379898,
+      "max_drift_m": 0.06470272195933319
+    },
+    "dodge_lateral": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.7398526298502638,
+      "max_drift_m": 0.1649553469690799
+    },
+    "door_interaction": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.7673153898153521,
+      "max_drift_m": 0.07910801743349155
+    },
+    "forward_lunge": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.9751362094299583,
+      "max_drift_m": 0.16799135095957457
+    },
+    "hands_back_walk": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.7598421439469426,
+      "max_drift_m": 0.06910458647272565
+    },
+    "high_jump": {
+      "rows": 1,
+      "failures": 1,
+      "max_radius": 0.7892220078307419,
+      "max_drift_m": 0.4378140616288378
+    },
+    "jog_forward": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.8522315883727595,
+      "max_drift_m": 0.027867455088064205
+    },
+    "kneel": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.8298608534387082,
+      "max_drift_m": 0.05590877415316064
+    },
+    "ladder": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.7697000206317399,
+      "max_drift_m": 0.0865416186816778
+    },
+    "side_hop": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.8731518453915841,
+      "max_drift_m": 0.046313046263843735
+    },
+    "step_up_box": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.7357896312346157,
+      "max_drift_m": 0.14211108430128913
+    },
+    "walk_curve": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.6942608715232396,
+      "max_drift_m": 0.05361365830720813
+    },
+    "walk_lateral": {
+      "rows": 1,
+      "failures": 0,
+      "max_radius": 0.8797901501602199,
+      "max_drift_m": 0.0387737366092458
+    }
+  },
+  "supplement_manifest": [
+    {
+      "priority": 1,
+      "family": "high_jump",
+      "reason": "confirmation root drift exceeded 0.35 m"
+    },
+    {
+      "priority": 1,
+      "family": "box_jump",
+      "reason": "confirmation root drift exceeded 0.35 m"
+    },
+    {
+      "priority": 2,
+      "family": "jog_forward",
+      "reason": "temporal head confused with side_hop"
+    },
+    {
+      "priority": 2,
+      "family": "dodge_lateral",
+      "reason": "temporal head confused with side_hop"
+    },
+    {
+      "priority": 2,
+      "family": "button_lever",
+      "reason": "temporal head confused with door_interaction"
+    }
+  ],
+  "selection_rule": "fixed before supplemental SEED download; no confirmation row is promoted by success",
+  "frozen_sonic_adapter_reference": {
+    "path": "docs/experiments/stage1_simulator_adapter_v9/summary.json",
+    "seeds": [
+      "20260928",
+      "20260929",
+      "20260930"
+    ],
+    "interpretation": "v9 reports aggregate trade-offs only; no row-level failure labels were available"
+  }
+}

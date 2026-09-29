@@ -1,0 +1,63 @@
+{
+  "schema": "manifold-motion.repaired-motion-quality.v1",
+  "mainline": "geometry_routed_no_latent_prior_or_composer",
+  "latent_status": "archived_negative_result_ablation",
+  "projectile_policy_scope": "relative-motion action-family classifier; not a pose decoder",
+  "code_fixes": [
+    "bidirectional environment affordance gate",
+    "continuous cyclic phase handoff with local pose/velocity alignment",
+    "projectile dynamic-layer separation from static SLAM occupancy"
+  ],
+  "runs": {
+    "static_block_right_nav": {
+      "accepted": true,
+      "physics_ticks": 239,
+      "primitive_ticks": {"crouch": 0, "low_transition": 0, "walk_lateral_reverse": 0, "walk_nominal": 236, "walk_turn": 3},
+      "obstacle_contact_ticks": 0,
+      "nominal_leg_velocity_energy_imbalance": 0.037868,
+      "nominal_leg_joint_range_imbalance": 0.071196,
+      "max_handoff_joint_rms_rad": 0.095853,
+      "gif": "media/repaired_autonomous_static.gif"
+    },
+    "dynamic_crossing_nav": {
+      "accepted": true,
+      "physics_ticks": 291,
+      "primitive_ticks": {"crouch": 0, "low_transition": 0, "walk_lateral_reverse": 0, "walk_nominal": 291, "walk_turn": 0},
+      "obstacle_contact_ticks": 0,
+      "dynamic_wait_ticks": 39,
+      "nominal_leg_velocity_energy_imbalance": 0.029037,
+      "nominal_leg_joint_range_imbalance": 0.094729,
+      "max_handoff_joint_rms_rad": 0.035124,
+      "gif": "media/repaired_autonomous_dynamic.gif"
+    },
+    "projectile_grazing_dodge": {
+      "accepted": true,
+      "physics_ticks": 266,
+      "primitive_ticks": {"crouch": 12, "low_transition": 0, "walk_lateral_reverse": 36, "walk_nominal": 218, "walk_turn": 0},
+      "obstacle_contact_ticks": 0,
+      "reactive_action": "sidestep",
+      "side_gait_ticks": 36,
+      "side_leg_velocity_energy_imbalance": 0.222642,
+      "side_leg_joint_range_imbalance": 0.174823,
+      "nominal_leg_velocity_energy_imbalance": 0.072901,
+      "nominal_leg_joint_range_imbalance": 0.061388,
+      "max_handoff_joint_rms_rad": 0.078448,
+      "gif": "media/repaired_autonomous_projectile_grazing.gif"
+    },
+    "projectile_overhead_avoidance": {
+      "accepted": true,
+      "physics_ticks": 263,
+      "primitive_ticks": {"crouch": 0, "low_transition": 0, "walk_lateral_reverse": 49, "walk_nominal": 214, "walk_turn": 0},
+      "obstacle_contact_ticks": 0,
+      "reactive_action": "sidestep",
+      "side_gait_ticks": 49,
+      "side_leg_velocity_energy_imbalance": 0.105169,
+      "side_leg_joint_range_imbalance": 0.135316,
+      "nominal_leg_velocity_energy_imbalance": 0.064567,
+      "nominal_leg_joint_range_imbalance": 0.113266,
+      "max_handoff_joint_rms_rad": 0.225135,
+      "gif": "media/repaired_autonomous_projectile_overhead.gif"
+    }
+  },
+  "interpretation": "accepted means physics and task gates passed; the reactive branch selects a side-step for this overhead fixture because the learned clearance teacher preferred lateral escape, not crouch."
+}

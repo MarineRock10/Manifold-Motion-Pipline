@@ -1,0 +1,17 @@
+{
+  "schema": "manifold-motion.stage1.sonic-catalog-pilot.v1",
+  "catalog_split": "train_for_update_test_for_readout",
+  "train_iterations": 8,
+  "train_manifolds_per_iteration": 8,
+  "train_steps": 4,
+  "train_mean_probe": false,
+  "train_resume_checkpoint": null,
+  "best_train_success": 0.375,
+  "held_out_rows": 24,
+  "held_out_inside": 20,
+  "held_out_acceptance_rate": 0.8333333333,
+  "held_out_radius_mean": 0.8871567648,
+  "held_out_radius_p95": 1.1864526725,
+  "held_out_tracking_mae_rad": 0.0316189884,
+  "interpretation": "wiring and executor pilot only; PPO started without a BC checkpoint and is not a fine-tuning improvement claim"
+}

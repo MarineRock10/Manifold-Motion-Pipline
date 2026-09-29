@@ -1,0 +1,43 @@
+{
+  "schema": "manifold-motion.stage1.warm-paired-gate-pilot.v1",
+  "rows": 24,
+  "steps": 4,
+  "methods": {
+    "imitation": {
+      "accepted": 24,
+      "acceptance_rate": 1.0,
+      "radius_mean": 0.6795707259,
+      "radius_p95": 0.7612462608,
+      "tracking_mae_rad": 0.2028480611
+    },
+    "family_mean": {
+      "accepted": 24,
+      "acceptance_rate": 1.0,
+      "radius_mean": 0.6790293697,
+      "radius_p95": 0.7546417556,
+      "tracking_mae_rad": 0.1755430242
+    },
+    "global_mean": {
+      "accepted": 24,
+      "acceptance_rate": 1.0,
+      "radius_mean": 0.6750895271,
+      "radius_p95": 0.7613491395,
+      "tracking_mae_rad": 0.1323505376
+    },
+    "recorded_target": {
+      "accepted": 24,
+      "acceptance_rate": 1.0,
+      "radius_mean": 0.6742733452,
+      "radius_p95": 0.7339151936,
+      "tracking_mae_rad": 0.2443205519
+    },
+    "sonic_warm_start": {
+      "accepted": 23,
+      "acceptance_rate": 0.9583333333,
+      "radius_mean": 0.7456253808,
+      "radius_p95": 0.8794013233,
+      "tracking_mae_rad": 0.0740150550
+    }
+  },
+  "interpretation": "paired pilot only: warm-start SONIC reduced joint tracking error but worsened corridor containment relative to direct imitation; the next fine-tune must add a stronger containment/barrier objective before any paper claim"
+}

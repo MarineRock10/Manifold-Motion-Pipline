@@ -1154,7 +1154,10 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         )
 
     def new_online_composer() -> OnlineSkillComposer | None:
-        if not args.online_perception or args.composer_checkpoint is None:
+        if not args.online_perception:
+            return None
+        reactive_checkpoint = getattr(args, "reactive_policy_checkpoint", None)
+        if args.composer_checkpoint is None and reactive_checkpoint is None:
             return None
         return OnlineSkillComposer(
             args.composer_checkpoint, device=args.device,
@@ -1163,7 +1166,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             confidence_floor=args.composer_confidence_floor,
             geometry_override_enabled=not getattr(args, "disable_composer_geometry_override", False),
             action_profile=getattr(args, "composer_action_profile", "all"),
-            reactive_checkpoint=getattr(args, "reactive_policy_checkpoint", None),
+            reactive_checkpoint=reactive_checkpoint,
         )
 
     def composer_callback_for(composer: OnlineSkillComposer | None):
@@ -1351,7 +1354,7 @@ def main() -> int:
     parser.add_argument("--composer-checkpoint", type=Path, default=None,
                         help="trained 21-family SEED composer used on every live M_e update")
     parser.add_argument("--reactive-policy-checkpoint", type=Path, default=None,
-                        help="optional learned relative-motion hazard head layered above the composer")
+                        help="optional relative-motion hazard head; works with the geometry router even when the learned composer is disabled")
     parser.add_argument("--composer-switch-margin", type=float, default=0.08,
                         help="probability margin required before the online family can switch")
     parser.add_argument("--composer-min-dwell-updates", type=int, default=2,

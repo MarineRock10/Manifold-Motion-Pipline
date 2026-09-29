@@ -1,8 +1,14 @@
 # Online SEED skill composer
 
-This stage connects the trained 21-family SEED composer to the live deployment loop. It does
+> **Default status: geometry-router mode.** The learned 21-family SEED composer described below
+> is retained as an archived ablation and is not loaded by the default autonomous suite. The
+> active deployment loop uses the measured `M_e/M_self` affordance directly; an optional
+> relative-motion hazard head can choose among the already screened walk/side/crouch primitives.
+
+This module still documents the former trained composer interface for reproducibility. It does
 not replace SONIC and it does not claim that all 21 families already have independent deployable
-controllers.
+controllers. Passing `--composer-checkpoint` explicitly re-enables the learned ablation; omitting
+it selects the geometry-only path.
 
 ## Runtime contract
 
@@ -12,8 +18,10 @@ At every accepted radar update the loop now performs:
 2. incremental ESDF + D* Lite -> local route, SDF and ellipsoid corridor `M_e(t)`;
 3. current MuJoCo state -> 69-D state and 12-frame history in policy joint order;
 4. exact G1 mesh samples -> measured self-manifold `M_self`;
-5. `(state, history, M_e, SDF, M_self, command)` -> 21-family composer probabilities;
-6. temporal confidence/dwell hysteresis -> stable family;
+5. geometry router maps measured aperture/heading to a screened primitive (or, only when an
+   explicit checkpoint is supplied, `(state, history, M_e, SDF, M_self, command)` -> 21-family
+   probabilities);
+6. temporal confidence/dwell hysteresis -> stable family when the learned ablation is enabled;
 7. geometry safety shield -> verified legacy Flow token;
 8. candidate generation -> optimization-embedded projection -> current-state shadow rollout;
 9. frozen SONIC execution with contact and exact self-manifold clearance gates.
@@ -26,7 +34,7 @@ physical gate; the online router never silently treats a classifier label as pro
 
 ## Current measured result
 
-Important scope note: the accepted wide/low GIF is a geometry-routing safety baseline, not yet a
+Important scope note: the accepted wide/low GIF is the active geometry-routing result, not a
 valid LATENT-effect claim. The former `skill_prior_v3` was trained without corridor/SDF/M_self,
 and the low-corridor crouch was already available through the deterministic safety router. The
 corrected environment-conditioned prior is now trained as `skill_prior_environment_v4`, but its

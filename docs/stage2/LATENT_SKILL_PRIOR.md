@@ -1,8 +1,13 @@
 # Environment-conditioned latent skill prior
 
-This is the first result in this repository that actually executes samples from the latent
-prior. The older wide-versus-low GIF remains a useful geometry-router baseline, but its crouch
-was selected deterministically and must not be cited as evidence for LATENT.
+> **Status: archived negative-result ablation.** This route is no longer trained or loaded by
+> the default Stage-2 pipeline. It changed latent/reference-space outputs but did not improve
+> long-horizon closed-loop gait under the frozen SONIC controller. See
+> [`GEOMETRY_ROUTED_MAINLINE.md`](GEOMETRY_ROUTED_MAINLINE.md) for the active path.
+
+This document preserves the first repository result that executed samples from the latent prior
+so the failed direction remains reproducible. The older wide-versus-low GIF is a geometry-router
+baseline, and the latent atlas must not be cited as the current main result.
 
 ## Model and data contract
 
@@ -86,6 +91,8 @@ Reproduce it after training v6 with:
 ./scripts/run_latent_counterfactual.sh
 ```
 
-This atlas demonstrates real latent decoding and family diversity, not autonomous long-horizon
-composition. The next required ablation is the same unseen long task with LATENT disabled versus
-enabled, including at least two non-crouch switches and temporal screening for moving obstacles.
+This atlas demonstrates latent decoding and family diversity, not improved autonomous
+long-horizon execution. The follow-up comparison showed worse gait quality than screened anchors,
+so further LATENT training is paused. Any future revival must first beat the geometry mainline on
+paired closed-loop gait symmetry, contact, clearance and task success—not only reconstruction or
+reference-space metrics.
