@@ -22,6 +22,16 @@
 | 投射物擦身/高空 | 由相对位置和速度驱动 hazard head，选择侧闪或蹲下，经过当前状态物理门 | 两个场景均 8/8，0 接触 | [擦身](../demo_gallery/media/repaired_autonomous_projectile_grazing.gif) · [高空](../demo_gallery/media/repaired_autonomous_projectile_overhead.gif) |
 | 连续 router Flow | 每个 A* 区间动态生成候选，在一次不重置 rollout 中执行 | 3/3 关键帧，0 接触，accepted | [Flow 长时序报告](../stage2/STAGE2_ROUTER_FLOW_LONG_HORIZON.md) |
 
+## CVPR 单种子物理预检
+
+冻结的 4 方法 × 26 场景矩阵现已完成 104/104 行：92 行为 exact MuJoCo physics，12 行为
+明确标注的 held-out proxy geometry。总成功数为 56/104；动态子集为 14/16。该数字只用于
+发现协议和实现缺口，不能代替多种子论文表。失败行同样保留，其中 B2 在 route-reopen
+触发自身流形安全停止，Ours-4 在 moving-wall 超过统一的 180 秒墙钟预算。
+
+完整的机器可读快照见
+[cvpr_primary_physical_seed31000_summary.json](../experiments/results/cvpr_primary_physical_seed31000_summary.json)。
+
 ## 关键结论
 
 1. `M_e → primitive` 已不再是按路线段编号写死：低顶棚改变垂直 aperture 后进入 crouch，窄通道改变横向 aperture 后进入侧身，动态障碍改变路线后触发在线重新规划。

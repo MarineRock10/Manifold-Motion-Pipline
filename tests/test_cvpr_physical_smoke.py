@@ -7,7 +7,8 @@ from pathlib import Path
 
 from manifold_motion.evaluation.cvpr_benchmark import DEFAULT_CONFIG
 from manifold_motion.evaluation.cvpr_physical_smoke import (
-    _report_to_result, _scenario_registry, _xml_for_generated_fixture, build_rows,
+    _aggregate_results, _report_to_result, _scenario_registry, _xml_for_generated_fixture,
+    build_rows,
 )
 from manifold_motion.evaluation.cvpr_benchmark import _read_json
 
@@ -66,8 +67,29 @@ def test_report_conversion_preserves_physical_metrics() -> None:
     assert result["false_switches"] == 1
 
 
+def test_aggregate_keeps_dynamic_failures_and_method_counts() -> None:
+    values = [
+        {"run_id": "a", "method": "B2", "scenario": "dynamic-route-reopen",
+         "success": False, "failure_type": "self_manifold_stop",
+         "implementation_fidelity": "exact_physics"},
+        {"run_id": "b", "method": "Ours-4", "scenario": "dynamic-route-reopen",
+         "success": True, "failure_type": "", "implementation_fidelity": "exact_physics"},
+        {"run_id": "c", "method": "Ours-4", "scenario": "heldout-box-layout",
+         "success": True, "failure_type": "", "implementation_fidelity": "proxy_geometry"},
+    ]
+    report = _aggregate_results(values)
+    assert report["methods"]["Ours-4"] == {
+        "rows": 2, "successes": 2, "exact_physics_rows": 1, "proxy_geometry_rows": 1,
+    }
+    assert report["failure_taxonomy_counts"] == {"self_manifold_stop": 1}
+    assert report["dynamic"]["rows"] == 2
+    assert report["dynamic"]["successes"] == 1
+    assert report["dynamic"]["exact_physics_rows"] == 2
+
+
 if __name__ == "__main__":
     test_matrix_and_registry_are_complete()
     test_generated_fixtures_load_in_mujoco()
     test_report_conversion_preserves_physical_metrics()
+    test_aggregate_keeps_dynamic_failures_and_method_counts()
     print("CVPR physical smoke tests passed")

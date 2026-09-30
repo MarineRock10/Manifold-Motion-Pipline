@@ -79,8 +79,8 @@ remain pilot evidence until every predeclared method/seed row has been executed 
 `manifold_motion.evaluation.cvpr_physical_smoke` is the executable bridge from the 104-row primary
 manifest (4 methods × 26 nominal scenarios) to MuJoCo. It does not silently skip scenarios:
 parameterized narrow/low fixtures are generated beside the run and loaded by MuJoCo, tracked
-fixtures use the committed XML, held-out fixtures are tagged `proxy_geometry`, and the four
-time-varying scenarios currently produce an explicit `scenario_adapter_not_implemented` row.
+fixtures use the committed XML, held-out fixtures are tagged `proxy_geometry`, and all four
+time-varying scenarios use synchronized MuJoCo/radar event adapters.
 Every row has the required result fields, a fidelity label, and a source report. `--resume` is
 safe to interrupt; `--rerun-failures` reruns only prior failures after a code/fixture fix.
 
@@ -96,9 +96,12 @@ The one-seed output is a smoke/pilot and must not be reported as the final multi
 table. In particular, B2 is currently an offline geometry-A* proxy until the independent
 full-voxel baseline is wired into the same MuJoCo executor.
 
-The completed nominal-seed audit currently reports 104/104 rows (76 exact MuJoCo, 12 held-out
-proxy fixtures, and 16 explicit dynamic-adapter gaps). The checked-in snapshot is
-`docs/cvpr_primary_physical_seed31000_summary.json`; it records the failure taxonomy and must
+The refreshed nominal-seed audit reports 104/104 rows (92 exact MuJoCo and 12 held-out proxy
+fixtures), with no missing dynamic adapter. It records 56/104 successful rows overall and
+14/16 successful dynamic rows. The two dynamic failures are retained: B2 triggers the
+self-manifold safety stop in `dynamic-route-reopen`, while Ours-4 exceeds the fixed 180 s wall
+budget in `dynamic-moving-wall`. The checked-in snapshot is
+`docs/experiments/results/cvpr_primary_physical_seed31000_summary.json`; it records the failure taxonomy and must
 be read together with the per-run JSONL source. A row timeout is a failure category, not a
 successful rollout.
 

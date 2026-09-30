@@ -299,6 +299,51 @@ def _read_existing(out: Path) -> dict[str, dict[str, Any]]:
     return existing
 
 
+def _aggregate_results(values: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build the auditable one-seed table directly from row results."""
+    methods: dict[str, dict[str, int]] = {}
+    failures: dict[str, int] = {}
+    dynamic: dict[str, dict[str, Any]] = {}
+    for value in values:
+        method = str(value.get("method", "unknown"))
+        method_row = methods.setdefault(method, {
+            "rows": 0, "successes": 0, "exact_physics_rows": 0, "proxy_geometry_rows": 0,
+        })
+        method_row["rows"] += 1
+        method_row["successes"] += int(bool(value.get("success")))
+        fidelity = str(value.get("implementation_fidelity", "unknown"))
+        if fidelity == "exact_physics":
+            method_row["exact_physics_rows"] += 1
+        elif fidelity == "proxy_geometry":
+            method_row["proxy_geometry_rows"] += 1
+        if not bool(value.get("success")):
+            failure = str(value.get("failure_type") or "unspecified_failure")
+            failures[failure] = failures.get(failure, 0) + 1
+        scenario = str(value.get("scenario", ""))
+        if scenario.startswith("dynamic-"):
+            dynamic[str(value.get("run_id"))] = {
+                key: value.get(key) for key in (
+                    "run_id", "method", "scenario", "success", "failure_type",
+                    "wall_time_s", "min_clearance_m", "terminal_error_m",
+                    "planning_median_ms", "planning_p95_ms",
+                )
+            }
+    dynamic_rows = [dynamic[key] for key in sorted(dynamic)]
+    return {
+        "methods": methods,
+        "failure_taxonomy_counts": dict(sorted(
+            failures.items(), key=lambda item: (-item[1], item[0]))),
+        "dynamic": {
+            "rows": len(dynamic_rows),
+            "successes": sum(bool(row["success"]) for row in dynamic_rows),
+            "exact_physics_rows": sum(
+                str(value.get("implementation_fidelity")) == "exact_physics"
+                for value in values if str(value.get("scenario", "")).startswith("dynamic-")),
+            "results": dynamic_rows,
+        },
+    }
+
+
 def run(config: Path, out: Path, *, seed: int | None, resume: bool,
         max_runs: int | None, skip_render: bool, rerun_failures: bool,
         row_timeout_s: float,
@@ -358,6 +403,7 @@ def run(config: Path, out: Path, *, seed: int | None, resume: bool,
         "limitation": "smoke/pilot evidence only; run the frozen multi-seed plan before paper claims",
         "results": str(results_path), "resume": bool(resume),
         "rerun_failures": bool(rerun_failures),
+        **_aggregate_results(ordered),
     }
     (out / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return report

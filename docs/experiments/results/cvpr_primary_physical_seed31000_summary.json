@@ -1,48 +1,254 @@
 {
-  "schema": "manifold-motion.cvpr-physical-summary.v1",
-  "experiment": "one nominal seed primary physical smoke",
+  "schema": "manifold-motion.cvpr-physical-smoke.v1",
+  "config": "/home/xiyuan/Manifold-Motion-Pipline/configs/cvpr_simulation_protocol.json",
   "seed": 31000,
-  "planned_rows": 104,
-  "reported_rows": 104,
-  "missing_rows": 0,
-  "fidelity": {
-    "exact_physics": {"rows": 76, "successes": 33},
-    "proxy_geometry": {"rows": 12, "successes": 9},
-    "unsupported_dynamic_adapter": {"rows": 16, "successes": 0}
+  "planned": 104,
+  "reported": 104,
+  "missing": 0,
+  "missing_run_ids": [],
+  "accepted": true,
+  "executed_this_call": 0,
+  "successes": 56,
+  "fidelity_counts": {
+    "exact_physics": 92,
+    "proxy_geometry": 12
   },
+  "policy": "one nominal seed; synchronized exact-physics dynamic adapters; no seed exclusion",
+  "limitation": "smoke/pilot evidence only; run the frozen multi-seed plan before paper claims",
+  "results": "reports/cvpr/physical_primary_seed31000/results.jsonl",
+  "resume": true,
+  "rerun_failures": false,
   "methods": {
-    "B2": {"rows": 26, "successes": 14, "physical_or_proxy_rows": 22},
-    "Ours-2": {"rows": 26, "successes": 10, "physical_or_proxy_rows": 22},
-    "Ours-3": {"rows": 26, "successes": 10, "physical_or_proxy_rows": 22},
-    "Ours-4": {"rows": 26, "successes": 8, "physical_or_proxy_rows": 22}
+    "Ours-4": {
+      "rows": 26,
+      "successes": 11,
+      "exact_physics_rows": 23,
+      "proxy_geometry_rows": 3
+    },
+    "Ours-3": {
+      "rows": 26,
+      "successes": 14,
+      "exact_physics_rows": 23,
+      "proxy_geometry_rows": 3
+    },
+    "B2": {
+      "rows": 26,
+      "successes": 17,
+      "exact_physics_rows": 23,
+      "proxy_geometry_rows": 3
+    },
+    "Ours-2": {
+      "rows": 26,
+      "successes": 14,
+      "exact_physics_rows": 23,
+      "proxy_geometry_rows": 3
+    }
   },
   "failure_taxonomy_counts": {
-    "scenario_adapter_not_implemented": 16,
-    "rollout_timeout": 13,
-    "self_manifold_stop_without_contact": 15,
-    "self_manifold_stop_with_route_deviation": 11,
-    "self_manifold_stop_with_scene_contact": 4,
-    "fall_or_tracking_failure": 2,
-    "route_deviation_only": 1
+    "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;terminal_keyframe_error;self_manifold_obstacle_clearance": 16,
+    "rollout_timeout": 14,
+    "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;route_deviation;terminal_keyframe_error;self_manifold_obstacle_clearance": 11,
+    "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;scene_obstacle_contact;route_deviation;terminal_keyframe_error;body_route_heading_mismatch;self_manifold_obstacle_clearance": 4,
+    "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;fall_or_extreme_roll;roll_limit;tracking_error;route_deviation;terminal_keyframe_error;body_route_heading_mismatch;self_manifold_obstacle_clearance": 2,
+    "goal_or_keyframe_not_reached;route_deviation;terminal_keyframe_error": 1
   },
-  "interpretation": {
-    "positive": [
-      "open-center and open-wide passed for all four methods",
-      "0.95 m and 0.85 m side-gait fixtures passed for Ours-2/3/4 after compact self-manifold planning feedback",
-      "chicane, slalom and held-out corridor/box fixtures provide accepted long-horizon evidence"
-    ],
-    "limitation": [
-      "dynamic-crossing-block, dynamic-appear-disappear, dynamic-moving-wall and dynamic-route-reopen still need a time-varying MuJoCo/radar adapter",
-      "low-ceiling and repeated primitive-transition failures show that online crouch/history switching needs another controller/data iteration",
-      "B2 is an offline geometry-A* proxy in this smoke, not the final independent full-voxel baseline",
-      "one seed is smoke/pilot evidence; no paper claim should use these counts as final statistics"
+  "dynamic": {
+    "rows": 16,
+    "successes": 14,
+    "exact_physics_rows": 16,
+    "results": [
+      {
+        "run_id": "34da4c9572f51311",
+        "method": "B2",
+        "scenario": "dynamic-route-reopen",
+        "success": false,
+        "failure_type": "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;terminal_keyframe_error;self_manifold_obstacle_clearance",
+        "wall_time_s": 20.744706279999946,
+        "min_clearance_m": 0.01919354312121868,
+        "terminal_error_m": 1.9710322973463994,
+        "planning_median_ms": 202.47826700006044,
+        "planning_p95_ms": 202.47826700006044
+      },
+      {
+        "run_id": "389395fe0713cddf",
+        "method": "Ours-2",
+        "scenario": "dynamic-crossing-block",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 56.20322701800001,
+        "min_clearance_m": 0.48658043146133423,
+        "terminal_error_m": 0.2193086862655826,
+        "planning_median_ms": 42.501208499999166,
+        "planning_p95_ms": 162.2278099999761
+      },
+      {
+        "run_id": "3eab7ee3e6ba6373",
+        "method": "Ours-3",
+        "scenario": "dynamic-moving-wall",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 79.59861650899995,
+        "min_clearance_m": 0.47678473591804504,
+        "terminal_error_m": 0.218199697035179,
+        "planning_median_ms": 44.6504989999994,
+        "planning_p95_ms": 183.52363489991035
+      },
+      {
+        "run_id": "3fce8ab0cb6ac0a9",
+        "method": "Ours-3",
+        "scenario": "dynamic-crossing-block",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 57.608893980000005,
+        "min_clearance_m": 0.48658043146133423,
+        "terminal_error_m": 0.2193086862655826,
+        "planning_median_ms": 46.25091849999308,
+        "planning_p95_ms": 145.88124725000284
+      },
+      {
+        "run_id": "4cb31ec8a022efee",
+        "method": "Ours-3",
+        "scenario": "dynamic-appear-disappear",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 67.53283655899997,
+        "min_clearance_m": 0.055774327367544174,
+        "terminal_error_m": 0.21553219792985573,
+        "planning_median_ms": 60.454529000026014,
+        "planning_p95_ms": 221.83333000003813
+      },
+      {
+        "run_id": "65cda3bde5dba0b9",
+        "method": "B2",
+        "scenario": "dynamic-appear-disappear",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 24.432442206000076,
+        "min_clearance_m": 0.050479330122470856,
+        "terminal_error_m": 0.20862146022265096,
+        "planning_median_ms": 207.63533100000586,
+        "planning_p95_ms": 207.63533100000586
+      },
+      {
+        "run_id": "6851b4b0cfca2000",
+        "method": "Ours-4",
+        "scenario": "dynamic-route-reopen",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 151.62016155800006,
+        "min_clearance_m": 0.090318463742733,
+        "terminal_error_m": 0.2009854786095832,
+        "planning_median_ms": 61.439041000085126,
+        "planning_p95_ms": 211.83344549996264
+      },
+      {
+        "run_id": "712f94dfc000921c",
+        "method": "Ours-3",
+        "scenario": "dynamic-route-reopen",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 105.59523693300002,
+        "min_clearance_m": 0.090318463742733,
+        "terminal_error_m": 0.2009854786095832,
+        "planning_median_ms": 60.165788500057715,
+        "planning_p95_ms": 206.52202024996313
+      },
+      {
+        "run_id": "9dc7ad91dad1e30e",
+        "method": "Ours-4",
+        "scenario": "dynamic-crossing-block",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 119.37315129699999,
+        "min_clearance_m": 0.48658043146133423,
+        "terminal_error_m": 0.2193086862655826,
+        "planning_median_ms": 42.75026849998653,
+        "planning_p95_ms": 152.79982900000277
+      },
+      {
+        "run_id": "a44b42859744969d",
+        "method": "Ours-2",
+        "scenario": "dynamic-route-reopen",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 105.69480649799993,
+        "min_clearance_m": 0.090318463742733,
+        "terminal_error_m": 0.2009854786095832,
+        "planning_median_ms": 59.3908385000077,
+        "planning_p95_ms": 206.13212500001055
+      },
+      {
+        "run_id": "c6a1f422991b310a",
+        "method": "Ours-2",
+        "scenario": "dynamic-appear-disappear",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 72.31346132500005,
+        "min_clearance_m": 0.055774327367544174,
+        "terminal_error_m": 0.21553219792985573,
+        "planning_median_ms": 64.83635300003243,
+        "planning_p95_ms": 228.25550749993795
+      },
+      {
+        "run_id": "c728e13c183acfdd",
+        "method": "Ours-4",
+        "scenario": "dynamic-moving-wall",
+        "success": false,
+        "failure_type": "rollout_timeout",
+        "wall_time_s": 180.235424642,
+        "min_clearance_m": 0.0,
+        "terminal_error_m": 999.0,
+        "planning_median_ms": 0.0,
+        "planning_p95_ms": 0.0
+      },
+      {
+        "run_id": "d8bd0fc8ecd75696",
+        "method": "B2",
+        "scenario": "dynamic-crossing-block",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 17.21517389400003,
+        "min_clearance_m": 0.4399900734424591,
+        "terminal_error_m": 0.21475356630324577,
+        "planning_median_ms": 11.053593000013962,
+        "planning_p95_ms": 11.053593000013962
+      },
+      {
+        "run_id": "e7d107b8e0503da2",
+        "method": "Ours-4",
+        "scenario": "dynamic-appear-disappear",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 146.12990397299995,
+        "min_clearance_m": 0.055774327367544174,
+        "terminal_error_m": 0.21553219792985573,
+        "planning_median_ms": 56.87730500005728,
+        "planning_p95_ms": 208.82033050008886
+      },
+      {
+        "run_id": "f03c411eb9e28f3c",
+        "method": "B2",
+        "scenario": "dynamic-moving-wall",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 26.909052347000056,
+        "min_clearance_m": 0.4840274751186371,
+        "terminal_error_m": 0.20972866323215197,
+        "planning_median_ms": 198.43050700001186,
+        "planning_p95_ms": 198.43050700001186
+      },
+      {
+        "run_id": "f6ad6d6c69d22af5",
+        "method": "Ours-2",
+        "scenario": "dynamic-moving-wall",
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 118.43113818500001,
+        "min_clearance_m": 0.47678473591804504,
+        "terminal_error_m": 0.218199697035179,
+        "planning_median_ms": 44.92964150000489,
+        "planning_p95_ms": 191.89860064992672
+      }
     ]
-  },
-  "source": "reports/cvpr/physical_primary_seed31000/results.jsonl",
-  "reproduction": "PYTHONPATH=. ./scripts/python.sh -m manifold_motion.evaluation.cvpr_physical_smoke --out reports/cvpr/physical_primary_seed31000 --resume --skip-render --row-timeout-s 180",
-  "status_after_snapshot": {
-    "note": "The counts above intentionally remain the historical one-seed snapshot from its source results.jsonl.",
-    "low_ceiling": "Overhead-aware ground projection, footprint vertical queries, upward radar layers and anticipatory M_e were added; targeted Ours-2/3/4 low-120 reruns now pass.",
-    "dynamic_adapter": "The four synchronized time-varying MuJoCo/radar adapters are now implemented. A separate accepted Ours-4 route-reopen pilot is in docs/dynamic_route_reopen_pilot.json; the complete 104-row source snapshot has not yet been regenerated."
   }
 }

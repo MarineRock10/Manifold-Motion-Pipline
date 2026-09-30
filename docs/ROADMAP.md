@@ -21,7 +21,8 @@ latent prior / learned composer 已从默认链路移除并保留为负结果消
 ## 当前明确边界
 
 1. `M_e` 仍主要由 MuJoCo 几何或 `R_exec` 反向合成，真实 RGB-D/LiDAR 接入另行推进；
-2. 在线重条件化目前发生在路段边界，不是每个控制周期的 MPC；
+2. 在线雷达默认每 20 个控制 tick 更新一次，触发增量 ESDF/D* Lite、`M_e` 重建和
+   shadow-gated 语义切换；它是离散滚动时域，不是每个 50 Hz 控制周期都求解的 MPC；
 3. SONIC 不直接消费 root position，root progress 只能通过关节、姿态和路线 command 间接产生；
 4. pilot Flow 数据覆盖稀疏，在线版本保留了训练支持的条件均值候选；
 5. crawl 在冻结 SONIC 下不具备稳定低接触能力，jump 只完成了无障碍起跳/落地门。
@@ -33,7 +34,7 @@ latent prior / learned composer 已从默认链路移除并保留为负结果消
 | P0 | 统一文档、数据契约和报告口径 | clone 后不会把 Stage-2 误读为“未实现” |
 | P2 | 扩充动态窗口、环境/演员隔离和 transition 元数据 | 无同演员泄漏；每类原语和过渡都有统计 |
 | P3 | 去除手工 raw anchor 的泛化消融 | wide/low 已通过；窄通道侧向候选若后退则必须被方向门拒绝 |
-| P4 | 滚动时域 state/history 重规划 | 连续执行、无 reset、窗口切换无明显相位跳变 |
+| P4 | 滚动时域 state/history 重规划 | 已实现在线扫描、相位保持和 current-state shadow gate；下一步只做延迟优化，不再把它列为功能缺口 |
 | P5 | root progress / yaw command 闭环 | 路线进度、身体航向和关键帧误差同时受控 |
 | P6 | 短时域物理 rollout 优化层 | projection 前后成本下降，且不能掩盖物理失败 |
 | P7 | crawl/jump 能力边界与控制器升级入口 | 不支持的原语不会被错误路由；新控制器可重新接入 |
