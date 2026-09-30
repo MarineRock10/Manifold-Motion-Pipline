@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import numpy as np
 
 from manifold_motion.stage2.manifold_adaptive import (
     BENCHMARK_METHOD_PROFILES,
@@ -10,6 +11,7 @@ from manifold_motion.stage2.manifold_adaptive import (
     _offline_probe_iterations,
     _probe_tick_budget,
 )
+from manifold_motion.stage2.flow_route_candidates import _route_progress_stalled
 
 
 def _args(method: str | None) -> argparse.Namespace:
@@ -50,7 +52,7 @@ def test_primary_profiles_are_distinct_and_causal() -> None:
     }) == 4
 
 
-def test_dynamic_online_flow_elides_only_stale_full_route_probe() -> None:
+def test_online_flow_elides_stale_or_redundant_full_route_probe() -> None:
     static = _args("Ours-4")
     _apply_benchmark_method_profile(static)
     static.dynamic_obstacle_event = None
@@ -83,6 +85,15 @@ def test_ours4_live_reconditioning_elides_static_probe() -> None:
     assert ours4.online_same_primitive_recondition
     assert _offline_probe_iterations(ours4) == 0
     assert _probe_tick_budget(ours4) is None
+
+
+def test_static_stall_detector_requires_full_window_and_real_progress() -> None:
+    assert _route_progress_stalled([0.0] * 300, 300, 0.10) == (False, 0.0)
+    stalled, gain = _route_progress_stalled([0.0] * 301, 300, 0.10)
+    assert stalled and gain == 0.0
+    stalled, gain = _route_progress_stalled(
+        list(np.linspace(0.0, 0.25, 301)), 300, 0.10)
+    assert not stalled and gain >= 0.25
 
 
 if __name__ == "__main__":

@@ -1515,6 +1515,10 @@ def main() -> int:
                         help="generate/score online candidates but keep the verified reference")
     parser.add_argument("--progress-horizon-s", type=float, default=1.6,
                         help="time constant for measured route-progress velocity command")
+    parser.add_argument("--stagnation-window-ticks", type=int, default=300,
+                        help="static-task ticks with insufficient route progress before a physical stall failure")
+    parser.add_argument("--min-stagnation-progress-m", type=float, default=0.10,
+                        help="minimum best route-progress gain required over the stagnation window")
     parser.add_argument("--disable-anchor", action="store_true",
                         help="disable hand-selected raw SEED anchors; learned conditional mean remains")
     parser.add_argument("--disable-learned-anchor", action="store_true",
@@ -1545,6 +1549,7 @@ def main() -> int:
         args.online_perception and not args.disable_online_primitive_reroute)
     if (args.num_candidates < 2 or args.online_condition_iterations < 0
             or args.receding_horizon_ticks < 0 or args.progress_horizon_s <= 0
+            or args.stagnation_window_ticks <= 0 or args.min_stagnation_progress_m <= 0
             or args.online_perception_scan_ticks <= 0
             or args.online_primitive_confirm_updates <= 0 or args.online_shadow_ticks <= 0
             or args.projection_iterations < 0 or args.perception_simplify_tolerance_m <= 0

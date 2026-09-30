@@ -415,6 +415,16 @@ def _route_progress(point: np.ndarray, route: np.ndarray) -> tuple[float, float]
     return float(cumulative[index] + weights[index] * lengths[index]), float(distance[index])
 
 
+def _route_progress_stalled(progress: list[float], window_ticks: int,
+                            min_progress_m: float) -> tuple[bool, float]:
+    """Detect a bounded static-route stall without treating small oscillations as progress."""
+    if window_ticks <= 0 or len(progress) <= window_ticks:
+        return False, 0.0
+    recent = np.asarray(progress[-(window_ticks + 1):], dtype=np.float64)
+    gain = float(np.max(recent) - recent[0])
+    return bool(gain < min_progress_m), gain
+
+
 def _handoff_phase(motion: Any, previous_q: np.ndarray | None, default: int = 6,
                    search_stop: int | None = None) -> int:
     """Find the nearest pose in a new clip instead of resetting every route segment.
@@ -691,6 +701,9 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     runtime_safety_stop = False
     runtime_safety_stop_tick: int | None = None
     runtime_safety_stop_clearance: float | None = None
+    route_progress_stall = False
+    route_progress_stall_tick: int | None = None
+    route_progress_stall_gain_m: float | None = None
     online_perception_failure: dict[str, Any] | None = None
     online_perception_updates: list[dict[str, Any]] = []
     online_semantic_updates: list[dict[str, Any]] = []
@@ -1145,6 +1158,21 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             runtime_safety_stop_tick = int(tick)
             runtime_safety_stop_clearance = float(runtime_clearance)
             break
+        # A static rollout that has not advanced for a full bounded window is already a
+        # physical failure. Continuing to the global max tick only converts that evidence into
+        # an infrastructure timeout. Dynamic tasks are excluded because an intentional wait for
+        # a crossing obstacle is part of their policy contract.
+        if dynamic_event is None:
+            stalled, stall_gain = _route_progress_stalled(
+                log["route_progress_m"],
+                int(getattr(args, "stagnation_window_ticks", 300)),
+                float(getattr(args, "min_stagnation_progress_m", 0.10)),
+            )
+            if stalled:
+                route_progress_stall = True
+                route_progress_stall_tick = int(tick)
+                route_progress_stall_gain_m = float(stall_gain)
+                break
     data = {key: np.asarray(value) for key, value in log.items()}
     positions = data["base_pos"][:, :2]
     static_deviation = _distance_to_polyline(positions, world_route)
@@ -1186,6 +1214,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     if online_perception_failure is not None: failures.append("online_perception_failure")
     if target_index < len(world_keyframes): failures.append("goal_or_keyframe_not_reached")
     if runtime_safety_stop: failures.append("runtime_self_manifold_clearance_stop")
+    if route_progress_stall: failures.append("route_progress_stall")
     if bool(data["obstacle_contact"].any()): failures.append("scene_obstacle_contact")
     if float(data["base_pos"][:, 2].min()) < args.fall_height_m: failures.append("fall_or_extreme_roll")
     if float(roll.max()) > args.max_roll_deg: failures.append("roll_limit")
@@ -1241,6 +1270,9 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         "runtime_self_manifold_safety_stop": bool(runtime_safety_stop),
         "runtime_self_manifold_safety_stop_tick": runtime_safety_stop_tick,
         "runtime_self_manifold_safety_stop_clearance_m": runtime_safety_stop_clearance,
+        "route_progress_stall": bool(route_progress_stall),
+        "route_progress_stall_tick": route_progress_stall_tick,
+        "route_progress_stall_gain_m": route_progress_stall_gain_m,
         "online_perception_enabled": bool(perception_callback is not None),
         "dynamic_obstacle_event": dynamic_event,
         "dynamic_obstacle_active_ticks": int(np.sum(data["dynamic_obstacle_active"])),
