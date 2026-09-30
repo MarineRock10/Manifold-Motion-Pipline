@@ -69,6 +69,14 @@ and limitations documented in
 
 ![Online 3-D SLAM to SONIC](docs/demo_gallery/media/online_closed_loop.gif)
 
+![Ours-4 live state/history slalom](media/ours4_live_state_history_slalom.gif)
+
+The updated Ours-4 slalom is a physical 18-keyframe acceptance run. Radar updates the sliding
+3-D map every 20 control ticks; the route turns four times and the measured aperture requests
+three lateral-gait intervals. Each new segment refreshes Flow with the live 69-D state and
+12-frame history, transfers gait phase continuously, and commits only after the current-state
+shadow gate. The run has zero obstacle contacts and no safety failures.
+
 Continuous 2.5 Hz radar frames update the global 3-D probability grid while the robot moves.
 Incremental ESDF and D* Lite repair the route, construct the local ellipsoid corridor `M_e(t)`,
 and request a new primitive. A candidate is committed only after a current-state/history shadow
