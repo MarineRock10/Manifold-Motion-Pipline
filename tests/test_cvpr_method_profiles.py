@@ -8,6 +8,7 @@ from manifold_motion.stage2.manifold_adaptive import (
     BENCHMARK_METHOD_PROFILES,
     _apply_benchmark_method_profile,
     _offline_probe_iterations,
+    _probe_tick_budget,
 )
 
 
@@ -41,6 +42,8 @@ def test_primary_profiles_are_distinct_and_causal() -> None:
     assert ours3.online_semantic_shadow_gate and not ours3.flow_state_history_conditioning
     assert ours4.online_semantic_shadow_gate and ours4.flow_state_history_conditioning
     assert ours4.online_condition_iterations == 1
+    assert not getattr(ours3, "online_same_primitive_recondition", False)
+    assert ours4.online_same_primitive_recondition
     assert len({
         (value["planner"], value["projection"], value["shadow_gate"], value["state_history_condition"])
         for value in resolved.values()
@@ -51,7 +54,7 @@ def test_dynamic_online_flow_elides_only_stale_full_route_probe() -> None:
     static = _args("Ours-4")
     _apply_benchmark_method_profile(static)
     static.dynamic_obstacle_event = None
-    assert _offline_probe_iterations(static) == 1
+    assert _offline_probe_iterations(static) == 0
 
     dynamic = _args("Ours-4")
     _apply_benchmark_method_profile(dynamic)
@@ -65,6 +68,21 @@ def test_dynamic_online_flow_elides_only_stale_full_route_probe() -> None:
     offline_dynamic.dynamic_obstacle_event = "moving_wall"
     offline_dynamic.online_perception = False
     assert _offline_probe_iterations(offline_dynamic) == 1
+
+    static.max_ticks = 500
+    assert _probe_tick_budget(static) is None
+    dynamic.max_ticks = 500
+    assert _probe_tick_budget(dynamic) is None
+
+
+def test_ours4_live_reconditioning_elides_static_probe() -> None:
+    ours4 = _args("Ours-4")
+    _apply_benchmark_method_profile(ours4)
+    ours4.dynamic_obstacle_event = None
+    ours4.max_ticks = 500
+    assert ours4.online_same_primitive_recondition
+    assert _offline_probe_iterations(ours4) == 0
+    assert _probe_tick_budget(ours4) is None
 
 
 if __name__ == "__main__":

@@ -97,11 +97,15 @@ table. In particular, B2 is currently an offline geometry-A* proxy until the ind
 full-voxel baseline is wired into the same MuJoCo executor.
 
 The refreshed nominal-seed audit reports 104/104 rows (92 exact MuJoCo and 12 held-out proxy
-fixtures), with no missing dynamic adapter. It records 57/104 successful rows overall and
+fixtures), with no missing dynamic adapter. It records 58/104 successful rows overall and
 15/16 successful dynamic rows. The remaining dynamic failure is retained: B2 triggers the
 self-manifold safety stop in `dynamic-route-reopen`. Ours-4 `dynamic-moving-wall` now completes
 in 117.3 s after removing a redundant stale full-route probe; it still uses live state/history,
-projection and the current-state shadow gate at online semantic updates. The checked-in snapshot is
+projection and the current-state shadow gate at online semantic updates.
+Static Ours-4 now uses the same live contract at route-segment entry, with continuous phase
+transfer for a same-primitive refresh. This removes the duplicated full-route probe and turns
+`chicane-four-turns` from a timeout into a 17/17-keyframe physical success without relaxing any
+safety gate. The checked-in snapshot is
 `docs/experiments/results/cvpr_primary_physical_seed31000_summary.json`; it records the failure taxonomy and must
 be read together with the per-run JSONL source. A row timeout is a failure category, not a
 successful rollout.

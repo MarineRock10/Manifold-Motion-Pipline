@@ -17,6 +17,7 @@ on the paired wide/low scenes is the counterfactual test: only the obstacle mani
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import time
@@ -89,14 +90,20 @@ def _apply_benchmark_method_profile(args: argparse.Namespace) -> dict[str, Any] 
     if method is None:
         args.online_semantic_shadow_gate = True
         args.flow_state_history_conditioning = True
+        args.online_same_primitive_recondition = False
         return None
     profile = dict(BENCHMARK_METHOD_PROFILES[method])
     args.online_perception = bool(profile["online_environment_manifold"])
     args.online_semantic_shadow_gate = bool(profile["shadow_gate"])
     args.flow_state_history_conditioning = bool(profile["state_history_condition"])
+    # Ours-4 refreshes the selected primitive with the live state/history once when a new
+    # route segment is entered.  This replaces the stale static-scene full-route probe while
+    # preserving the online shadow gate and continuous final rollout.
+    args.online_same_primitive_recondition = bool(profile["state_history_condition"])
     args.projection_iterations = max(1, int(args.projection_iterations)) if profile["projection"] else 0
-    # Only the full method performs the offline probe -> actual-state/history reconditioning
-    # pass. Ours-2/3 still receive live M_e semantic requests during their single rollout.
+    # Ours-4 requests actual state/history conditioning. The execution policy below satisfies
+    # it online at segment entry; Ours-2/3 still receive live M_e semantic requests without the
+    # state/history condition.
     args.online_condition_iterations = 1 if profile["state_history_condition"] else 0
     return profile
 
@@ -104,16 +111,33 @@ def _apply_benchmark_method_profile(args: argparse.Namespace) -> dict[str, Any] 
 def _offline_probe_iterations(args: argparse.Namespace) -> int:
     """Return useful full-route probe passes before the authoritative rollout.
 
-    A static scene can reuse the first rollout's measured state/history to rebuild each segment.
-    For a synchronized moving obstacle that condition is stale by construction.  Dynamic runs
-    therefore condition Flow at every live semantic update and avoid replaying the complete
-    route once before the real run.  Projection, current-state shadow screening and all runtime
-    gates remain unchanged.
+    Legacy/default static scenes may reuse a first rollout's measured state/history. Ours-4
+    instead conditions Flow at every new segment using the actual current state; a synchronized
+    moving obstacle also makes any pre-rollout condition stale by construction. Projection,
+    current-state shadow screening and all runtime gates remain unchanged.
     """
     requested = int(getattr(args, "online_condition_iterations", 0))
-    dynamic = getattr(args, "dynamic_obstacle_event", None) is not None
     online = bool(getattr(args, "online_perception", False))
-    return 0 if requested > 0 and dynamic and online else requested
+    live_recondition = bool(getattr(args, "online_same_primitive_recondition", False))
+    dynamic = getattr(args, "dynamic_obstacle_event", None) is not None
+    # A live state/history refresh at segment entry supersedes the duplicate static probe.  For
+    # legacy/default runs retain the old probe contract; dynamic online runs also avoid replaying
+    # a route against a stale obstacle state.
+    return 0 if requested > 0 and online and (live_recondition or dynamic) else requested
+
+
+def _probe_tick_budget(args: argparse.Namespace) -> int | None:
+    """Bound a pre-rollout state/history probe without changing the final rollout budget.
+
+    The probe only supplies a recent executed state/history snapshot; it is not an acceptance
+    rollout.  A short bounded probe is therefore sufficient and prevents every long compound
+    scene from paying for a complete duplicate route before the authoritative run.
+    """
+    if (_offline_probe_iterations(args) <= 0 or
+            not bool(getattr(args, "online_perception", False)) or
+            not bool(getattr(args, "flow_state_history_conditioning", True))):
+        return None
+    return min(int(getattr(args, "max_ticks", 0)), 120)
 
 
 def _ground_obstacles(scene: Path) -> list[Box2D]:
@@ -655,11 +679,27 @@ def _choose_candidate(primitive_id: int, generated: np.ndarray, source_index: in
                       max_heading_error_rad: float,
                       side_on: bool = False,
                       side_heading_tolerance_rad: float = 0.55,
+                      screen_cache: dict[tuple[int, bytes], tuple[dict[str, np.ndarray], dict[str, Any]]] | None = None,
                       ) -> tuple[CandidatePlan, list[dict[str, Any]]]:
     rows = []
     for candidate_index, trajectory in enumerate(generated):
-        executed, summary = _candidate_screen(trajectory, primitive_id,
-                                              out / f"segment_{segment_index}_candidates.npz", runner)
+        cache_key = None
+        cached = None
+        if screen_cache is not None:
+            digest = hashlib.sha1(np.ascontiguousarray(trajectory).view(np.uint8)).digest()
+            cache_key = (int(primitive_id), digest)
+            cached = screen_cache.get(cache_key)
+        if cached is None:
+            executed, summary = _candidate_screen(
+                trajectory, primitive_id,
+                out / f"segment_{segment_index}_candidates.npz", runner)
+            if screen_cache is not None and cache_key is not None:
+                # The frozen SONIC/MuJoCo screen is deterministic. Reusing the complete trace
+                # is safe and avoids replaying the same raw SEED anchor at every long-horizon
+                # segment; candidate selection still applies all of the original hard gates.
+                screen_cache[cache_key] = (executed, dict(summary))
+        else:
+            executed, summary = cached
         displacement = executed["base_pos"][-1, :2] - executed["base_pos"][0, :2]
         heading_offset = float(np.arctan2(displacement[1], displacement[0]))
         # The executor rotates a body-frame candidate onto the route.  A candidate whose
@@ -808,6 +848,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
 
     decisions: list[dict[str, Any]] = []
     condition_arrays: dict[str, np.ndarray] = {}
+    screen_cache: dict[tuple[int, bytes], tuple[dict[str, np.ndarray], dict[str, Any]]] = {}
     segment_inputs: list[dict[str, Any]] = []
     previous_heading = 0.0
     previous_geometric_primitive = 5
@@ -962,7 +1003,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                         min_forward_progress_m=args.min_forward_progress_m,
                         max_heading_error_rad=args.max_candidate_heading_error_rad,
                         side_on=(args.side_gait_mode == "side_on"),
-                        side_heading_tolerance_rad=args.side_heading_tolerance_rad)
+                        side_heading_tolerance_rad=args.side_heading_tolerance_rad,
+                        screen_cache=screen_cache)
                 except RuntimeError as error:
                     if primitive_id != 3:
                         raise
@@ -1205,14 +1247,21 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
     for online_iteration in range(effective_probe_iterations):
         probe_perception = new_online_perception()
         probe_composer = new_online_composer()
-        probe_data, probe_execution = execute_plan(
-            args.scene, keyframes, dense_route, plan_options, args,
-            replan_callback=(receding_replan if args.receding_horizon_ticks > 0 else None),
-            perception_callback=probe_perception,
-            semantic_replan_callback=(semantic_replan
-                                      if getattr(args, "online_primitive_reroute", False) else None),
-            composer_callback=composer_callback_for(probe_composer),
-        )
+        original_max_ticks = int(args.max_ticks)
+        probe_budget = _probe_tick_budget(args)
+        if probe_budget is not None:
+            args.max_ticks = probe_budget
+        try:
+            probe_data, probe_execution = execute_plan(
+                args.scene, keyframes, dense_route, plan_options, args,
+                replan_callback=(receding_replan if args.receding_horizon_ticks > 0 else None),
+                perception_callback=probe_perception,
+                semantic_replan_callback=(semantic_replan
+                                          if getattr(args, "online_primitive_reroute", False) else None),
+                composer_callback=composer_callback_for(probe_composer),
+            )
+        finally:
+            args.max_ticks = original_max_ticks
         online_overrides = _online_condition_overrides(probe_data, probe_execution, len(segment_inputs))
         plan_options, evidence = build_plan_options(online_overrides)
         if online_iteration + 1 < effective_probe_iterations:
@@ -1287,13 +1336,24 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         "online_conditioning": {
             "iterations": effective_probe_iterations,
             "requested_iterations": requested_probe_iterations,
-            "dynamic_probe_elided": bool(
+            "probe_tick_budget": _probe_tick_budget(args),
+            "probe_shortened": bool(
+                _probe_tick_budget(args) is not None and
+                _probe_tick_budget(args) < int(args.max_ticks)),
+            "offline_probe_elided": bool(
                 effective_probe_iterations < requested_probe_iterations),
+            "dynamic_probe_elided": bool(
+                effective_probe_iterations < requested_probe_iterations and
+                getattr(args, "dynamic_obstacle_event", None) is not None),
             "contract": (
+                "Ours-4: live measured 69-D state/12-frame history refreshes each newly entered segment; stale full-route probe elided"
+                if bool(getattr(args, "online_same_primitive_recondition", False)) else
                 "dynamic scene: live measured 69-D state/12-frame history conditions each semantic Flow update; stale full-route probe elided"
                 if effective_probe_iterations < requested_probe_iterations else
                 "probe rollout -> measured executed 69-D state and 12-frame history -> per-segment Flow reconditioning"
             ),
+            "same_primitive_recondition": bool(
+                getattr(args, "online_same_primitive_recondition", False)),
             "state_history_conditioning_enabled": bool(getattr(args, "flow_state_history_conditioning", True)),
             "segments": {str(k): {"tick": v.get("tick"), "history_ticks": v.get("history_ticks")}
                          for k, v in online_overrides.items()},
@@ -1448,7 +1508,7 @@ def main() -> int:
     parser.add_argument("--side-heading-tolerance-rad", type=float, default=0.55,
                         help="allowed deviation from +/-90 degrees for side-on candidates")
     parser.add_argument("--online-condition-iterations", type=int, default=1,
-                        help="probe/recondition passes; 0 uses the SEED anchor state only")
+                        help="legacy pre-rollout recondition passes; Ours-4 conditions live at segment entry")
     parser.add_argument("--receding-horizon-ticks", type=int, default=0,
                         help="refresh the future Flow reference every N control ticks (0 disables)")
     parser.add_argument("--receding-horizon-shadow", action="store_true",

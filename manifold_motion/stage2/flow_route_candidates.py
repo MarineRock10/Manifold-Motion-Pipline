@@ -696,6 +696,10 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     online_semantic_updates: list[dict[str, Any]] = []
     online_semantic_choice: dict[int, int] = {}
     last_semantic_request: tuple[int, int, int] | None = None
+    # Full Ours-4 state/history conditioning refreshes once on segment entry even when the
+    # semantic primitive token does not change.  Later genuinely new primitive requests remain
+    # eligible, which is important when a live obstacle reopens or closes a corridor.
+    reconditioned_segments: set[int] = set()
     dynamic_wait_ticks = 0
     target_index = 1
     recent_features: list[np.ndarray] = []
@@ -818,8 +822,16 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             current_id = int(plan_options[segment][current_option_index].primitive_id)
             request_key = (int(online_navigation.get("online_update_count", 0)),
                            int(segment), requested_id)
-            if requested_id != current_id and request_key != last_semantic_request:
+            same_primitive_refresh = bool(
+                getattr(args, "online_same_primitive_recondition", False)
+                and requested_id == current_id
+                and segment not in reconditioned_segments
+            )
+            if ((requested_id != current_id or same_primitive_refresh)
+                    and request_key != last_semantic_request):
                 last_semantic_request = request_key
+                if same_primitive_refresh:
+                    reconditioned_segments.add(int(segment))
                 proposals, semantic_report = semantic_replan_callback(
                     segment, requested_id,
                     np.asarray(online_navigation["corridor"], dtype=np.float32),
@@ -841,6 +853,11 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                         shadow_rows.append({"candidate_index": proposal.candidate_index, **shadow})
                         if shadow["accepted"] and accepted_plan is None:
                             accepted_plan = proposal
+                            # Proposals are ranked by the Flow/physics score. Once the first
+                            # candidate passes the current-state gate, screening lower-ranked
+                            # alternatives only duplicates MuJoCo work and cannot improve the
+                            # committed choice.
+                            break
                 elif proposals:
                     # CVPR Ours-2 ablation: commit the highest-ranked projected proposal
                     # without the cloned current-state rollout. The enclosing continuous
@@ -867,20 +884,40 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                         plan_options[segment].insert(preferred_index, accepted_plan)
                         phases[segment].insert(preferred_index, min(6, accepted_plan.motion.T - 1))
                     else:
+                        previous_plan = plan_options[segment][preferred_index]
+                        previous_phase = phases[segment][preferred_index]
                         plan_options[segment][preferred_index] = accepted_plan
-                        phases[segment][preferred_index] = min(6, accepted_plan.motion.T - 1)
+                        if (same_primitive_refresh
+                                and active == (segment, preferred_index)
+                                and previous_plan.primitive_id == accepted_plan.primitive_id):
+                            # Refreshing the same primitive must not restart its transition
+                            # prefix. Transfer the normalized gait phase in place; otherwise
+                            # every SLAM-conditioned refresh becomes another start step and
+                            # long routes lose both speed and natural alternation.
+                            phases[segment][preferred_index] = _continuous_handoff_phase(
+                                accepted_plan.motion, previous_plan.motion,
+                                previous_phase, previous_q,
+                            )
+                        else:
+                            phases[segment][preferred_index] = min(
+                                6, accepted_plan.motion.T - 1)
                     online_semantic_choice[segment] = int(preferred_index)
-                    # Force the normal semantic handoff branch below to apply preview-space
-                    # crossfade even though the list index itself did not change.
-                    active = None
+                    if not same_primitive_refresh:
+                        # A changed semantic token must enter via the normal preview-space
+                        # crossfade even when it replaces the same list slot.
+                        active = None
+                report_fields = dict(semantic_report or {})
+                if same_primitive_refresh:
+                    report_fields["reason"] = "live_M_e_state_history_refresh"
                 online_semantic_updates.append({
                     "tick": int(tick), "segment": int(segment),
                     "from_primitive_id": previous_id, "requested_primitive_id": requested_id,
+                    "same_primitive_recondition": bool(same_primitive_refresh),
                     "committed": bool(committed), "preferred_option_index": (
                         int(preferred_index) if committed else None),
                     "shadow_gate_enabled": shadow_enabled,
                     "shadow_candidates": shadow_rows,
-                    **(semantic_report or {}),
+                    **report_fields,
                 })
         delta = world_keyframes[target_index] - position
         desired_yaw = float(np.arctan2(delta[1], delta[0]))
