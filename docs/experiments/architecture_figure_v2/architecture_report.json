@@ -1,0 +1,441 @@
+{
+  "schema": "manifold-motion.architecture-figure-experiment.v1",
+  "contract": "P1 perception -> M_e(t) -> Stage1 z_p -> Stage2 R_ref -> SONIC/MuJoCo; M_self is gate only",
+  "fixed_variables": [
+    "same held-out state",
+    "same 12-frame history",
+    "same command",
+    "same Stage-2 checkpoint",
+    "same random seed (mean model)"
+  ],
+  "changed_variable": "environment corridor M_e(t) and coherent SDF",
+  "scenarios": [
+    {
+      "scenario": "wide",
+      "environment_note": "nominal aperture",
+      "stage1": {
+        "primitive": "walk_nominal",
+        "primitive_id": 5,
+        "confidence": 0.9999934434890747,
+        "top3": [
+          {
+            "primitive_id": 5,
+            "primitive": "walk_nominal",
+            "probability": 0.9999934434890747
+          },
+          {
+            "primitive_id": 3,
+            "primitive": "low_transition",
+            "probability": 4.7973958317015786e-06
+          },
+          {
+            "primitive_id": 6,
+            "primitive": "walk_turn",
+            "probability": 1.6181462569875293e-06
+          }
+        ],
+        "deployed_primitive": "walk_nominal",
+        "matches_deployment": true
+      },
+      "stage2": {
+        "fixed_state_history_command": true,
+        "source_window": 1698,
+        "reference_shape": [
+          48,
+          38
+        ],
+        "mean_root_xyz_m": [
+          0.2656458914279938,
+          0.01689089834690094,
+          -0.014449059031903744
+        ],
+        "terminal_root_xyz_m": [
+          0.47099313139915466,
+          0.06154180318117142,
+          -0.02312358282506466
+        ],
+        "fixed_zp_primitive": "walk_nominal",
+        "fixed_zp_mean_root_xyz_m": [
+          0.2656458914279938,
+          0.01689089834690094,
+          -0.014449059031903744
+        ],
+        "joint_range_valid": true,
+        "counterfactual_effect_vs_other_Me": {
+          "low": {
+            "joint_rms_rad": 0.053096700459718704,
+            "root_rms_m": 0.02799341268837452
+          },
+          "narrow": {
+            "joint_rms_rad": 0.0508548729121685,
+            "root_rms_m": 0.01343673374503851
+          },
+          "center": {
+            "joint_rms_rad": 0.052031222730875015,
+            "root_rms_m": 0.0492669977247715
+          }
+        },
+        "fixed_zp_effect_vs_wide": {
+          "joint_rms_rad": 0.0,
+          "root_rms_m": 0.0
+        }
+      },
+      "physical_execution": {
+        "accepted": true,
+        "active_primitives": [
+          "walk_nominal",
+          "walk_nominal",
+          "walk_nominal",
+          "walk_nominal",
+          "walk_nominal",
+          "walk_nominal"
+        ],
+        "obstacle_contact_ticks": 0,
+        "self_manifold_gate": {
+          "contract": "measured safe M_r broad phase -> exact G1 surface/obstacle narrow phase",
+          "accepted": true,
+          "required_clearance_m": 0.02,
+          "exact_surface_obstacle_clearance_min_m": 1.3371789455413818,
+          "exact_surface_obstacle_clearance_p05_m": 1.366620421409607,
+          "ellipsoid_broadphase_clearance_min_m": 0.9857497811317444,
+          "ellipsoid_broadphase_overlap_ticks": 0,
+          "environment_corridor_radius_max": 0.7924914956092834,
+          "environment_corridor_radius_p95": 0.7643222212791443,
+          "environment_corridor_over_1_ticks": 0,
+          "task_manifold_aperture_ratio_max": 1.0,
+          "task_manifold_aperture_ratio_p95": 1.0,
+          "task_manifold_aperture_violation_ticks": 0,
+          "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks bilateral route-lateral M_r/M_e",
+          "physical_obstacle_count": 2,
+          "mesh_narrowphase_is_hard_gate": true,
+          "ellipsoid_broadphase_is_conservative_query": true
+        }
+      }
+    },
+    {
+      "scenario": "low",
+      "environment_note": "vertical aperture contracts",
+      "stage1": {
+        "primitive": "crouch",
+        "primitive_id": 2,
+        "confidence": 0.9989950060844421,
+        "top3": [
+          {
+            "primitive_id": 2,
+            "primitive": "crouch",
+            "probability": 0.9989950060844421
+          },
+          {
+            "primitive_id": 3,
+            "primitive": "low_transition",
+            "probability": 0.0010025080991908908
+          },
+          {
+            "primitive_id": 0,
+            "primitive": "all_fours",
+            "probability": 2.2583033114642603e-06
+          }
+        ],
+        "deployed_primitive": "crouch",
+        "matches_deployment": true
+      },
+      "stage2": {
+        "fixed_state_history_command": true,
+        "source_window": 1698,
+        "reference_shape": [
+          48,
+          38
+        ],
+        "mean_root_xyz_m": [
+          0.22682946920394897,
+          0.02622552402317524,
+          -0.008224661462008953
+        ],
+        "terminal_root_xyz_m": [
+          0.3872723877429962,
+          0.08167124539613724,
+          -0.019740313291549683
+        ],
+        "fixed_zp_primitive": "walk_nominal",
+        "fixed_zp_mean_root_xyz_m": [
+          0.22781121730804443,
+          0.02713392861187458,
+          -0.008316471241414547
+        ],
+        "joint_range_valid": true,
+        "counterfactual_effect_vs_other_Me": {
+          "wide": {
+            "joint_rms_rad": 0.053096700459718704,
+            "root_rms_m": 0.02799341268837452
+          },
+          "narrow": {
+            "joint_rms_rad": 0.05292702838778496,
+            "root_rms_m": 0.0318397581577301
+          },
+          "center": {
+            "joint_rms_rad": 0.06474737077951431,
+            "root_rms_m": 0.029580244794487953
+          }
+        },
+        "fixed_zp_effect_vs_wide": {
+          "joint_rms_rad": 0.04890624061226845,
+          "root_rms_m": 0.027518359944224358
+        }
+      },
+      "physical_execution": {
+        "accepted": true,
+        "active_primitives": [
+          "walk_nominal",
+          "crouch",
+          "crouch",
+          "crouch",
+          "crouch",
+          "crouch"
+        ],
+        "obstacle_contact_ticks": 0,
+        "self_manifold_gate": {
+          "contract": "measured safe M_r broad phase -> exact G1 surface/obstacle narrow phase",
+          "accepted": true,
+          "required_clearance_m": 0.02,
+          "exact_surface_obstacle_clearance_min_m": 0.1014021784067154,
+          "exact_surface_obstacle_clearance_p05_m": 0.12428966164588928,
+          "ellipsoid_broadphase_clearance_min_m": -0.0398741215467453,
+          "ellipsoid_broadphase_overlap_ticks": 132,
+          "environment_corridor_radius_max": 0.9773136973381042,
+          "environment_corridor_radius_p95": 0.9448416233062744,
+          "environment_corridor_over_1_ticks": 0,
+          "task_manifold_aperture_ratio_max": 1.0,
+          "task_manifold_aperture_ratio_p95": 1.0,
+          "task_manifold_aperture_violation_ticks": 0,
+          "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks bilateral route-lateral M_r/M_e",
+          "physical_obstacle_count": 3,
+          "mesh_narrowphase_is_hard_gate": true,
+          "ellipsoid_broadphase_is_conservative_query": true
+        }
+      }
+    },
+    {
+      "scenario": "narrow",
+      "environment_note": "lateral aperture contracts",
+      "stage1": {
+        "primitive": "walk_lateral_reverse",
+        "primitive_id": 4,
+        "confidence": 0.998853325843811,
+        "top3": [
+          {
+            "primitive_id": 4,
+            "primitive": "walk_lateral_reverse",
+            "probability": 0.998853325843811
+          },
+          {
+            "primitive_id": 5,
+            "primitive": "walk_nominal",
+            "probability": 0.0009551775292493403
+          },
+          {
+            "primitive_id": 6,
+            "primitive": "walk_turn",
+            "probability": 0.00010402924817753956
+          }
+        ],
+        "deployed_primitive": "walk_lateral_reverse",
+        "matches_deployment": true
+      },
+      "stage2": {
+        "fixed_state_history_command": true,
+        "source_window": 1698,
+        "reference_shape": [
+          48,
+          38
+        ],
+        "mean_root_xyz_m": [
+          0.263024240732193,
+          -0.0008054999634623528,
+          -0.013910301961004734
+        ],
+        "terminal_root_xyz_m": [
+          0.4627167880535126,
+          0.03283969312906265,
+          -0.024929264560341835
+        ],
+        "fixed_zp_primitive": "walk_nominal",
+        "fixed_zp_mean_root_xyz_m": [
+          0.2645643353462219,
+          0.002102145692333579,
+          -0.014192953705787659
+        ],
+        "joint_range_valid": true,
+        "counterfactual_effect_vs_other_Me": {
+          "wide": {
+            "joint_rms_rad": 0.0508548729121685,
+            "root_rms_m": 0.01343673374503851
+          },
+          "low": {
+            "joint_rms_rad": 0.05292702838778496,
+            "root_rms_m": 0.0318397581577301
+          },
+          "center": {
+            "joint_rms_rad": 0.046622924506664276,
+            "root_rms_m": 0.04649867117404938
+          }
+        },
+        "fixed_zp_effect_vs_wide": {
+          "joint_rms_rad": 0.0497930534183979,
+          "root_rms_m": 0.011847634799778461
+        }
+      },
+      "physical_execution": {
+        "accepted": true,
+        "active_primitives": [
+          "walk_nominal",
+          "walk_lateral_reverse",
+          "walk_lateral_reverse",
+          "walk_lateral_reverse",
+          "walk_lateral_reverse",
+          "walk_lateral_reverse"
+        ],
+        "obstacle_contact_ticks": 0,
+        "self_manifold_gate": {
+          "contract": "measured safe M_r broad phase -> exact G1 surface/obstacle narrow phase",
+          "accepted": true,
+          "required_clearance_m": 0.02,
+          "exact_surface_obstacle_clearance_min_m": 0.16809992492198944,
+          "exact_surface_obstacle_clearance_p05_m": 0.22422023117542267,
+          "ellipsoid_broadphase_clearance_min_m": -0.03984544426202774,
+          "ellipsoid_broadphase_overlap_ticks": 115,
+          "environment_corridor_radius_max": 2.0796329975128174,
+          "environment_corridor_radius_p95": 1.8976820707321167,
+          "environment_corridor_over_1_ticks": 114,
+          "task_manifold_aperture_ratio_max": 1.0,
+          "task_manifold_aperture_ratio_p95": 1.0,
+          "task_manifold_aperture_violation_ticks": 0,
+          "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks bilateral route-lateral M_r/M_e",
+          "physical_obstacle_count": 4,
+          "mesh_narrowphase_is_hard_gate": true,
+          "ellipsoid_broadphase_is_conservative_query": true
+        }
+      }
+    },
+    {
+      "scenario": "center",
+      "environment_note": "route bends / turn",
+      "stage1": {
+        "primitive": "walk_lateral_reverse",
+        "primitive_id": 4,
+        "confidence": 0.9999239444732666,
+        "top3": [
+          {
+            "primitive_id": 4,
+            "primitive": "walk_lateral_reverse",
+            "probability": 0.9999239444732666
+          },
+          {
+            "primitive_id": 2,
+            "primitive": "crouch",
+            "probability": 7.60540206101723e-05
+          },
+          {
+            "primitive_id": 5,
+            "primitive": "walk_nominal",
+            "probability": 1.9298891373864535e-09
+          }
+        ],
+        "deployed_primitive": "walk_lateral_reverse",
+        "matches_deployment": true
+      },
+      "stage2": {
+        "fixed_state_history_command": true,
+        "source_window": 1698,
+        "reference_shape": [
+          48,
+          38
+        ],
+        "mean_root_xyz_m": [
+          0.19255171716213226,
+          0.004834906663745642,
+          -0.012876172550022602
+        ],
+        "terminal_root_xyz_m": [
+          0.3241540789604187,
+          0.03894727677106857,
+          -0.015469573438167572
+        ],
+        "fixed_zp_primitive": "walk_nominal",
+        "fixed_zp_mean_root_xyz_m": [
+          0.19399116933345795,
+          0.007432305719703436,
+          -0.013531207107007504
+        ],
+        "joint_range_valid": true,
+        "counterfactual_effect_vs_other_Me": {
+          "wide": {
+            "joint_rms_rad": 0.052031222730875015,
+            "root_rms_m": 0.0492669977247715
+          },
+          "low": {
+            "joint_rms_rad": 0.06474737077951431,
+            "root_rms_m": 0.029580244794487953
+          },
+          "narrow": {
+            "joint_rms_rad": 0.046622924506664276,
+            "root_rms_m": 0.04649867117404938
+          }
+        },
+        "fixed_zp_effect_vs_wide": {
+          "joint_rms_rad": 0.05055752396583557,
+          "root_rms_m": 0.048028185963630676
+        }
+      },
+      "physical_execution": {
+        "accepted": true,
+        "active_primitives": [
+          "walk_nominal",
+          "walk_lateral_reverse",
+          "walk_lateral_reverse",
+          "walk_nominal",
+          "walk_nominal",
+          "walk_nominal",
+          "walk_nominal",
+          "walk_lateral_reverse",
+          "walk_lateral_reverse",
+          "walk_nominal"
+        ],
+        "obstacle_contact_ticks": 0,
+        "self_manifold_gate": {
+          "contract": "measured safe M_r broad phase -> exact G1 surface/obstacle narrow phase",
+          "accepted": true,
+          "required_clearance_m": 0.02,
+          "exact_surface_obstacle_clearance_min_m": 0.11103875935077667,
+          "exact_surface_obstacle_clearance_p05_m": 0.2231518030166626,
+          "ellipsoid_broadphase_clearance_min_m": -0.1732911318540573,
+          "ellipsoid_broadphase_overlap_ticks": 64,
+          "environment_corridor_radius_max": 7.132812023162842,
+          "environment_corridor_radius_p95": 3.060908794403076,
+          "environment_corridor_over_1_ticks": 111,
+          "task_manifold_aperture_ratio_max": 1.0,
+          "task_manifold_aperture_ratio_p95": 1.0,
+          "task_manifold_aperture_violation_ticks": 0,
+          "task_manifold_aperture_contract": "crouch checks vertical M_r/M_e; side gait checks bilateral route-lateral M_r/M_e",
+          "physical_obstacle_count": 3,
+          "mesh_narrowphase_is_hard_gate": true,
+          "ellipsoid_broadphase_is_conservative_query": true
+        }
+      }
+    }
+  ],
+  "checks": {
+    "same_stage2_source_window": true,
+    "all_physical_rollouts_accepted": true,
+    "all_physical_rollouts_zero_obstacle_contact": true,
+    "fixed_zp_environment_changes_dynamic_reference": true,
+    "learned_stage1_matches_deployed_geometry_router": 4,
+    "learned_stage1_total_cases": 4
+  },
+  "interpretation": {
+    "stage1": "The router output is the discrete primitive decision from the environment manifold.",
+    "stage2": "The conditional mean output is a 48x38 continuous reference; its root and joint changes are measured under the fixed-state intervention.",
+    "self_manifold": "Only a post-generation physical safety gate; it is not the Stage-2 behavior input in this audit.",
+    "router_calibration": "The learned Stage-1 proposal is calibrated on accepted physical M_e conditions and is accepted online only when it passes the geometry/self-manifold safety gate; the current four-case audit is 4/4.",
+    "limitation": "P1 is simulated and the checked-in pilot uses reverse-synthesized corridor conditions; no real SLAM claim is made."
+  }
+}

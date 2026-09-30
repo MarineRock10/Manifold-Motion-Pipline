@@ -1,0 +1,152 @@
+{
+  "experiment": "controlled counterfactuals: environment M_e causes primitive changes",
+  "passed": true,
+  "contract": {
+    "routing": "Stage-1 neural p(z_p|M_e) proposal accepted by geometry/self-manifold safety gate; never segment index",
+    "aperture_counterfactual_controls": "same route, code, thresholds, candidate count and seed",
+    "changed_variables": {
+      "low": "adds one physical overhead box",
+      "narrow": "adds two physical side-wall boxes",
+      "center": "adds a center block, causing A* route curvature"
+    }
+  },
+  "checks": {
+    "wide_physics_accepted": true,
+    "low_physics_accepted": true,
+    "narrow_physics_accepted": true,
+    "wide_is_all_nominal": true,
+    "low_begins_nominal": true,
+    "low_switches_to_crouch": true,
+    "narrow_begins_nominal": true,
+    "narrow_switches_to_side_gait": true,
+    "narrow_side_on_candidate": true,
+    "narrow_side_on_body_yaw": true,
+    "same_segment_count": true,
+    "same_route_geometry": true,
+    "same_routing_thresholds": true,
+    "same_planner_config": true,
+    "three_flow_candidates_per_set": true,
+    "wide_zero_obstacle_contact": true,
+    "low_zero_obstacle_contact": true,
+    "narrow_zero_obstacle_contact": true,
+    "environment_changes_measured_vertical_aperture": true,
+    "environment_changes_measured_lateral_aperture": true,
+    "center_block_physics_accepted": true,
+    "center_block_reaches_all_keyframes": true,
+    "center_block_zero_obstacle_contact": true,
+    "center_stage1_proposals_pass_safety_gate": true,
+    "route_curvature_activates_turn": true
+  },
+  "wide": {
+    "route": [
+      "walk_nominal",
+      "walk_nominal",
+      "walk_nominal",
+      "walk_nominal",
+      "walk_nominal",
+      "walk_nominal"
+    ],
+    "vertical_free_semi_m": [
+      1.3376097679138184,
+      1.3376097679138184,
+      1.3376097679138184,
+      1.3376097679138184,
+      1.3376097679138184,
+      1.3376097679138184
+    ],
+    "lateral_free_semi_m": [
+      0.699999988079071,
+      0.699999988079071,
+      0.699999988079071,
+      0.699999988079071,
+      0.699999988079071,
+      0.699999988079071
+    ],
+    "pelvis_z_mean_m": 0.7380736604394035,
+    "pelvis_z_min_m": 0.7109205341299156,
+    "keyframes": 6,
+    "roll_abs_max_deg": 10.708512821527545
+  },
+  "low": {
+    "route": [
+      "walk_nominal",
+      "crouch",
+      "crouch",
+      "crouch",
+      "crouch",
+      "crouch"
+    ],
+    "vertical_free_semi_m": [
+      1.3376097679138184,
+      0.9900000095367432,
+      0.9900000095367432,
+      0.9900000095367432,
+      0.9900000095367432,
+      0.9900000095367432
+    ],
+    "pelvis_z_mean_m": 0.5297273302855285,
+    "pelvis_z_min_m": 0.4365511399131949,
+    "keyframes": 6,
+    "roll_abs_max_deg": 15.616956042771095
+  },
+  "narrow": {
+    "route": [
+      "walk_nominal",
+      "walk_lateral_reverse",
+      "walk_lateral_reverse",
+      "walk_lateral_reverse",
+      "walk_lateral_reverse",
+      "walk_lateral_reverse"
+    ],
+    "lateral_free_semi_m": [
+      0.699999988079071,
+      0.4050000011920929,
+      0.4050000011920929,
+      0.4050000011920929,
+      0.4050000011920929,
+      0.4050000011920929
+    ],
+    "pelvis_z_mean_m": 0.7460490149786927,
+    "keyframes": 6,
+    "roll_abs_max_deg": 9.268477234486049
+  },
+  "center": {
+    "route": [
+      "walk_nominal",
+      "walk_lateral_reverse",
+      "walk_lateral_reverse",
+      "walk_nominal",
+      "walk_nominal",
+      "walk_nominal",
+      "walk_nominal",
+      "walk_lateral_reverse",
+      "walk_lateral_reverse",
+      "walk_nominal"
+    ],
+    "turn_segments": [
+      0,
+      3,
+      7
+    ],
+    "primitive_ticks": {
+      "crouch": 0,
+      "low_transition": 0,
+      "walk_lateral_reverse": 164,
+      "walk_nominal": 232,
+      "walk_turn": 18
+    },
+    "keyframes": 10,
+    "obstacle_contact_ticks": 0,
+    "route_deviation_p95_m": 0.16456340554057478,
+    "track_err_mean_rad": 0.12558972046512168,
+    "roll_abs_max_deg": 9.96163843726212,
+    "final_xy_m": [
+      3.457524222401408,
+      0.09441815914612571
+    ]
+  },
+  "effect": {
+    "pelvis_mean_drop_m": 0.20834633015387494,
+    "comparison_gif_frames": 232
+  }
+}

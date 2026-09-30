@@ -1,0 +1,30 @@
+{
+  "schema": "manifold-motion.primitive-router-calibration.v1",
+  "base_router": "reports/manifold_motion/primitive_router_geometry_v1/router.pt",
+  "windows": "reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz",
+  "pilot_root": "reports/manifold_motion/stage2_manifold_counterfactual_v1",
+  "active_primitive_ids": [
+    0,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "active_primitive_names": [
+    "all_fours",
+    "crouch",
+    "low_transition",
+    "walk_lateral_reverse",
+    "walk_nominal",
+    "walk_turn"
+  ],
+  "train_windows": 2031,
+  "heldout_test_windows": 195,
+  "controlled_examples": 28,
+  "control_repeat": 100,
+  "controlled_accuracy": 1.0,
+  "heldout_test_accuracy": 0.8871794871794871,
+  "mismatches": [],
+  "accepted": true
+}

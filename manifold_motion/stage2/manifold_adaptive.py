@@ -26,6 +26,7 @@ from typing import Any
 
 import mujoco
 import numpy as np
+import torch
 
 from manifold_motion.core import constants as C
 from manifold_motion.planning.corridor import ExecutedEnvelopeEstimator
@@ -50,6 +51,9 @@ from manifold_motion.perception.dynamic_scene import (
     SUPPORTED_DYNAMIC_EVENTS, dynamic_center_z, obstacle_state,
 )
 from manifold_motion.stage2.online_composer import OnlineSkillComposer
+from manifold_motion.planning.primitive_router import _features as _stage1_features
+from manifold_motion.planning.primitive_router import _load_router as _load_stage1_router
+from manifold_motion.planning.primitive_router import _normalize as _stage1_normalize
 
 
 BENCHMARK_METHOD_PROFILES: dict[str, dict[str, Any]] = {
@@ -653,7 +657,7 @@ def _route_decision(corridor: np.ndarray, heading: float, previous_heading: floa
     heading_change = _angle(heading - previous_heading)
     if vertical < crouch_semi_z_m:
         primitive_id, reason = 2, "vertical_free_semi_below_crouch_threshold"
-    elif bilateral_lateral < side_semi_y_m:
+    elif lateral < side_semi_y_m and bilateral_lateral < side_semi_y_m:
         primitive_id, reason = 4, "bilateral_lateral_free_semi_below_side_threshold"
     else:
         primitive_id, reason = 5, "wide_and_tall_enough_for_nominal_walk"
@@ -671,6 +675,37 @@ def _route_decision(corridor: np.ndarray, heading: float, previous_heading: floa
                        "side_semi_y_m": side_semi_y_m,
                        "turn_heading_change_rad": turn_threshold_rad},
     }
+
+
+def _stage1_router_prediction(model: Any, checkpoint: dict[str, Any],
+                              corridor: np.ndarray, sdf: np.ndarray) -> dict[str, Any]:
+    """Predict ``p(z_p | M_e)`` for one measured route condition.
+
+    The physical geometry rule remains the safety authority.  The caller accepts this neural
+    proposal only when it agrees with that gate; disagreement is recorded as a calibration
+    failure and falls back to the auditable route.  This makes the learned Stage-1 model part
+    of the deployed chain without allowing an out-of-distribution classifier to request an
+    unsafe gait.
+    """
+    raw = {"corridor": np.asarray(corridor, dtype=np.float32)[None],
+           "sdf": np.asarray(sdf, dtype=np.float32)[None],
+           "command": np.zeros((1, 9), dtype=np.float32)}
+    feature = _stage1_features(raw, include_command=False)
+    normalized = _stage1_normalize(feature, np.asarray(checkpoint["feature_mean"]),
+                                    np.asarray(checkpoint["feature_std"]))
+    with torch.no_grad():
+        probability = torch.softmax(model(torch.as_tensor(normalized, dtype=torch.float32)), dim=1)[0]
+    values = probability.cpu().numpy()
+    active = np.asarray(checkpoint["active_primitive_ids"], dtype=np.int64)
+    names = list(checkpoint.get("active_primitive_names", [PRIMITIVE_NAMES.get(int(value), str(int(value)))
+                                                            for value in active]))
+    order = np.argsort(values)[::-1]
+    ranking = [{"primitive_id": int(active[index]),
+                "primitive": str(names[index]),
+                "probability": float(values[index])} for index in order]
+    return {"primitive_id": int(active[order[0]]),
+            "primitive": str(names[order[0]]),
+            "confidence": float(values[order[0]]), "ranking": ranking}
 
 
 def _choose_candidate(primitive_id: int, generated: np.ndarray, source_index: int,
@@ -833,6 +868,12 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
     envelope = _calibrate_envelope()
     sampler = RouteFlowSampler(args.windows, args.autoencoder, args.flow, args.device,
                                mean_model_root=args.mean_model_root)
+    stage1_router_model = None
+    stage1_router_checkpoint: dict[str, Any] | None = None
+    if args.stage1_router is not None:
+        stage1_router_model, stage1_router_checkpoint = _load_stage1_router(args.stage1_router)
+        if bool(stage1_router_checkpoint.get("include_command", True)):
+            raise ValueError("--stage1-router must point to a geometry-only M_e -> primitive checkpoint")
     # Window 590 is a physically verified *forward* crouched locomotion phase.  Under the real
     # low-ceiling M_e/SDF it advances about 0.60 m with ~9 degree heading error, while the old
     # window 669 advances backward (~149 degree offset) and forced the executor to face away
@@ -900,6 +941,22 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                 _bilateral_lateral_free_semi(segment, physical_boxes)
             ),
         )
+        geometry_primitive_id = int(decision["primitive_id"])
+        if stage1_router_model is not None and stage1_router_checkpoint is not None:
+            proposal = _stage1_router_prediction(stage1_router_model, stage1_router_checkpoint,
+                                                 corridor, sdf)
+            decision["stage1_learned_proposal"] = proposal
+            if int(proposal["primitive_id"]) == geometry_primitive_id:
+                decision["stage1_route_source"] = "learned_stage1_accepted_by_geometry_gate"
+                decision["stage1_geometry_gate"] = "pass"
+            else:
+                # Never let an uncalibrated or out-of-distribution proposal replace the
+                # physical M_e/self-manifold safety decision.
+                decision["stage1_route_source"] = "geometry_safety_fallback"
+                decision["stage1_geometry_gate"] = "reject_mismatch"
+                decision["stage1_rejected_primitive_id"] = int(proposal["primitive_id"])
+        else:
+            decision["stage1_route_source"] = "geometry_safety_router"
         decision.update({"segment_index": segment_index,
                          "start_xy_m": segment[0].tolist(), "end_xy_m": segment[-1].tolist()})
         decisions.append(decision)
@@ -1315,7 +1372,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                     "planner_selection": planner_selection,
                     "initial_planning_ms": float(initial_planning_ms)},
         "perception_input": perception_provenance,
-        "routing_contract": "primitive is a deterministic function of measured M_e aperture and route heading change; never segment index",
+        "routing_contract": ("Stage-1 neural p(z_p|M_e) proposal accepted only when it agrees with the measured "
+                             "geometry/self-manifold safety gate; otherwise deterministic safety fallback; never segment index"),
+        "stage1_router": (str(args.stage1_router) if args.stage1_router is not None else None),
         "capability_manifest": {
             "strict_supported_primitive_ids": list(supported_ids(False)),
             "partial_primitive_ids": list(supported_ids(True)),
@@ -1461,6 +1520,8 @@ def main() -> int:
     parser.add_argument("--flow", type=Path, default=C.REPO / "reports/manifold_motion/stage2_flow_corridor_v1/flow.pt")
     parser.add_argument("--mean-model-root", type=Path, default=None,
                         help="optional root containing primitive<ID>/conditional_mean.pt")
+    parser.add_argument("--stage1-router", type=Path, default=None,
+                        help="optional calibrated geometry-only Stage-1 p(z_p|M_e) checkpoint; safety gate remains authoritative")
     parser.add_argument("--num-candidates", type=int, default=4)
     parser.add_argument("--goal-x", type=float, default=3.60)
     parser.add_argument("--segment-length-m", type=float, default=0.60)

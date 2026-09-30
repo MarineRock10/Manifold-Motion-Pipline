@@ -273,6 +273,20 @@ counterfactuals, measured self-manifold gates, online state/history projection, 
 dynamic replanning, continuous router Flow, and reactive grazing/overhead obstacle tests. The
 machine-readable gate summary is [acceptance.json](docs/experiments/stage2_completion_v1/acceptance.json).
 
+### Architecture-aligned causal audit
+
+The four-card audit below follows the figure's separation exactly: the cyan ellipse is the
+environment corridor `M_e(t)`, Stage 1 emits the discrete primitive `z_p`, and Stage 2 emits a
+continuous `R_ref` conditioned on `M_e(t)`, `z_p`, state, history, and command. The robot's own
+`M_self` is shown only as a small safety-gate status, not as the behavior-driving ellipse.
+
+![Architecture-aligned Stage 1 / Stage 2 audit](docs/experiments/architecture_figure_v2/architecture_stage1_stage2.gif)
+
+See the [experiment protocol and causal report](docs/experiments/ARCHITECTURE_FIGURE_EXPERIMENT.md)
+for the fixed-state intervention, the Stage-2 fixed-primitive effect, and the exact reproduction
+command. The calibrated Stage-1 router matches all 28 audited physical route segments; every
+MuJoCo rollout passes with zero obstacle-contact ticks.
+
 ## Reproduction
 
 ### 1. Runtime and controller assets

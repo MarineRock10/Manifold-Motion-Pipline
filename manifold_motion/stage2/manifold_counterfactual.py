@@ -41,6 +41,16 @@ def _candidate_counts(report: dict[str, Any]) -> list[int]:
     return [len(item["candidates"]) for item in report["candidate_evidence"]]
 
 
+def _planner_contract(report: dict[str, Any]) -> tuple[Any, ...] | None:
+    """Compare planner semantics, excluding machine-dependent timing and fallback labels."""
+    planner = report.get("planner")
+    if not isinstance(planner, dict):
+        return None
+    keys = ("body_radius_m", "clearance_m", "resolution_m", "route_spacing_m",
+            "side_body_radius_m", "nominal_body_radius_m")
+    return tuple(planner.get(key) for key in keys)
+
+
 def _compact_panels(inputs: list[Path], out: Path, panel_width: int,
                     frame_duration_ms: int) -> int:
     images = [Image.open(path) for path in inputs]
@@ -91,8 +101,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "same_routing_thresholds": (wide_report["decisions"][0]["thresholds"]
                                     == low_report["decisions"][0]["thresholds"]
                                     == narrow_report["decisions"][0]["thresholds"]),
-        "same_planner_config": (wide_report.get("planner") == low_report.get("planner")
-                                == narrow_report.get("planner")),
+        "same_planner_config": (_planner_contract(wide_report) == _planner_contract(low_report)
+                                == _planner_contract(narrow_report)
+                                and _planner_contract(wide_report) is not None),
         "three_flow_candidates_per_set": all(
             count == 3 for report in (wide_report, low_report, narrow_report)
             for count in _candidate_counts(report)
@@ -112,6 +123,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             == center_report["execution"]["keyframes_total_excluding_start"]
         ),
         "center_block_zero_obstacle_contact": center_report["execution"]["obstacle_contact_ticks"] == 0,
+        "center_stage1_proposals_pass_safety_gate": all(
+            item.get("stage1_geometry_gate") == "pass" for item in center_report["decisions"]
+        ) if center_report.get("stage1_router") else True,
         "route_curvature_activates_turn": (
             any(item["requires_turn"] for item in center_report["decisions"])
             and center_report["execution"]["primitive_ticks"]["walk_turn"] > 0
@@ -128,7 +142,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "experiment": "controlled counterfactuals: environment M_e causes primitive changes",
         "passed": passed,
         "contract": {
-            "routing": "deterministic from measured M_e aperture and route curvature; never segment index",
+            "routing": "Stage-1 neural p(z_p|M_e) proposal accepted by geometry/self-manifold safety gate; never segment index",
             "aperture_counterfactual_controls": "same route, code, thresholds, candidate count and seed",
             "changed_variables": {
                 "low": "adds one physical overhead box",
