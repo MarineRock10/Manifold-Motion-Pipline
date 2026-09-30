@@ -101,6 +101,21 @@ def _apply_benchmark_method_profile(args: argparse.Namespace) -> dict[str, Any] 
     return profile
 
 
+def _offline_probe_iterations(args: argparse.Namespace) -> int:
+    """Return useful full-route probe passes before the authoritative rollout.
+
+    A static scene can reuse the first rollout's measured state/history to rebuild each segment.
+    For a synchronized moving obstacle that condition is stale by construction.  Dynamic runs
+    therefore condition Flow at every live semantic update and avoid replaying the complete
+    route once before the real run.  Projection, current-state shadow screening and all runtime
+    gates remain unchanged.
+    """
+    requested = int(getattr(args, "online_condition_iterations", 0))
+    dynamic = getattr(args, "dynamic_obstacle_event", None) is not None
+    online = bool(getattr(args, "online_perception", False))
+    return 0 if requested > 0 and dynamic and online else requested
+
+
 def _ground_obstacles(scene: Path) -> list[Box2D]:
     """Return only floor-connected boxes for 2-D A*; overhead boxes remain in M_e."""
     model = mujoco.MjModel.from_xml_path(str(scene))
@@ -1183,9 +1198,11 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             )
         return _callback
 
+    requested_probe_iterations = int(args.online_condition_iterations)
+    effective_probe_iterations = _offline_probe_iterations(args)
     probe_execution: dict[str, Any] | None = None
     online_overrides: dict[int, dict[str, Any]] = {}
-    for online_iteration in range(args.online_condition_iterations):
+    for online_iteration in range(effective_probe_iterations):
         probe_perception = new_online_perception()
         probe_composer = new_online_composer()
         probe_data, probe_execution = execute_plan(
@@ -1198,7 +1215,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         )
         online_overrides = _online_condition_overrides(probe_data, probe_execution, len(segment_inputs))
         plan_options, evidence = build_plan_options(online_overrides)
-        if online_iteration + 1 < args.online_condition_iterations:
+        if online_iteration + 1 < effective_probe_iterations:
             # The next loop iteration probes the newly reconditioned candidates.
             continue
     final_perception = new_online_perception()
@@ -1268,8 +1285,15 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                              "candidate zero may use a validated conditional-mean/SEED anchor"),
         },
         "online_conditioning": {
-            "iterations": args.online_condition_iterations,
-            "contract": "probe rollout -> measured executed 69-D state and 12-frame history -> per-segment Flow reconditioning",
+            "iterations": effective_probe_iterations,
+            "requested_iterations": requested_probe_iterations,
+            "dynamic_probe_elided": bool(
+                effective_probe_iterations < requested_probe_iterations),
+            "contract": (
+                "dynamic scene: live measured 69-D state/12-frame history conditions each semantic Flow update; stale full-route probe elided"
+                if effective_probe_iterations < requested_probe_iterations else
+                "probe rollout -> measured executed 69-D state and 12-frame history -> per-segment Flow reconditioning"
+            ),
             "state_history_conditioning_enabled": bool(getattr(args, "flow_state_history_conditioning", True)),
             "segments": {str(k): {"tick": v.get("tick"), "history_ticks": v.get("history_ticks")}
                          for k, v in online_overrides.items()},

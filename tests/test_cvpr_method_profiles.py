@@ -7,6 +7,7 @@ import argparse
 from manifold_motion.stage2.manifold_adaptive import (
     BENCHMARK_METHOD_PROFILES,
     _apply_benchmark_method_profile,
+    _offline_probe_iterations,
 )
 
 
@@ -44,6 +45,26 @@ def test_primary_profiles_are_distinct_and_causal() -> None:
         (value["planner"], value["projection"], value["shadow_gate"], value["state_history_condition"])
         for value in resolved.values()
     }) == 4
+
+
+def test_dynamic_online_flow_elides_only_stale_full_route_probe() -> None:
+    static = _args("Ours-4")
+    _apply_benchmark_method_profile(static)
+    static.dynamic_obstacle_event = None
+    assert _offline_probe_iterations(static) == 1
+
+    dynamic = _args("Ours-4")
+    _apply_benchmark_method_profile(dynamic)
+    dynamic.dynamic_obstacle_event = "moving_wall"
+    assert dynamic.flow_state_history_conditioning
+    assert dynamic.online_semantic_shadow_gate
+    assert _offline_probe_iterations(dynamic) == 0
+
+    offline_dynamic = _args("Ours-4")
+    _apply_benchmark_method_profile(offline_dynamic)
+    offline_dynamic.dynamic_obstacle_event = "moving_wall"
+    offline_dynamic.online_perception = False
+    assert _offline_probe_iterations(offline_dynamic) == 1
 
 
 if __name__ == "__main__":

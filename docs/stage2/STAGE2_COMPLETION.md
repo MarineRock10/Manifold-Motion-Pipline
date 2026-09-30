@@ -25,9 +25,10 @@
 ## CVPR 单种子物理预检
 
 冻结的 4 方法 × 26 场景矩阵现已完成 104/104 行：92 行为 exact MuJoCo physics，12 行为
-明确标注的 held-out proxy geometry。总成功数为 56/104；动态子集为 14/16。该数字只用于
-发现协议和实现缺口，不能代替多种子论文表。失败行同样保留，其中 B2 在 route-reopen
-触发自身流形安全停止，Ours-4 在 moving-wall 超过统一的 180 秒墙钟预算。
+明确标注的 held-out proxy geometry。总成功数为 57/104；动态子集为 15/16。该数字只用于
+发现协议和实现缺口，不能代替多种子论文表。唯一动态失败行仍然保留：B2 在
+route-reopen 触发自身流形安全停止。Ours-4 moving-wall 去除动态场景中会立刻过时的整程
+probe 后在 117.3 秒完成；实时 state/history、projection、shadow gate 和所有物理门未移除。
 
 完整的机器可读快照见
 [cvpr_primary_physical_seed31000_summary.json](../experiments/results/cvpr_primary_physical_seed31000_summary.json)。

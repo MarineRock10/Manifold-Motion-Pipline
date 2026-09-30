@@ -8,7 +8,7 @@
   "missing_run_ids": [],
   "accepted": true,
   "executed_this_call": 0,
-  "successes": 56,
+  "successes": 57,
   "fidelity_counts": {
     "exact_physics": 92,
     "proxy_geometry": 12
@@ -21,7 +21,7 @@
   "methods": {
     "Ours-4": {
       "rows": 26,
-      "successes": 11,
+      "successes": 12,
       "exact_physics_rows": 23,
       "proxy_geometry_rows": 3
     },
@@ -46,7 +46,7 @@
   },
   "failure_taxonomy_counts": {
     "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;terminal_keyframe_error;self_manifold_obstacle_clearance": 16,
-    "rollout_timeout": 14,
+    "rollout_timeout": 13,
     "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;route_deviation;terminal_keyframe_error;self_manifold_obstacle_clearance": 11,
     "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;scene_obstacle_contact;route_deviation;terminal_keyframe_error;body_route_heading_mismatch;self_manifold_obstacle_clearance": 4,
     "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;fall_or_extreme_roll;roll_limit;tracking_error;route_deviation;terminal_keyframe_error;body_route_heading_mismatch;self_manifold_obstacle_clearance": 2,
@@ -54,7 +54,7 @@
   },
   "dynamic": {
     "rows": 16,
-    "successes": 14,
+    "successes": 15,
     "exact_physics_rows": 16,
     "results": [
       {
@@ -193,13 +193,13 @@
         "run_id": "c728e13c183acfdd",
         "method": "Ours-4",
         "scenario": "dynamic-moving-wall",
-        "success": false,
-        "failure_type": "rollout_timeout",
-        "wall_time_s": 180.235424642,
-        "min_clearance_m": 0.0,
-        "terminal_error_m": 999.0,
-        "planning_median_ms": 0.0,
-        "planning_p95_ms": 0.0
+        "success": true,
+        "failure_type": "",
+        "wall_time_s": 117.26444167,
+        "min_clearance_m": 0.47678473591804504,
+        "terminal_error_m": 0.218199697035179,
+        "planning_median_ms": 45.03986499997836,
+        "planning_p95_ms": 186.577754150008
       },
       {
         "run_id": "d8bd0fc8ecd75696",
