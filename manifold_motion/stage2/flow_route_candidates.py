@@ -837,7 +837,9 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                            int(segment), requested_id)
             same_primitive_refresh = bool(
                 getattr(args, "online_same_primitive_recondition", False)
+                and getattr(args, "live_recondition_enabled", True)
                 and requested_id == current_id
+                and segment == 0
                 and segment not in reconditioned_segments
             )
             if ((requested_id != current_id or same_primitive_refresh)
@@ -882,6 +884,39 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                         "shadow_gate_enabled": False,
                         "reason": "benchmark_ablation_without_current_state_shadow_gate",
                     })
+                # A state/history refresh is allowed to change the reference only when it
+                # retains the forward (or side-gait) displacement of the already screened
+                # plan.  A short shadow rollout can look stable while producing an almost
+                # stationary clip; committing that clip is exactly the failure mode seen in
+                # long low/turn sequences.  Keep the previously screened plan in that case,
+                # while recording the rejected refresh for the ablation audit.
+                refresh_rejected_for_progress = False
+                if accepted_plan is not None and same_primitive_refresh:
+                    previous_plan = plan_options[segment][current_option_index]
+                    previous_delta = (previous_plan.trajectory[-1, 29:31]
+                                      - previous_plan.trajectory[0, 29:31])
+                    proposed_delta = (accepted_plan.trajectory[-1, 29:31]
+                                      - accepted_plan.trajectory[0, 29:31])
+                    if requested_id == 4:
+                        previous_progress = abs(float(previous_delta[1]))
+                        proposed_progress = abs(float(proposed_delta[1]))
+                    else:
+                        previous_progress = float(previous_delta[0])
+                        proposed_progress = float(proposed_delta[0])
+                    # Preserve at least 70% of the already validated local displacement and
+                    # a small absolute progress floor.  This is a feasibility/scheduling
+                    # gate, not a hand-written scenario action or path.
+                    if (proposed_progress < 0.08 or
+                            proposed_progress < 0.70 * max(previous_progress, 0.08)):
+                        refresh_rejected_for_progress = True
+                        shadow_rows.append({
+                            "candidate_index": accepted_plan.candidate_index,
+                            "accepted": False,
+                            "reason": "state_history_refresh_progress_gate",
+                            "previous_progress_m": previous_progress,
+                            "proposed_progress_m": proposed_progress,
+                        })
+                        accepted_plan = None
                 committed = accepted_plan is not None
                 previous_id = current_id
                 if committed:
@@ -929,6 +964,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                     "committed": bool(committed), "preferred_option_index": (
                         int(preferred_index) if committed else None),
                     "shadow_gate_enabled": shadow_enabled,
+                    "refresh_rejected_for_progress": refresh_rejected_for_progress,
                     "shadow_candidates": shadow_rows,
                     **report_fields,
                 })

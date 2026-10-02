@@ -1,0 +1,184 @@
+{
+  "schema": "manifold-motion.simulated-perception-multiseed.v1",
+  "scene": "data/g1_flat/scene_long_avoidance.xml",
+  "seeds": [
+    31000,
+    31001,
+    31002,
+    31003,
+    31004,
+    31005,
+    31006,
+    31007
+  ],
+  "planned": 8,
+  "reported": 8,
+  "accepted": true,
+  "accepted_count": 8,
+  "check_pass_counts": {
+    "astar_detours_around_block": 8,
+    "centre_obstacle_observed": 8,
+    "ellipsoid_vertical_axis_from_map": 8,
+    "occupied_map_nonempty": 8,
+    "radar_has_returns": 8,
+    "sliding_origin_changed": 8,
+    "stage2_condition_valid": 8,
+    "voxel_volume_is_3d": 8
+  },
+  "rows": [
+    {
+      "seed": 31000,
+      "accepted": true,
+      "checks": {
+        "radar_has_returns": true,
+        "centre_obstacle_observed": true,
+        "sliding_origin_changed": true,
+        "occupied_map_nonempty": true,
+        "voxel_volume_is_3d": true,
+        "astar_detours_around_block": true,
+        "stage2_condition_valid": true,
+        "ellipsoid_vertical_axis_from_map": true
+      },
+      "total_returns": 1470,
+      "occupied_voxels": 461,
+      "route_length_m": 4.6650872230529785,
+      "max_lateral_detour_m": 1.2400000095367432,
+      "output": "reports/cvpr/simulated_slam_multiseed_v1/seed_31000"
+    },
+    {
+      "seed": 31001,
+      "accepted": true,
+      "checks": {
+        "radar_has_returns": true,
+        "centre_obstacle_observed": true,
+        "sliding_origin_changed": true,
+        "occupied_map_nonempty": true,
+        "voxel_volume_is_3d": true,
+        "astar_detours_around_block": true,
+        "stage2_condition_valid": true,
+        "ellipsoid_vertical_axis_from_map": true
+      },
+      "total_returns": 1469,
+      "occupied_voxels": 463,
+      "route_length_m": 4.598812580108643,
+      "max_lateral_detour_m": 1.1600000858306885,
+      "output": "reports/cvpr/simulated_slam_multiseed_v1/seed_31001"
+    },
+    {
+      "seed": 31002,
+      "accepted": true,
+      "checks": {
+        "radar_has_returns": true,
+        "centre_obstacle_observed": true,
+        "sliding_origin_changed": true,
+        "occupied_map_nonempty": true,
+        "voxel_volume_is_3d": true,
+        "astar_detours_around_block": true,
+        "stage2_condition_valid": true,
+        "ellipsoid_vertical_axis_from_map": true
+      },
+      "total_returns": 1474,
+      "occupied_voxels": 465,
+      "route_length_m": 4.598813056945801,
+      "max_lateral_detour_m": 1.1600000858306885,
+      "output": "reports/cvpr/simulated_slam_multiseed_v1/seed_31002"
+    },
+    {
+      "seed": 31003,
+      "accepted": true,
+      "checks": {
+        "radar_has_returns": true,
+        "centre_obstacle_observed": true,
+        "sliding_origin_changed": true,
+        "occupied_map_nonempty": true,
+        "voxel_volume_is_3d": true,
+        "astar_detours_around_block": true,
+        "stage2_condition_valid": true,
+        "ellipsoid_vertical_axis_from_map": true
+      },
+      "total_returns": 1471,
+      "occupied_voxels": 457,
+      "route_length_m": 4.598813056945801,
+      "max_lateral_detour_m": 1.1600000858306885,
+      "output": "reports/cvpr/simulated_slam_multiseed_v1/seed_31003"
+    },
+    {
+      "seed": 31004,
+      "accepted": true,
+      "checks": {
+        "radar_has_returns": true,
+        "centre_obstacle_observed": true,
+        "sliding_origin_changed": true,
+        "occupied_map_nonempty": true,
+        "voxel_volume_is_3d": true,
+        "astar_detours_around_block": true,
+        "stage2_condition_valid": true,
+        "ellipsoid_vertical_axis_from_map": true
+      },
+      "total_returns": 1473,
+      "occupied_voxels": 462,
+      "route_length_m": 4.6650872230529785,
+      "max_lateral_detour_m": 1.2400000095367432,
+      "output": "reports/cvpr/simulated_slam_multiseed_v1/seed_31004"
+    },
+    {
+      "seed": 31005,
+      "accepted": true,
+      "checks": {
+        "radar_has_returns": true,
+        "centre_obstacle_observed": true,
+        "sliding_origin_changed": true,
+        "occupied_map_nonempty": true,
+        "voxel_volume_is_3d": true,
+        "astar_detours_around_block": true,
+        "stage2_condition_valid": true,
+        "ellipsoid_vertical_axis_from_map": true
+      },
+      "total_returns": 1469,
+      "occupied_voxels": 466,
+      "route_length_m": 4.598812580108643,
+      "max_lateral_detour_m": 1.1600000858306885,
+      "output": "reports/cvpr/simulated_slam_multiseed_v1/seed_31005"
+    },
+    {
+      "seed": 31006,
+      "accepted": true,
+      "checks": {
+        "radar_has_returns": true,
+        "centre_obstacle_observed": true,
+        "sliding_origin_changed": true,
+        "occupied_map_nonempty": true,
+        "voxel_volume_is_3d": true,
+        "astar_detours_around_block": true,
+        "stage2_condition_valid": true,
+        "ellipsoid_vertical_axis_from_map": true
+      },
+      "total_returns": 1471,
+      "occupied_voxels": 466,
+      "route_length_m": 4.598813056945801,
+      "max_lateral_detour_m": 1.1600000858306885,
+      "output": "reports/cvpr/simulated_slam_multiseed_v1/seed_31006"
+    },
+    {
+      "seed": 31007,
+      "accepted": true,
+      "checks": {
+        "radar_has_returns": true,
+        "centre_obstacle_observed": true,
+        "sliding_origin_changed": true,
+        "occupied_map_nonempty": true,
+        "voxel_volume_is_3d": true,
+        "astar_detours_around_block": true,
+        "stage2_condition_valid": true,
+        "ellipsoid_vertical_axis_from_map": true
+      },
+      "total_returns": 1470,
+      "occupied_voxels": 462,
+      "route_length_m": 4.598813056945801,
+      "max_lateral_detour_m": 1.1600000858306885,
+      "output": "reports/cvpr/simulated_slam_multiseed_v1/seed_31007"
+    }
+  ],
+  "policy": "all declared perception seeds are reported; no seed exclusion",
+  "provenance": "simulated MuJoCo radar with ground-truth pose stream; not real SLAM accuracy"
+}

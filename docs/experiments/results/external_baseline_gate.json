@@ -1,0 +1,50 @@
+{
+  "schema": "manifold-motion.external-baseline-gate.v1",
+  "claimable": false,
+  "reason": "no external adapter has yet passed the identical G1/MuJoCo/SONIC gate",
+  "required_protocol": {
+    "robot": "Unitree G1 29-DoF",
+    "controller": "same frozen SONIC checkpoint and action rate",
+    "scenes": "same scenario/seed pairs as configs/cvpr_simulation_protocol.json",
+    "safety": "same contact, self-manifold, tracking, keyframe and roll gates",
+    "training_budget": "reported separately; no external data leakage"
+  },
+  "adapters": [
+    {
+      "id": "dynamic-subgoal-pursuit",
+      "source": "https://arxiv.org/abs/2506.02206",
+      "adapter": "Digit/MPC -> G1/SONIC executor",
+      "status": "not_ready"
+    },
+    {
+      "id": "p3o-safe-locomotion",
+      "source": "https://arxiv.org/abs/2508.07611",
+      "adapter": "raw spatio-temporal LiDAR -> simulated radar/voxel observation",
+      "status": "not_ready"
+    },
+    {
+      "id": "guidewalk",
+      "source": "https://arxiv.org/abs/2606.10449",
+      "adapter": "guidance policy -> G1 environment-manifold interface",
+      "status": "not_ready"
+    },
+    {
+      "id": "polygonal-semantic-mapping",
+      "source": "https://arxiv.org/abs/2411.01919",
+      "adapter": "mapping/planner component only",
+      "status": "not_ready"
+    },
+    {
+      "id": "whole-body-imitation-centroidal-mpc",
+      "source": "https://arxiv.org/abs/2508.00362",
+      "adapter": "motion reference -> frozen G1 safety executor",
+      "status": "not_ready"
+    },
+    {
+      "id": "optimization-embedded-trajectory",
+      "source": "https://arxiv.org/pdf/2609.09158",
+      "adapter": "embedded optimizer -> G1 reference/projection interface",
+      "status": "not_ready"
+    }
+  ]
+}

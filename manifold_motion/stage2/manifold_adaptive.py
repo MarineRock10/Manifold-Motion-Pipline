@@ -100,9 +100,10 @@ def _apply_benchmark_method_profile(args: argparse.Namespace) -> dict[str, Any] 
     args.online_perception = bool(profile["online_environment_manifold"])
     args.online_semantic_shadow_gate = bool(profile["shadow_gate"])
     args.flow_state_history_conditioning = bool(profile["state_history_condition"])
-    # Ours-4 refreshes the selected primitive with the live state/history once when a new
-    # route segment is entered.  This replaces the stale static-scene full-route probe while
-    # preserving the online shadow gate and continuous final rollout.
+    # Ours-4 enables state/history conditioning.  Restrict same-primitive live refresh to the
+    # first active segment in the executor below: re-decoding an unchanged primitive at every
+    # boundary can restart a sparse SEED gait and stall long routes, while the first refresh
+    # still validates the measured initial state/history contract.
     args.online_same_primitive_recondition = bool(profile["state_history_condition"])
     args.projection_iterations = max(1, int(args.projection_iterations)) if profile["projection"] else 0
     # Ours-4 requests actual state/history conditioning. The execution policy below satisfies
@@ -122,7 +123,10 @@ def _offline_probe_iterations(args: argparse.Namespace) -> int:
     """
     requested = int(getattr(args, "online_condition_iterations", 0))
     online = bool(getattr(args, "online_perception", False))
-    live_recondition = bool(getattr(args, "online_same_primitive_recondition", False))
+    # Keep live same-primitive re-decoding opt-in until a root-state-trained SONIC checkpoint
+    # is supplied. Older test namespaces lack the opt-in field and retain profile behaviour.
+    live_recondition = bool(getattr(args, "online_same_primitive_recondition", False)
+                            and getattr(args, "live_recondition_enabled", True))
     dynamic = getattr(args, "dynamic_obstacle_event", None) is not None
     # A live state/history refresh at segment entry supersedes the duplicate static probe.  For
     # legacy/default runs retain the old probe contract; dynamic online runs also avoid replaying
@@ -1413,6 +1417,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             ),
             "same_primitive_recondition": bool(
                 getattr(args, "online_same_primitive_recondition", False)),
+            "live_recondition_enabled": bool(
+                getattr(args, "live_recondition_enabled", False)),
             "state_history_conditioning_enabled": bool(getattr(args, "flow_state_history_conditioning", True)),
             "segments": {str(k): {"tick": v.get("tick"), "history_ticks": v.get("history_ticks")}
                          for k, v in online_overrides.items()},
@@ -1570,6 +1576,8 @@ def main() -> int:
                         help="allowed deviation from +/-90 degrees for side-on candidates")
     parser.add_argument("--online-condition-iterations", type=int, default=1,
                         help="legacy pre-rollout recondition passes; Ours-4 conditions live at segment entry")
+    parser.add_argument("--live-recondition-enabled", action="store_true",
+                        help="opt in to same-primitive live Flow re-decoding; requires a root-state-trained SONIC")
     parser.add_argument("--receding-horizon-ticks", type=int, default=0,
                         help="refresh the future Flow reference every N control ticks (0 disables)")
     parser.add_argument("--receding-horizon-shadow", action="store_true",

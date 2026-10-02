@@ -52,6 +52,31 @@ See the [closed-loop report](docs/experiments/architecture_figure_v2/architectur
 the [physical acceptance report](docs/experiments/architecture_figure_v2/closed_loop_report.json),
 and the [reproduction protocol](docs/experiments/ARCHITECTURE_FIGURE_EXPERIMENT.md).
 
+## CVPR evaluation status (simulated SLAM/radar)
+
+The `deploy` perception path is now exercised with deterministic simulated radar and explicit
+pose/SLAM inputs, updating a robot-centred 3-D probabilistic voxel grid and environment
+corridor `M_e(t)`. Eight independent perception seeds pass the acceptance gates. The pose
+source is MuJoCo ground truth in this release, so this is a perception-chain test rather than
+a real-SLAM accuracy claim.
+
+The first frozen physical pilot has 3 seeds × 5 scenarios × 4 methods = 60 exact MuJoCo rows.
+It reports success, collision, clearance, planning latency, semantic action condition, and
+the MCSA score. It is not yet a SOTA result: B2 MCSA=0.630 and Ours-4 MCSA=0.628; dynamic
+crossing is 12/12 successful, while low-ceiling and compound narrow/turn cases remain failure
+clusters. These cases are retained as optimization gates.
+
+- [SOTA comparison and dataset protocol](docs/experiments/SOTA_BENCHMARK_PLAN.md)
+- [External-baseline claim gate](docs/experiments/EXTERNAL_ADAPTERS.md)
+- [8-seed simulated radar/SLAM report](docs/experiments/results/simulated_slam_multiseed_v1.json)
+- [60-row physical pilot](docs/experiments/results/cvpr_multiseed_core_v1_summary.json)
+- [Ours-4 opt-in/reconditioning audit](docs/experiments/results/cvpr_multiseed_ours4_v2_summary.json)
+- Re-run: `./scripts/run_simulated_slam_seeds.sh` and `./scripts/run_cvpr_multiseed_core.sh`
+
+External-paper numbers are not copied into the table. An external baseline is only claimed
+after adapting its public implementation to the same G1, MuJoCo, SONIC, scene/seed pairs and
+safety gates; otherwise this repository reports an explicit comparison gap.
+
 ## Data preparation
 
 The current data-construction direction is **recorded action → measured body envelope →

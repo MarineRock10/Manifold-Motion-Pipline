@@ -19,6 +19,7 @@ stage2_out="reports/manifold_motion/deploy_perception_continuous"
   --windows reports/manifold_motion/seed_windows_corridor_stage2_v2/seed_stage2_windows.npz \
   --side-gait-mode diagonal --num-candidates 2 \
   --online-condition-iterations 1 --receding-horizon-ticks 0 \
+  --stage1-router models/stage1/primitive_router_geometry_v2.pt \
   --online-perception --online-perception-scan-ticks 20 \
   --max-ticks 2600 --planner-body-radius-m 0.40 --planner-clearance-m 0.10 \
   --device cpu --fps 20

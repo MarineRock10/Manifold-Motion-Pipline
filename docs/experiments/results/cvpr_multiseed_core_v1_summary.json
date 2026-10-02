@@ -1,0 +1,153 @@
+{
+  "schema": "manifold-motion.multiseed-summary.v1",
+  "input_root": "reports/cvpr/physical_multiseed_core_v1",
+  "rows": 60,
+  "methods": {
+    "B2": {
+      "rows": 15,
+      "seeds": [
+        31000,
+        31001,
+        31002
+      ],
+      "success_rate": 0.6,
+      "collision_rate": 0.0,
+      "condition_action_rate": 0.8,
+      "mcsa_mean": 0.629744888405713,
+      "mcsa_std": 0.2628780857690834,
+      "mcsa_seed_bootstrap": {
+        "mean": 0.629744888405713,
+        "ci95": [
+          0.6279500898293955,
+          0.6326411983676562
+        ],
+        "seed_count": 3,
+        "draws": 4000
+      },
+      "min_clearance_mean_m": 2.1040344360594947,
+      "planning_p95_mean_ms": 157.0945235999801,
+      "failure_types": {
+        "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;terminal_keyframe_error;self_manifold_obstacle_clearance": 6
+      }
+    },
+    "Ours-2": {
+      "rows": 15,
+      "seeds": [
+        31000,
+        31001,
+        31002
+      ],
+      "success_rate": 0.6,
+      "collision_rate": 0.0,
+      "condition_action_rate": 0.8,
+      "mcsa_mean": 0.5938470657769294,
+      "mcsa_std": 0.27929604408623393,
+      "mcsa_seed_bootstrap": {
+        "mean": 0.5938470657769294,
+        "ci95": [
+          0.5924455041920638,
+          0.596095564080746
+        ],
+        "seed_count": 3,
+        "draws": 4000
+      },
+      "min_clearance_mean_m": 2.0920719182739655,
+      "planning_p95_mean_ms": 184.87455730332718,
+      "failure_types": {
+        "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;terminal_keyframe_error;self_manifold_obstacle_clearance": 6
+      }
+    },
+    "Ours-3": {
+      "rows": 15,
+      "seeds": [
+        31000,
+        31001,
+        31002
+      ],
+      "success_rate": 0.6,
+      "collision_rate": 0.0,
+      "condition_action_rate": 0.8,
+      "mcsa_mean": 0.5932817611587117,
+      "mcsa_std": 0.2795679074520675,
+      "mcsa_seed_bootstrap": {
+        "mean": 0.5932817611587117,
+        "ci95": [
+          0.5918645156733927,
+          0.595840704128764
+        ],
+        "seed_count": 3,
+        "draws": 4000
+      },
+      "min_clearance_mean_m": 2.0920719182739655,
+      "planning_p95_mean_ms": 193.93890059669926,
+      "failure_types": {
+        "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;terminal_keyframe_error;self_manifold_obstacle_clearance": 6
+      }
+    },
+    "Ours-4": {
+      "rows": 15,
+      "seeds": [
+        31000,
+        31001,
+        31002
+      ],
+      "success_rate": 0.4,
+      "collision_rate": 0.0,
+      "condition_action_rate": 1.0,
+      "mcsa_mean": 0.6282068331973114,
+      "mcsa_std": 0.2784427834678987,
+      "mcsa_seed_bootstrap": {
+        "mean": 0.6282068331973113,
+        "ci95": [
+          0.6209092998525815,
+          0.6327426821598857
+        ],
+        "seed_count": 3,
+        "draws": 4000
+      },
+      "min_clearance_mean_m": 2.1835320465266705,
+      "planning_p95_mean_ms": 198.16631179000598,
+      "failure_types": {
+        "goal_or_keyframe_not_reached;route_progress_stall;route_deviation;terminal_keyframe_error": 6,
+        "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;terminal_keyframe_error;self_manifold_obstacle_clearance": 3
+      }
+    }
+  },
+  "baseline": "B2",
+  "mcsa_definition": "0.45 safe_success + 0.25 condition_action + 0.20 clearance_score + 0.10 realtime_score",
+  "sota_status": {
+    "claimable": false,
+    "reason": "external methods are not yet evaluated under this identical G1/MuJoCo/SEED protocol",
+    "internal_baseline_beaten": false
+  },
+  "paired_delta_vs_baseline_mcsa": {
+    "Ours-2": {
+      "mean": -0.035897822628783604,
+      "ci95": [
+        -0.036545634286910156,
+        -0.03494996077141732
+      ],
+      "seed_count": 3,
+      "draws": 4000
+    },
+    "Ours-3": {
+      "mean": -0.03646312724700129,
+      "ci95": [
+        -0.0368004942388922,
+        -0.035810026155417285
+      ],
+      "seed_count": 3,
+      "draws": 4000
+    },
+    "Ours-4": {
+      "mean": -0.0015380552084015935,
+      "ci95": [
+        -0.011731898515074723,
+        0.004792592330490231
+      ],
+      "seed_count": 3,
+      "draws": 4000
+    }
+  },
+  "policy": "all available seed rows are aggregated; no post-hoc seed exclusion"
+}

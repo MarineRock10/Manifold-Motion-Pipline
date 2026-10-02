@@ -255,6 +255,12 @@ def execute_row(row: dict[str, Any], out: Path, *, skip_render: bool,
                ("0.06" if adapter.get("factory") == "narrow_corridor" else "0.10"),
                "--self-manifold-clearance-m", "0.02",
                "--max-ticks", str(int(max_ticks)), "--seed", str(row["seed"])]
+    # The current deploy chain uses the calibrated neural Stage-1 proposal with the same
+    # measured-M_e/self-manifold safety gate. Keep B2 as the explicitly offline comparator.
+    if str(row["method"]).startswith("Ours-"):
+        stage1_router = ROOT / "models/stage1/primitive_router_geometry_v2.pt"
+        if stage1_router.is_file():
+            command.extend(["--stage1-router", str(stage1_router)])
     if adapter.get("event"):
         command.extend(["--dynamic-obstacle-event", str(adapter["event"])])
     if skip_render:
