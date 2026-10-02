@@ -1,0 +1,10 @@
+{
+  "schema": "manifold-motion.sonic-adapter-dynamic-ab.v1",
+  "contract": "same online radar/SLAM crossing scene; frozen SONIC versus 0.25 trust-region adapter",
+  "all_accepted": true,
+  "rows": [
+    {"method": "frozen_sonic", "scenario": "dynamic_crossing", "accepted": true, "keyframes": 8, "physics_ticks": 285, "dynamic_wait_ticks": 23, "obstacle_contact_ticks": 0},
+    {"method": "sonic_adapter", "scenario": "dynamic_crossing", "accepted": true, "keyframes": 8, "physics_ticks": 277, "dynamic_wait_ticks": 25, "obstacle_contact_ticks": 0, "runtime_scale": 0.25}
+  ],
+  "interpretation": "The full adapter residual is not accepted out of distribution: an unscaled pilot fell in dynamic crossing. A 0.25 runtime trust region passed the same continuous MuJoCo gate. This is a safety result and a domain-shift finding, not an SOTA claim."
+}

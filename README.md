@@ -66,9 +66,11 @@ contains the complete GIF manifest, provenance and the larger action-pair table.
 | Frozen physical pilot | 3 seeds × 5 scenarios × 4 methods = 60 MuJoCo rows | See [pilot summary](docs/experiments/results/cvpr_multiseed_core_v1_summary.json) | Reproducible pilot; not yet an external SOTA claim. |
 | SONIC adapter warm-start | 3 training seeds | mean test MSE improvement ≈ 0.87%; exact zero-init parity | Supervised warm-start, then physical gate required. |
 | SONIC adapter physical A/B | wide/low/narrow × frozen/adapter | 6/6 keyframes and 0 obstacle contacts for all 6 rows | Adapter is usable and bounded; it is not uniformly better on every metric. |
+| Dynamic adapter safety | online radar crossing × frozen/adapter | 8/8 keyframes and 0 obstacle contacts with adapter scale 0.25 | Full residual is rejected under this domain shift; the trust-region result is reported as a safety finding. |
 | Low-clearance capability | low-1.10 m vs low-1.00 m | 3/3 vs 0/3 under frozen SONIC limits | The 1.00 m result is a controller-capability failure, not hidden as a planning success. |
 
 The physical adapter audit is [here](docs/experiments/results/sonic_adapter_physical_ab_v1.json).
+The dynamic crossing audit is [here](docs/experiments/results/sonic_adapter_dynamic_ab_v1.json).
 Its contract is strict: same generated candidates and scene seeds, with only the bounded
 condition adapter enabled/disabled. The adapter consumes 69-D executed state, 12-frame
 history, corridor/SDF, command and the available catalogue token; it is disabled by default.
@@ -123,6 +125,9 @@ export MUJOCO_GL=egl
 
 # bounded SONIC adapter warm-start (CPU-safe, three seeds)
 ./scripts/run_sonic_adapter_multiseed.sh
+
+# online dynamic crossing A/B; dynamic scenes use a 0.25 residual trust region
+./scripts/run_sonic_adapter_dynamic_ab.sh
 
 # one physical adapter A/B scene; omit --sonic-adapter for the frozen baseline
 ./scripts/python.sh -m manifold_motion.stage2.manifold_adaptive \\

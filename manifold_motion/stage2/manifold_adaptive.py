@@ -1663,6 +1663,8 @@ def main() -> int:
     parser.add_argument("--sonic-adapter", type=Path, default=None,
                         help="optional bounded SONIC condition adapter checkpoint; frozen SONIC remains default")
     parser.add_argument("--sonic-adapter-device", choices=("cpu", "cuda"), default="cpu")
+    parser.add_argument("--sonic-adapter-scale", type=float, default=1.0,
+                        help="runtime trust-region scale for the trained adapter residual")
     parser.add_argument("--fps", type=float, default=20.0)
     parser.add_argument("--skip-render", action="store_true")
     args = parser.parse_args()
@@ -1689,6 +1691,8 @@ def main() -> int:
         parser.error("candidate count and geometric parameters must be positive")
     if args.self_manifold_clearance_m < 0:
         parser.error("self-manifold clearance must be non-negative")
+    if not 0.0 <= args.sonic_adapter_scale <= 1.0:
+        parser.error("sonic-adapter-scale must be within [0,1]")
     if args.composer_switch_margin < 0 or args.composer_min_dwell_updates < 1 \
             or not 0.0 <= args.composer_confidence_floor <= 1.0:
         parser.error("online composer hysteresis parameters are invalid")

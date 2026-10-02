@@ -20,7 +20,7 @@ from manifold_motion.core import constants as C
 class SonicController:
     def __init__(self, encoder_path=C.ENCODER_ONNX, decoder_path=C.DECODER_ONNX,
                  obs_config=C.OBS_CONFIG_PATH, adapter_path: Path | None = None,
-                 adapter_device: str = "cpu"):
+                 adapter_device: str = "cpu", adapter_scale: float = 1.0):
         options = ort.SessionOptions()
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         options.intra_op_num_threads = C.ONNX_THREADS
@@ -49,6 +49,9 @@ class SonicController:
         # makes a missing/failed fine-tuning artifact fail closed to the proven controller.
         self.adapter = None
         self.adapter_device = str(adapter_device)
+        self.adapter_scale = float(adapter_scale)
+        if not 0.0 <= self.adapter_scale <= 1.0:
+            raise ValueError("SONIC adapter scale must be within [0,1]")
         self.adapter_condition: np.ndarray | None = None
         self.adapter_action_mask: np.ndarray | None = None
         self.adapter_path: str | None = None
@@ -101,6 +104,8 @@ class SonicController:
             self.history.append(self._zero_entry())
         self.last_action = np.zeros(29, dtype=np.float32)
         self.delta_heading = None
+        self.adapter_condition = None
+        self.adapter_action_mask = None
 
     def append_state(self, q_hw: np.ndarray, dq_hw: np.ndarray, base_quat: np.ndarray,
                      base_ang_vel: np.ndarray) -> None:
@@ -184,7 +189,11 @@ class SonicController:
                            torch.as_tensor(self.adapter_action_mask[None, :],
                                            device=self.adapter_device))
             with torch.no_grad():
-                action = self.adapter(base_tensor, condition_tensor, mask_tensor)[0].cpu().numpy()
+                adapted = self.adapter(base_tensor, condition_tensor, mask_tensor)[0].cpu().numpy()
+            # Keep a runtime trust-region around the frozen SONIC action.  This is important
+            # for radar/SLAM conditions outside the supervised flat-ground adapter archive:
+            # a bounded residual is not automatically a dynamically stable residual.
+            action = action.astype(np.float32) + self.adapter_scale * (adapted - action.astype(np.float32))
             action = np.asarray(action, dtype=np.float64)
 
         q_target = C.DEFAULT_ANGLES + action[C.ISAACLAB_TO_MUJOCO] * C.ACTION_SCALE

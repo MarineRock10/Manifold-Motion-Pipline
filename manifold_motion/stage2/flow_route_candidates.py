@@ -593,6 +593,7 @@ def _clone_sonic_controller(controller: SonicController) -> SonicController:
     # copied so screening cannot mutate the live controller's condition.
     clone.adapter = controller.adapter
     clone.adapter_device = controller.adapter_device
+    clone.adapter_scale = controller.adapter_scale
     clone.adapter_path = controller.adapter_path
     clone.adapter_condition = (None if controller.adapter_condition is None
                                else controller.adapter_condition.copy())
@@ -717,7 +718,8 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
     env = G1FlatEnv(scene)
     adapter_path = getattr(args, "sonic_adapter", None)
     controller = SonicController(adapter_path=adapter_path,
-                                 adapter_device=getattr(args, "sonic_adapter_device", "cpu"))
+                                 adapter_device=getattr(args, "sonic_adapter_device", "cpu"),
+                                 adapter_scale=float(getattr(args, "sonic_adapter_scale", 1.0)))
     contacts = _ContactMonitor(env.model)
     mujoco.mj_forward(env.model, env.data)
     runtime_boxes = _runtime_obstacle_boxes(env.model, env.data)
@@ -1456,6 +1458,8 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                                if controller.adapter is not None else None),
             "residual_bound": (float(controller.adapter.config.residual_bound)
                                 if controller.adapter is not None else None),
+            "runtime_scale": (float(controller.adapter_scale)
+                               if controller.adapter is not None else None),
             "contract": ("frozen ONNX SONIC + bounded state/history/M_e/SDF residual; refreshed each tick"
                          if controller.adapter is not None else "frozen ONNX SONIC"),
         },
@@ -1500,6 +1504,7 @@ def main() -> int:
     parser.add_argument("--sonic-adapter", type=Path, default=None,
                         help="optional bounded SONIC condition adapter checkpoint; frozen SONIC remains default")
     parser.add_argument("--sonic-adapter-device", choices=("cpu", "cuda"), default="cpu")
+    parser.add_argument("--sonic-adapter-scale", type=float, default=1.0)
     parser.add_argument("--skip-render", action="store_true", help="run the physical/candidate gate without GIF rendering")
     args = parser.parse_args()
     if args.num_candidates < 2: parser.error("num-candidates must be >= 2")
