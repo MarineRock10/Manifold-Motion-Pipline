@@ -42,6 +42,7 @@ from manifold_motion.stage2.long_horizon_avoidance import (
     _route_yaw, _simplify, _angle, _yaw, _rolling_reference, render,
 )
 from manifold_motion.stage2.validate import _motion_from_trajectory, validate_trajectory
+from manifold_motion.stage2.constrained_generator import family_joint_mask
 from manifold_motion.simulation.env import G1FlatEnv
 from manifold_motion.core.reference import ReferenceBuffer
 from manifold_motion.simulation.sonic import SonicController
@@ -83,6 +84,63 @@ PRIMITIVE_NAMES = {
     5: "walk_nominal",
     6: "walk_turn",
 }
+
+_ADAPTER_PRIMITIVE_NAMES = (
+    "walk_forward", "jog_forward", "hands_back_walk", "walk_lateral", "walk_curve",
+    "turn_in_place", "crouch_walk", "crouch_transition", "bend_duck_walk",
+    "dodge_lateral", "forward_lunge", "side_hop", "jump_forward", "broad_jump",
+    "high_jump", "box_jump", "step_up_box", "step_down_box", "kneel", "crawl",
+    "all_fours", "spider_crawl", "inchworm", "get_up_recovery", "vault",
+    "door_interaction", "ladder", "button_lever", "carry_object", "roll_recovery",
+)
+
+
+def _resample_adapter_corridor(corridor: np.ndarray, frames: int = 36) -> np.ndarray:
+    """Keep the adapter's training contract fixed while accepting 48-frame Flow corridors."""
+    values = np.asarray(corridor, dtype=np.float32)
+    if values.ndim != 2 or values.shape[1] != 7:
+        raise ValueError(f"adapter corridor must be [T,7], got {values.shape}")
+    if len(values) == frames:
+        return values
+    source = np.linspace(0.0, 1.0, len(values))
+    target = np.linspace(0.0, 1.0, frames)
+    return np.stack([np.interp(target, source, values[:, axis]) for axis in range(7)], axis=1).astype(np.float32)
+
+
+def _adapter_primitive_name(primitive: str) -> str:
+    aliases = {
+        "crouch": "crouch_walk", "low_transition": "crouch_transition",
+        "walk_lateral_reverse": "walk_lateral", "walk_nominal": "walk_forward",
+        "walk_turn": "turn_in_place",
+    }
+    return aliases.get(str(primitive), str(primitive))
+
+
+def _sonic_adapter_condition(state: np.ndarray, history: np.ndarray,
+                             corridor: np.ndarray, sdf: np.ndarray, command: np.ndarray,
+                             primitive: str, primitive_dim: int = 30) -> tuple[np.ndarray, np.ndarray]:
+    """Build exactly the condition layout used by train_sonic_adapter.py."""
+    state = np.asarray(state, dtype=np.float32).reshape(69)
+    history = np.asarray(history, dtype=np.float32).reshape(12, 69)
+    corridor = _resample_adapter_corridor(corridor, 36)
+    sdf = np.asarray(sdf, dtype=np.float32).reshape(10, 10, 8)
+    command = np.asarray(command, dtype=np.float32).reshape(9)
+    manifold = np.concatenate((corridor[:, 3:6].mean(axis=0), np.zeros(3, dtype=np.float32)))
+    primitive_name = _adapter_primitive_name(primitive)
+    one_hot = np.zeros(int(primitive_dim), dtype=np.float32)
+    if primitive_name in _ADAPTER_PRIMITIVE_NAMES:
+        index = _ADAPTER_PRIMITIVE_NAMES.index(primitive_name)
+        # The accepted supplemental archive may not contain every one of the 30 catalogue
+        # families.  Its trained one-hot width is therefore inferred from the checkpoint;
+        # an absent family remains an all-zero semantic token and never changes base SONIC.
+        if index < len(one_hot):
+            one_hot[index] = 1.0
+    augmentation = np.concatenate((state, history.reshape(-1), manifold,
+                                   corridor.reshape(-1), sdf.reshape(-1), command, one_hot))
+    # The local-body mask is the same family mask used during adapter training.  It prevents
+    # a crouch/side residual from silently perturbing arm joints in the frozen SONIC head.
+    mask = family_joint_mask(primitive_name).astype(np.float32)
+    return augmentation.astype(np.float32), mask
 
 
 def _canonical_primitive_id(name: str) -> int:
@@ -531,6 +589,15 @@ def _clone_sonic_controller(controller: SonicController) -> SonicController:
     clone.last_action = controller.last_action.copy()
     clone.delta_heading = (None if controller.delta_heading is None
                            else controller.delta_heading.copy())
+    # The adapter is immutable during a shadow rollout, while its per-tick condition is
+    # copied so screening cannot mutate the live controller's condition.
+    clone.adapter = controller.adapter
+    clone.adapter_device = controller.adapter_device
+    clone.adapter_path = controller.adapter_path
+    clone.adapter_condition = (None if controller.adapter_condition is None
+                               else controller.adapter_condition.copy())
+    clone.adapter_action_mask = (None if controller.adapter_action_mask is None
+                                 else controller.adapter_action_mask.copy())
     return clone
 
 
@@ -644,10 +711,13 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                  replan_callback: Any | None = None,
                  perception_callback: Any | None = None,
                  semantic_replan_callback: Any | None = None,
-                 composer_callback: Any | None = None
+                 composer_callback: Any | None = None,
+                 adapter_conditions: dict[str, np.ndarray] | None = None
                  ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
     env = G1FlatEnv(scene)
-    controller = SonicController()
+    adapter_path = getattr(args, "sonic_adapter", None)
+    controller = SonicController(adapter_path=adapter_path,
+                                 adapter_device=getattr(args, "sonic_adapter_device", "cpu"))
     contacts = _ContactMonitor(env.model)
     mujoco.mj_forward(env.model, env.data)
     runtime_boxes = _runtime_obstacle_boxes(env.model, env.data)
@@ -666,6 +736,7 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         if dynamic_event is not None:
             apply_dynamic_obstacle(env.model, env.data, dynamic_event, 0.0)
         state = env.state()
+        controller.set_adapter_condition(None)
         controller.append_state(state["q_hw"], state["dq_hw"], state["base_quat"], state["base_ang_vel"])
         _, target, _ = controller.act(hold, state["base_quat"])
         env.set_target(target); env.step()
@@ -1147,6 +1218,28 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
                 if switch_event["phase_handoff"].endswith("crossfade") else 0
             )
             switches.append(switch_event)
+        if controller.adapter is not None:
+            # Prefer the latest online M_e/SDF frame; fall back to the segment condition used
+            # to generate the candidate.  This makes the fine-tuned residual genuinely
+            # perception-conditioned instead of replaying a fixed scenario action.
+            cond_corridor = online_navigation.get("corridor") if online_navigation else None
+            cond_sdf = online_navigation.get("sdf") if online_navigation else None
+            if cond_corridor is None and adapter_conditions is not None:
+                cond_corridor = adapter_conditions.get(f"segment_{segment}_corridor")
+            if cond_sdf is None and adapter_conditions is not None:
+                cond_sdf = adapter_conditions.get(f"segment_{segment}_sdf")
+            cond_command = (adapter_conditions.get(f"segment_{segment}_command")
+                            if adapter_conditions is not None else None)
+            if cond_corridor is not None and cond_sdf is not None and cond_command is not None:
+                adapter_condition, adapter_mask = _sonic_adapter_condition(
+                    current_feature, np.asarray(recent_features, dtype=np.float32),
+                    np.asarray(cond_corridor), np.asarray(cond_sdf),
+                    np.asarray(cond_command), plan.primitive,
+                    primitive_dim=int(controller.adapter.config.condition_dim)
+                    - (69 + 12 * 69 + 6 + 36 * 7 + 10 * 10 * 8 + 9))
+                controller.set_adapter_condition(adapter_condition, adapter_mask)
+            else:
+                controller.set_adapter_condition(None)
         controller.append_state(state["q_hw"], state["dq_hw"], state["base_quat"], state["base_ang_vel"])
         action, target, _ = controller.act(reference, state["base_quat"])
         env.set_target(target); env.step()
@@ -1180,7 +1273,10 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
         previous_q = q_ref
         segment_ticks[segment] += 1
         executed_feature = _state_features({
-            "q_exec": executed["q_hw"][None, :], "dq_exec": executed["dq_hw"][None, :],
+            # Keep history in the same IsaacLab policy order as current_feature.  Mixing the
+            # hardware order into the adapter history silently swaps left/right joints.
+            "q_exec": executed["q_hw"][C.MUJOCO_TO_ISAACLAB][None, :],
+            "dq_exec": executed["dq_hw"][C.MUJOCO_TO_ISAACLAB][None, :],
             "base_quat": executed["base_quat"][None, :], "base_lin_vel": executed["base_lin_vel"][None, :],
             "foot_contact": np.atleast_1d(np.asarray(feet, dtype=np.float32))[None, :],
             "hand_contact": np.atleast_1d(np.asarray(hands, dtype=np.float32))[None, :],
@@ -1353,6 +1449,16 @@ def execute_plan(scene: Path, keyframes: np.ndarray, dense_route: np.ndarray,
             "consume root position directly, so these commands are logged for the closed-loop "
             "scheduler and future controller fine-tuning"
         ),
+        "sonic_adapter": {
+            "enabled": bool(controller.adapter is not None),
+            "checkpoint": controller.adapter_path,
+            "condition_dim": (int(controller.adapter.config.condition_dim)
+                               if controller.adapter is not None else None),
+            "residual_bound": (float(controller.adapter.config.residual_bound)
+                                if controller.adapter is not None else None),
+            "contract": ("frozen ONNX SONIC + bounded state/history/M_e/SDF residual; refreshed each tick"
+                         if controller.adapter is not None else "frozen ONNX SONIC"),
+        },
     }
     return data, summary
 
@@ -1391,6 +1497,9 @@ def main() -> int:
     parser.add_argument("--action-hold-ticks", type=int, default=45,
                         help="minimum ticks to show the preferred non-nominal action before a nominal fallback may take over")
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--sonic-adapter", type=Path, default=None,
+                        help="optional bounded SONIC condition adapter checkpoint; frozen SONIC remains default")
+    parser.add_argument("--sonic-adapter-device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--skip-render", action="store_true", help="run the physical/candidate gate without GIF rendering")
     args = parser.parse_args()
     if args.num_candidates < 2: parser.error("num-candidates must be >= 2")
@@ -1430,6 +1539,7 @@ def main() -> int:
         ) if router_probabilities is not None else preferences[segment_index])
         condition_arrays[f"segment_{segment_index}_corridor"] = corridor
         condition_arrays[f"segment_{segment_index}_sdf"] = sdf
+        condition_arrays[f"segment_{segment_index}_command"] = command
         segment_reports: list[dict[str, Any]] = []
         selected: CandidatePlan | None = None
         selected_nominal: CandidatePlan | None = None
@@ -1495,7 +1605,8 @@ def main() -> int:
                          if len(options) > 1 else None),
             "candidate_sets": segment_reports})
 
-    data, execution = execute_plan(args.scene, keyframes, dense, plan_options, args)
+    data, execution = execute_plan(args.scene, keyframes, dense, plan_options, args,
+                                   adapter_conditions=condition_arrays)
     origin = np.asarray(execution["start_world_xy_m"])
     world_keyframes, world_route = keyframes + origin, dense + origin
     report = {

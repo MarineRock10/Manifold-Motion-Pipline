@@ -9,6 +9,7 @@ The observation assembly follows the (now removed) GEAR-SONIC C++ deployment:
 from __future__ import annotations
 
 from collections import deque
+from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
@@ -18,7 +19,8 @@ from manifold_motion.core import constants as C
 
 class SonicController:
     def __init__(self, encoder_path=C.ENCODER_ONNX, decoder_path=C.DECODER_ONNX,
-                 obs_config=C.OBS_CONFIG_PATH):
+                 obs_config=C.OBS_CONFIG_PATH, adapter_path: Path | None = None,
+                 adapter_device: str = "cpu"):
         options = ort.SessionOptions()
         options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         options.intra_op_num_threads = C.ONNX_THREADS
@@ -43,7 +45,44 @@ class SonicController:
         self.history: deque[dict] = deque(maxlen=10)
         self.last_action = np.zeros(29, dtype=np.float32)
         self.delta_heading: np.ndarray | None = None
+        # The adapter is deliberately opt-in.  Keeping the ONNX sessions as the frozen base
+        # makes a missing/failed fine-tuning artifact fail closed to the proven controller.
+        self.adapter = None
+        self.adapter_device = str(adapter_device)
+        self.adapter_condition: np.ndarray | None = None
+        self.adapter_action_mask: np.ndarray | None = None
+        self.adapter_path: str | None = None
+        if adapter_path is not None:
+            self._load_adapter(Path(adapter_path))
         self.reset()
+
+    def _load_adapter(self, path: Path) -> None:
+        """Load a trained bounded residual without changing frozen SONIC at zero residual."""
+        if not path.is_file():
+            raise FileNotFoundError(f"SONIC adapter checkpoint not found: {path}")
+        import torch
+        from manifold_motion.stage2.sonic_adapter import SonicAdapterConfig, SonicConditionAdapter
+        payload = torch.load(path, map_location=self.adapter_device, weights_only=False)
+        if not isinstance(payload, dict) or "config" not in payload or "state_dict" not in payload:
+            raise ValueError("SONIC adapter checkpoint must contain config and state_dict")
+        config = SonicAdapterConfig(**payload["config"])
+        model = SonicConditionAdapter(config).to(self.adapter_device)
+        model.load_state_dict(payload["state_dict"])
+        model.eval()
+        self.adapter = model
+        self.adapter_path = str(path)
+
+    def set_adapter_condition(self, condition: np.ndarray | None,
+                              action_mask: np.ndarray | None = None) -> None:
+        """Set one flattened Stage-2 condition for the next act() call.
+
+        Conditions are refreshed every control tick by the route executor.  ``None`` disables
+        the residual for that tick, which is the safe behavior during warm-up/hold phases.
+        """
+        self.adapter_condition = (None if condition is None else
+                                  np.asarray(condition, dtype=np.float32).reshape(-1))
+        self.adapter_action_mask = (None if action_mask is None else
+                                    np.asarray(action_mask, dtype=np.float32).reshape(29))
 
     # -- state logging ------------------------------------------------------
     @staticmethod
@@ -134,6 +173,19 @@ class SonicController:
 
         dec_in = self._decoder_input(tokens)
         action = self.decoder.run(None, {"obs_dict": dec_in[None, :]})[0][0].astype(np.float64)
+
+        if self.adapter is not None and self.adapter_condition is not None:
+            import torch
+            base_tensor = torch.as_tensor(action.astype(np.float32)[None, :],
+                                          device=self.adapter_device)
+            condition_tensor = torch.as_tensor(self.adapter_condition[None, :],
+                                               device=self.adapter_device)
+            mask_tensor = (None if self.adapter_action_mask is None else
+                           torch.as_tensor(self.adapter_action_mask[None, :],
+                                           device=self.adapter_device))
+            with torch.no_grad():
+                action = self.adapter(base_tensor, condition_tensor, mask_tensor)[0].cpu().numpy()
+            action = np.asarray(action, dtype=np.float64)
 
         q_target = C.DEFAULT_ANGLES + action[C.ISAACLAB_TO_MUJOCO] * C.ACTION_SCALE
         self.last_action = action.astype(np.float32)

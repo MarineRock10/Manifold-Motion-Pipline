@@ -1,0 +1,16 @@
+{
+  "schema": "manifold-motion.sonic-adapter-physical-ab.v1",
+  "contract": "same generated candidates and scene seeds; only bounded SONIC residual differs",
+  "adapter_checkpoint": "reports/cvpr/sonic_adapter_multiseed_v1/seed_20260923/sonic_condition_adapter.pt",
+  "adapter_condition": "69-D state + 12x69 history + 6-D manifold + 36x7 corridor + 10x10x8 SDF + 9-D command + trained token width",
+  "all_accepted": true,
+  "rows": [
+    {"scenario": "wide", "method": "frozen_sonic", "accepted": true, "keyframes": 6, "physics_ticks": 243, "terminal_error_m": 0.207714, "route_deviation_p95_m": 0.138263, "tracking_error_mean_rad": 0.131630, "obstacle_contact_ticks": 0},
+    {"scenario": "wide", "method": "sonic_adapter", "accepted": true, "keyframes": 6, "physics_ticks": 237, "terminal_error_m": 0.218624, "route_deviation_p95_m": 0.129120, "tracking_error_mean_rad": 0.144937, "obstacle_contact_ticks": 0},
+    {"scenario": "low", "method": "frozen_sonic", "accepted": true, "keyframes": 6, "physics_ticks": 483, "terminal_error_m": 0.218990, "route_deviation_p95_m": 0.108884, "tracking_error_mean_rad": 0.205444, "obstacle_contact_ticks": 0},
+    {"scenario": "low", "method": "sonic_adapter", "accepted": true, "keyframes": 6, "physics_ticks": 471, "terminal_error_m": 0.207804, "route_deviation_p95_m": 0.216562, "tracking_error_mean_rad": 0.195445, "obstacle_contact_ticks": 0},
+    {"scenario": "narrow", "method": "frozen_sonic", "accepted": true, "keyframes": 6, "physics_ticks": 301, "terminal_error_m": 0.216578, "route_deviation_p95_m": 0.321084, "tracking_error_mean_rad": 0.116773, "obstacle_contact_ticks": 0},
+    {"scenario": "narrow", "method": "sonic_adapter", "accepted": true, "keyframes": 6, "physics_ticks": 318, "terminal_error_m": 0.217329, "route_deviation_p95_m": 0.278883, "tracking_error_mean_rad": 0.129435, "obstacle_contact_ticks": 0}
+  ],
+  "interpretation": "The bounded adapter preserves physical acceptance in this pilot and improves low-clearance tracking slightly, but is not uniformly better in route deviation or tracking. Larger multi-seed physical evaluation is required before claiming a controller improvement."
+}

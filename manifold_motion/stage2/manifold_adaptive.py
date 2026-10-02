@@ -934,6 +934,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             command = RouteFlowSampler._yaw_command(corridor[-1, :3], 0.0)
         condition_arrays[f"segment_{segment_index}_corridor"] = corridor
         condition_arrays[f"segment_{segment_index}_sdf"] = sdf
+        condition_arrays[f"segment_{segment_index}_command"] = command
         heading = float(np.arctan2(segment[-1, 1] - segment[0, 1],
                                    segment[-1, 0] - segment[0, 0]))
         decision = _route_decision(
@@ -1363,6 +1364,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                 semantic_replan_callback=(semantic_replan
                                           if getattr(args, "online_primitive_reroute", False) else None),
                 composer_callback=composer_callback_for(probe_composer),
+                adapter_conditions=condition_arrays,
             )
         finally:
             args.max_ticks = original_max_ticks
@@ -1380,6 +1382,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
         semantic_replan_callback=(semantic_replan
                                   if getattr(args, "online_primitive_reroute", False) else None),
         composer_callback=composer_callback_for(final_composer),
+        adapter_conditions=condition_arrays,
     )
     if final_perception is not None:
         final_perception.save(args.out / "online_perception.npz")
@@ -1657,6 +1660,9 @@ def main() -> int:
     parser.add_argument("--max-candidate-heading-error-rad", type=float, default=0.96,
                         help="hard body/displacement heading gate (0.96 rad ~= 55 degrees)")
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--sonic-adapter", type=Path, default=None,
+                        help="optional bounded SONIC condition adapter checkpoint; frozen SONIC remains default")
+    parser.add_argument("--sonic-adapter-device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--fps", type=float, default=20.0)
     parser.add_argument("--skip-render", action="store_true")
     args = parser.parse_args()
