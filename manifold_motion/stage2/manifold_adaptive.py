@@ -29,6 +29,7 @@ import numpy as np
 import torch
 
 from manifold_motion.core import constants as C
+from manifold_motion.core.reference import CROUCH_DIRECTION
 from manifold_motion.planning.corridor import ExecutedEnvelopeEstimator
 from manifold_motion.perception.corridor import PerceptionGridConfig, corridor_condition_sdf
 from manifold_motion.perception.scene_pointcloud import obstacle_pointcloud
@@ -1035,6 +1036,20 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                     raw_exemplar=(primitive_id in (4, 5) and not args.disable_anchor),
                     include_mean_anchor=not args.pure_stochastic_flow,
                 )
+                # A low corridor must change the body configuration, not only the semantic
+                # token.  The frozen SONIC reference does not consume root position, so use a
+                # small, geometry-derived joint residual along the validated crouch direction.
+                # It is applied before projection and the same MuJoCo/self-manifold gate that
+                # screens every candidate; no fixed scene or route index is involved.
+                if (primitive_id == 2 and getattr(args, "benchmark_method", None) != "B2"
+                        and getattr(args, "low_clearance_crouch_gain", 0.0) > 0.0):
+                    vertical_free = float(np.min(corridor[:, 5]))
+                    deficit = max(0.0, float(args.crouch_semi_z_m) - vertical_free)
+                    gain = float(np.clip(
+                        deficit * float(args.low_clearance_crouch_gain), 0.0,
+                        float(args.low_clearance_crouch_max)))
+                    if gain > 0.0:
+                        generated[:, :, :29] += gain * CROUCH_DIRECTION[None, None, :]
                 safety_anchor = False
                 if (condition and primitive_id == 2
                         and not args.disable_learned_anchor and not args.pure_stochastic_flow):
@@ -1048,7 +1063,23 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                         include_mean_anchor=True,
                     )
                     generated[0] = anchor_generated[0]
+                    if (getattr(args, "benchmark_method", None) != "B2"
+                            and getattr(args, "low_clearance_crouch_gain", 0.0) > 0.0):
+                        vertical_free = float(np.min(corridor[:, 5]))
+                        deficit = max(0.0, float(args.crouch_semi_z_m) - vertical_free)
+                        gain = float(np.clip(
+                            deficit * float(args.low_clearance_crouch_gain), 0.0,
+                            float(args.low_clearance_crouch_max)))
+                        if gain > 0.0:
+                            generated[0, :, :29] += gain * CROUCH_DIRECTION[None, :]
                     safety_anchor = True
+                # The residual is deliberately allowed to reach the physical joint boundary;
+                # clamp before projection so a hard-limit candidate is rejected by neither the
+                # numeric optimizer nor the MuJoCo screen merely because of floating-point
+                # accumulation at the limit.
+                generated[:, :, :29] = np.clip(
+                    generated[:, :, :29], runner.reference_lower[None, None, :],
+                    runner.reference_upper[None, None, :])
                 raw_generated = generated.copy()
                 projected = []
                 projection_reports = []
@@ -1176,6 +1207,15 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
             raw_exemplar=(primitive_id in (4, 5) and not args.disable_anchor),
             include_mean_anchor=not args.pure_stochastic_flow,
         )
+        if (primitive_id == 2 and getattr(args, "benchmark_method", None) != "B2"
+                and getattr(args, "low_clearance_crouch_gain", 0.0) > 0.0):
+            vertical_free = float(np.min(corridor[:, 5]))
+            deficit = max(0.0, float(args.crouch_semi_z_m) - vertical_free)
+            gain = float(np.clip(
+                deficit * float(args.low_clearance_crouch_gain), 0.0,
+                float(args.low_clearance_crouch_max)))
+            if gain > 0.0:
+                generated[:, :29] += gain * CROUCH_DIRECTION[None, None, :]
         if (primitive_id == 2 and not args.disable_learned_anchor
                 and not args.pure_stochastic_flow):
             anchor, _ = sampler.sample(
@@ -1184,6 +1224,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, np.ndarray]
                 include_mean_anchor=True,
             )
             generated[0] = anchor[0]
+            generated[:, :, :29] = np.clip(
+                generated[:, :, :29], runner.reference_lower[None, None, :],
+                runner.reference_upper[None, None, :])
         ranked: list[tuple[float, CandidatePlan]] = []
         candidate_rows = []
         for candidate_index, trajectory in enumerate(generated):
@@ -1567,6 +1610,10 @@ def main() -> int:
     parser.add_argument("--action-hold-ticks", type=int, default=0)
     parser.add_argument("--seed", type=int, default=20260918)
     parser.add_argument("--crouch-locomotion-source-index", type=int, default=590)
+    parser.add_argument("--low-clearance-crouch-gain", type=float, default=0.45,
+                        help="joint-rad residual per metre of vertical M_e deficit")
+    parser.add_argument("--low-clearance-crouch-max", type=float, default=0.12,
+                        help="maximum geometry-derived crouch residual in radians")
     parser.add_argument("--side-locomotion-source-index", type=int, default=1375)
     parser.add_argument("--side-on-source-index", type=int, default=1450,
                         help="SEED window with measured lateral displacement for strict side-on gait")

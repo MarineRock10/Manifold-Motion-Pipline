@@ -71,6 +71,8 @@ clusters. These cases are retained as optimization gates.
 - [8-seed simulated radar/SLAM report](docs/experiments/results/simulated_slam_multiseed_v1.json)
 - [60-row physical pilot](docs/experiments/results/cvpr_multiseed_core_v1_summary.json)
 - [Ours-4 opt-in/reconditioning audit](docs/experiments/results/cvpr_multiseed_ours4_v2_summary.json)
+- [SONIC residual adapter, 3-seed warm-start audit](docs/experiments/results/sonic_adapter_multiseed_v1_summary.json)
+- [Low-clearance capability audit](docs/experiments/results/low_clearance_multiseed_v1_summary.json)
 - Re-run: `./scripts/run_simulated_slam_seeds.sh` and `./scripts/run_cvpr_multiseed_core.sh`
 
 External-paper numbers are not copied into the table. An external baseline is only claimed

@@ -115,3 +115,9 @@ The external comparison boundary is executable through
 `manifold_motion.evaluation.external_baseline_gate`. Its current report is
 `docs/experiments/results/external_baseline_gate.json`; all listed adapters are explicitly
 `not_ready` until they pass the identical G1/MuJoCo/SONIC protocol.
+
+The latest low-clearance audit is also explicit: Ours-4 passes `low-110` in 3/3 seeds, but
+fails `low-100` in 0/3 seeds with the exact self-manifold clearance gate. The frozen SONIC
+joint limits leave only about 10 mm of measured ceiling clearance at that height, below the
+20 mm deployment threshold. This is recorded as a controller-capability gap; it is not
+converted into a success by changing MCSA or by excluding the stress case.

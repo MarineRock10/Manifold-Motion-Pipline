@@ -1,0 +1,39 @@
+{
+  "schema": "manifold-motion.sonic-adapter-multiseed.v1",
+  "dataset": "reports/cvpr/sonic_adapter_multiseed_v1",
+  "seeds": [
+    {
+      "seed": 20260923,
+      "train_count": 828,
+      "validation_count": 582,
+      "test_count": 2744,
+      "base_test_mse": 5.732922554016113,
+      "adapter_test_mse": 5.682641983032227,
+      "relative_test_improvement": 0.008770495416628887,
+      "zero_init_parity": 0.0
+    },
+    {
+      "seed": 20260924,
+      "train_count": 828,
+      "validation_count": 582,
+      "test_count": 2744,
+      "base_test_mse": 5.732922554016113,
+      "adapter_test_mse": 5.683127403259277,
+      "relative_test_improvement": 0.008685823031387874,
+      "zero_init_parity": 0.0
+    },
+    {
+      "seed": 20260925,
+      "train_count": 828,
+      "validation_count": 582,
+      "test_count": 2744,
+      "base_test_mse": 5.732922554016113,
+      "adapter_test_mse": 5.682653427124023,
+      "relative_test_improvement": 0.008768499211082914,
+      "zero_init_parity": 0.0
+    }
+  ],
+  "mean_relative_test_improvement": 0.008741605886366558,
+  "all_zero_init_exact": true,
+  "deployment_status": "warm-start audit only; full MuJoCo acceptance and PPO/distillation remain required"
+}

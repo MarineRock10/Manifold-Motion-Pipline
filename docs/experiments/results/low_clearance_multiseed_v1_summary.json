@@ -1,0 +1,43 @@
+{
+  "schema": "manifold-motion.multiseed-summary.v1",
+  "input_root": "reports/cvpr/low_clearance_multiseed_v1",
+  "rows": 6,
+  "methods": {
+    "Ours-4": {
+      "rows": 6,
+      "seeds": [
+        31000,
+        31001,
+        31002
+      ],
+      "success_rate": 0.5,
+      "collision_rate": 0.0,
+      "condition_action_rate": 1.0,
+      "mcsa_mean": 0.5472528195870123,
+      "mcsa_std": 0.2721517032310566,
+      "mcsa_seed_bootstrap": {
+        "mean": 0.5472528195870123,
+        "ci95": [
+          0.5451326268899803,
+          0.5488814488039044
+        ],
+        "seed_count": 3,
+        "draws": 4000
+      },
+      "min_clearance_mean_m": 0.025479434271498274,
+      "planning_p95_mean_ms": 107.14584049164648,
+      "failure_types": {
+        "goal_or_keyframe_not_reached;runtime_self_manifold_clearance_stop;terminal_keyframe_error;self_manifold_obstacle_clearance": 3
+      }
+    }
+  },
+  "baseline": "B2",
+  "mcsa_definition": "0.45 safe_success + 0.25 condition_action + 0.20 clearance_score + 0.10 realtime_score",
+  "sota_status": {
+    "claimable": false,
+    "reason": "external methods are not yet evaluated under this identical G1/MuJoCo/SEED protocol",
+    "internal_baseline_beaten": false
+  },
+  "paired_delta_vs_baseline_mcsa": {},
+  "policy": "all available seed rows are aggregated; no post-hoc seed exclusion"
+}
