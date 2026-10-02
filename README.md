@@ -31,6 +31,27 @@ controller, and long-horizon previews are no longer embedded on the homepage. Th
 remain available in the [historical demo index](docs/demo_gallery/README.md).
 The learned latent prior/composer is an archived ablation, not the default motion pipeline.
 
+## Latest end-to-end closed-loop result
+
+The current `deploy` branch now includes the architecture-aligned closed loop:
+
+```text
+simulated radar / 3-D voxel map → environment manifold M_e(t)
+→ calibrated Stage 1 p(z_p | M_e) → Stage 2 dynamic reference R
+→ safety projection → frozen SONIC → MuJoCo G1
+```
+
+The four panels below use the same held-out state/history and differ only in the environment
+manifold: wide corridor, low ceiling, narrow passage, and a center obstacle. The learned Stage 1
+proposal is accepted by the physical geometry gate on all 28 audited route segments; all four
+MuJoCo rollouts reach their keyframes with zero obstacle-contact ticks.
+
+![Latest Stage 1 / Stage 2 closed-loop result](docs/experiments/architecture_figure_v2/architecture_stage1_stage2.gif)
+
+See the [closed-loop report](docs/experiments/architecture_figure_v2/architecture_report.json),
+the [physical acceptance report](docs/experiments/architecture_figure_v2/closed_loop_report.json),
+and the [reproduction protocol](docs/experiments/ARCHITECTURE_FIGURE_EXPERIMENT.md).
+
 ## Data preparation
 
 The current data-construction direction is **recorded action → measured body envelope →
